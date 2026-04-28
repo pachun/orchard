@@ -1,0 +1,221 @@
+function use_vim_mode_on_cli {
+  bindkey -v
+
+  function use_jj_instead_of_escape {
+    switch_to_vim_command_mode=jj
+    bindkey -M viins $switch_to_vim_command_mode vi-cmd-mode
+  }
+  use_jj_instead_of_escape
+}
+
+function enable_colorized_output_for_commands_which_support_it_like_ls {
+  export CLICOLOR=1
+}
+
+function enable_zsh_syntax_highlighting {
+  # typing `ech` will appear red in the cli
+  # typing `echo` will appear green in the cli
+  source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+}
+
+function use_custom_prompt {
+  # defined in your iterm colors profile (the ansi colors)
+  COLOR_BLACK=0
+  COLOR_RED=1
+  COLOR_GREEN=2
+  COLOR_YELLOW=3
+  COLOR_BLUE=4
+  COLOR_MAGENTA=5
+  COLOR_CYAN=6
+  COLOR_WHITE=7
+
+  COLOR_BRIGHT_BLACK=8
+  COLOR_BRIGHT_RED=9
+  COLOR_BRIGHT_GREEN=10
+  COLOR_BRIGHT_YELLOW=11
+  COLOR_BRIGHT_BLUE=12
+  COLOR_BRIGHT_MAGENTA=13
+  COLOR_BRIGHT_CYAN=14
+  COLOR_BRIGHT_WHITE=15
+
+  # Set prompt components
+  function directory {
+    echo "%F{$COLOR_BRIGHT_WHITE}%1~%f"
+  }
+
+  function vim_mode {
+    if [[ $VIMODE == 'vicmd' ]]; then
+      echo "%F{$COLOR_BRIGHT_MAGENTA}✘%f"
+    else
+      echo "%F{$COLOR_GREEN}✔%f"
+    fi
+  }
+
+  function status_colored_git_branch {
+    if $(git rev-parse --is-inside-work-tree > /dev/null 2>&1); then
+      # Handle repos with no commits yet
+      if ! git rev-parse HEAD > /dev/null 2>&1; then
+        echo "%F{$COLOR_BRIGHT_CYAN}(no commits)%f"
+        return
+      fi
+      git_branch=$(git rev-parse --abbrev-ref HEAD)
+      git_status=$(git status)
+      if [[ -n "$(echo $git_status | grep 'Changes not staged')" ]]; then
+        echo "%F{$COLOR_BRIGHT_MAGENTA}$git_branch%f"
+      elif [[ -n "$(echo $git_status | grep 'rebasing')" ]]; then
+        echo "%F{$COLOR_BRIGHT_MAGENTA}(rebase in progress)%f"
+      elif [[ -n "$(echo $git_status | grep 'Changes to be committed')" ]]; then
+        echo "%F{$COLOR_BRIGHT_YELLOW}$git_branch%f"
+      elif [[ -n "$(echo $git_status | grep 'Untracked files')" ]]; then
+        echo "%F{$COLOR_BRIGHT_CYAN}$git_branch%f"
+      else
+        echo "%F{$COLOR_GREEN}$git_branch%f"
+      fi
+    fi
+  }
+
+  function allow_prompt_string_interpolation {
+    setopt promptsubst
+  }
+
+  function keep_vim_mode_current {
+    function zle-line-init zle-keymap-select {
+      VIMODE=$KEYMAP
+      zle reset-prompt
+    }
+
+    zle -N zle-line-init
+    zle -N zle-keymap-select
+  }
+
+  # Apply the settings
+  allow_prompt_string_interpolation
+  keep_vim_mode_current
+
+  # Combine the prompt components
+  PROMPT='$(directory) $(status_colored_git_branch)${$(status_colored_git_branch):+ }$(vim_mode) '
+}
+
+function set_neovim_as_default_editor {
+  export EDITOR=nvim
+  export VISUAL=nvim
+}
+
+function use_aliases {
+  alias e=exit
+  alias c=clear
+  alias vim=nvim
+  alias p='git push origin $(git rev-parse --abbrev-ref HEAD)'
+  alias gs="git status"
+  alias gl="git log"
+  alias gco="git checkout"
+  alias gri="git rebase -i"
+  alias gm="git merge"
+  alias wip="git add .; git commit -am 'wip' --no-verify"
+  alias lanip="ip addr | grep 'inet ' | grep -v '127.0.0.1' | awk '{print \$2}' | cut -d/ -f1"
+  alias nord_connect="nordvpn connect --group Dedicated_IP"
+  alias nord_disconnect="nordvpn disconnect"
+  alias battery="cat /sys/class/power_supply/macsmc-battery/capacity"
+
+  function keep {
+    if [[ -z "$1" ]]; then
+      echo "Usage: keep <branch-name>"
+      echo "Deletes all branches except the specified branch"
+      return 1
+    fi
+    git branch | grep -vE "^\*? ?$1$" | xargs git branch -D
+  }
+
+  function gh {
+    remote_url=$(git remote get-url origin 2>/dev/null)
+
+    if [[ -z "$remote_url" ]]; then
+      echo "No remote URL found." >&2
+      return 1
+    fi
+
+    remote_url=${remote_url%.git}
+
+    if [[ "$remote_url" =~ "github.com" ]]; then
+      xdg-open "${remote_url/git@github.com:/https://github.com/}"
+    elif [[ "$remote_url" =~ "gitlab.com" ]]; then
+      xdg-open "${remote_url/git@gitlab.com:/https://gitlab.com/}"
+    else
+      echo "Unknown remote host: $remote_url" >&2
+      return 1
+    fi
+  }
+
+  alias tls="tmux ls"
+
+  function tsr {
+    if [[ -z "$1" ]]; then
+      echo "Usage: sr NEW_SESSION_NAME"
+      return 1
+    fi
+
+    if [[ -z "$TMUX" ]]; then
+      echo "Not in a tmux session!"
+      return 1
+    fi
+
+    local current_session
+    current_session=$(tmux display-message -p "#S")
+
+    tmux rename-session -t "$current_session" "$1"
+    echo "Renamed session '$current_session' → '$1'"
+  }
+
+  function t {
+    if [[ -z "$1" ]]; then
+      echo "Usage: t SESSION_NAME"
+      echo "  If the session name exists, you'll attach"
+      echo "  If the session name does not exist, you'll create a new named session"
+      echo "  (You can list the current sessions with: \`tls\`)"
+      return 1
+    fi
+
+    if tmux has-session -t "$1" 2>/dev/null; then
+      tmux attach-session -t "$1"
+    else
+      tmux new-session -s "$1"
+    fi
+  }
+}
+
+function enable_git_command_tab_completions {
+  autoload -Uz compinit && compinit -C
+}
+
+function setup_asdf {
+  # https://asdf-vm.com/guide/getting-started.html#add-shims-directory-to-path-required-3
+  export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
+}
+
+function enable_asdf_autocompletion {
+  # https://asdf-vm.com/guide/getting-started.html#set-up-shell-completions-optional-3
+  fpath=(${ASDF_DATA_DIR:-$HOME/.asdf}/completions $fpath)
+  autoload -Uz compinit && compinit -C
+}
+
+function use_direnv {
+  eval "$(direnv hook zsh)"
+  # silence loading & unloading env var output
+  export DIRENV_LOG_FORMAT=""
+}
+
+use_vim_mode_on_cli
+enable_colorized_output_for_commands_which_support_it_like_ls
+use_custom_prompt
+set_neovim_as_default_editor
+use_aliases
+enable_git_command_tab_completions
+setup_asdf
+enable_asdf_autocompletion
+use_direnv
+
+# for claude code:
+export PATH="$HOME/.local/bin:$PATH"
+
+# keep at end
+enable_zsh_syntax_highlighting

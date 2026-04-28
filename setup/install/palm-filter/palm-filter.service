@@ -1,0 +1,33 @@
+[Unit]
+Description=Apple MTP trackpad palm-rejection shim
+After=systemd-udevd.service
+Wants=systemd-udevd.service
+
+[Service]
+Type=simple
+Environment=PF_WMAJ_PALM=2200
+Environment=PF_WMIN_FINGER=1300
+Environment=PF_PENDING_TIMEOUT_MS=500
+ExecStart=/usr/local/bin/palm-filter /dev/input/event2
+Restart=on-failure
+RestartSec=2
+StartLimitIntervalSec=30
+StartLimitBurst=10
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
