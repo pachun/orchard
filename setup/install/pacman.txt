@@ -1,7 +1,6 @@
 # core
 base-devel
 git
-github-cli
 openssh
 
 # shell + terminal
