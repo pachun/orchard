@@ -1,0 +1,16 @@
+# core
+base-devel
+git
+github-cli
+openssh
+
+# shell + terminal
+zsh
+zsh-syntax-highlighting
+neovim
+tmux
+direnv
+
+# desktop
+hyprland
+chromium

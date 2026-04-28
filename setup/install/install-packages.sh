@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-sudo pacman -Syu --needed --noconfirm \
-  zsh zsh-syntax-highlighting neovim tmux direnv hyprland chromium \
-  base-devel git
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mapfile -t pkgs < <(grep -v '^\s*\(#\|$\)' "$HERE/pacman.txt")
+sudo pacman -Syu --needed --noconfirm "${pkgs[@]}"
