@@ -2,6 +2,7 @@
 base-devel
 git
 openssh
+rust
 
 # shell + terminal
 zsh
