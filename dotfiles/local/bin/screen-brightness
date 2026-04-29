@@ -10,6 +10,15 @@ set -euo pipefail
 DEVICE=apple-panel-bl
 STEP="${2:-10%}"
 
+show_osd() {
+  local val max fraction
+  val=$(brightnessctl --device "$DEVICE" get)
+  max=$(brightnessctl --device "$DEVICE" max)
+  # swayosd's --custom-progress wants 0.0-1.0, not a percent.
+  fraction=$(awk -v v="$val" -v m="$max" 'BEGIN { printf "%.3f", v/m }')
+  swayosd-client --custom-progress "$fraction" --custom-icon display-brightness-symbolic 2>/dev/null || true
+}
+
 cur="$(brightnessctl --device "$DEVICE" get)"
 
 case "${1:-}" in
@@ -22,6 +31,7 @@ case "${1:-}" in
         hyprctl dispatch dpms off >/dev/null
       fi
     fi
+    show_osd
     ;;
   up)
     if [ "$cur" = "0" ]; then
@@ -30,6 +40,7 @@ case "${1:-}" in
     else
       brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}+" >/dev/null
     fi
+    show_osd
     ;;
   *)
     echo "usage: $(basename "$0") up|down [STEP%]" >&2

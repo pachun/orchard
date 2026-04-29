@@ -11,9 +11,31 @@ neovim
 tmux
 direnv
 
-# desktop
+# compositor + browser
 hyprland
 chromium
 
-# hardware controls: keyboard/screen backlight, etc
+# audio: PipeWire stack (server in /usr/bin/pipewire from the hyprland deps;
+# wireplumber is the session manager, pipewire-pulse/alsa are API shims for
+# apps that talk to PulseAudio/ALSA respectively).
+wireplumber
+pipewire-pulse
+pipewire-alsa
+
+# audio: Apple silicon speakers specifically. The kernel driver mutes the
+# speakers until speakersafetyd is running (DSP safety filter); asahi-audio
+# provides the per-model PipeWire/Wireplumber profiles.
+asahi-audio
+speakersafetyd
+
+# hardware controls: read/write backlight devices (screen + keyboard).
+# Used by the F1/F2 binds in hyprland.conf via the screen-brightness script.
 brightnessctl
+
+# media playback control via MPRIS (used by F7/F8/F9 binds in hyprland.conf
+# through swayosd-client's --playerctl wrapper).
+playerctl
+
+# OSD: on-screen pill that pops up when volume / brightness changes. Purely
+# visual — swap for `wob`, `avizo`, or remove entirely without touching audio.
+swayosd
