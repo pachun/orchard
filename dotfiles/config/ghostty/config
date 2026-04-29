@@ -1,0 +1,12 @@
+# Ghostty config. Symlinked from this repo by dotfiles/link.sh.
+
+# macOS-style copy/paste with Cmd (Super on Linux). xremap is configured
+# to NOT touch ghostty, so Super+C/V reach the terminal untranslated and
+# trigger the binds below — giving us "Cmd+C copies, Ctrl+C interrupts"
+# behavior to match macOS.
+keybind = super+c=copy_to_clipboard
+keybind = super+v=paste_from_clipboard
+
+# Don't pop a "Potentially Unsafe Paste" warning for content with newlines
+# or escape sequences. Paste normally and trust the source.
+clipboard-paste-protection = false

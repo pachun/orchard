@@ -6,7 +6,7 @@ Wants=systemd-udevd.service
 [Service]
 Type=simple
 Environment=PF_WMAJ_PALM=2200
-Environment=PF_WMIN_FINGER=1100
+Environment=PF_WMIN_FINGER=1300
 Environment=PF_PENDING_TIMEOUT_MS=500
 ExecStart=/usr/local/bin/palm-filter /dev/input/event2
 Restart=on-failure

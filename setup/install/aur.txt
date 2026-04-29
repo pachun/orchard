@@ -1,3 +1,3 @@
-# terminal
-ghostty
-
+# AUR packages installed via yay (one per line; '#' comments allowed).
+# Currently empty — ghostty was the only AUR entry, and it's now built
+# from a pinned stable tag by install-ghostty.sh instead.

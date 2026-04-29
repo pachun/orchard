@@ -1,0 +1,20 @@
+# Remap macOS-style Cmd+letter shortcuts to their Ctrl+letter equivalents,
+# everywhere except the terminal (where Ctrl+C must remain SIGINT, and the
+# terminal handles Cmd+C as copy via its own keybind).
+#
+# On Apple keyboards, Cmd is the Super key. Hyprland's window-manager binds
+# (Super+RETURN, Super+B, etc.) are NOT affected because we only remap the
+# specific letter combos listed below — bare Super and Super+other-keys
+# pass through untouched.
+
+keymap:
+  - name: macOS-style shortcuts (skipped in ghostty)
+    application:
+      not:
+        - com.mitchellh.ghostty
+    remap:
+      Super-c: C-c   # copy
+      Super-v: C-v   # paste
+      Super-x: C-x   # cut
+      Super-a: C-a   # select all
+      Super-z: C-z   # undo

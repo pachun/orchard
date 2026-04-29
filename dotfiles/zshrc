@@ -204,6 +204,18 @@ function use_direnv {
   export DIRENV_LOG_FORMAT=""
 }
 
+function fix_paste_redraw_in_vim_mode {
+  # Pasted content lands in zsh's buffer without triggering a screen redraw —
+  # characters only appear after the next keypress. Wrap the built-in
+  # bracketed-paste widget with an explicit `zle redisplay` to force a
+  # repaint when the paste finishes.
+  function _paste_then_redisplay {
+    zle .bracketed-paste
+    zle redisplay
+  }
+  zle -N bracketed-paste _paste_then_redisplay
+}
+
 use_vim_mode_on_cli
 enable_colorized_output_for_commands_which_support_it_like_ls
 use_custom_prompt
@@ -213,6 +225,7 @@ enable_git_command_tab_completions
 setup_asdf
 enable_asdf_autocompletion
 use_direnv
+fix_paste_redraw_in_vim_mode
 
 # for claude code:
 export PATH="$HOME/.local/bin:$PATH"

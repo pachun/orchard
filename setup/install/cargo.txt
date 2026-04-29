@@ -1,2 +1,5 @@
 # media
 ncspot
+
+# input remapper for window-class-aware keybinds (cmd+c/v/x/a/z outside terminal)
+xremap --features wlroots
