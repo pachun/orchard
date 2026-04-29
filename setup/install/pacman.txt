@@ -13,3 +13,6 @@ direnv
 # desktop
 hyprland
 chromium
+
+# hardware controls: keyboard/screen backlight, etc
+brightnessctl

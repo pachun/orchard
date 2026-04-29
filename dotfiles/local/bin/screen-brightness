@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Screen brightness with macOS-style power-off at the bottom of the range.
+# Apple panels have a hardware-floor brightness > 0, so dimming all the way
+# leaves a visible glow. macOS turns the backlight power off entirely at
+# minimum; we replicate that via Hyprland's DPMS dispatch.
+#
+# Usage: screen-brightness up|down [STEP%]   (STEP defaults to 10%)
+set -euo pipefail
+
+DEVICE=apple-panel-bl
+STEP="${2:-10%}"
+
+cur="$(brightnessctl --device "$DEVICE" get)"
+
+case "${1:-}" in
+  down)
+    if [ "$cur" = "0" ]; then
+      hyprctl dispatch dpms off >/dev/null
+    else
+      brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}-" >/dev/null
+      if [ "$(brightnessctl --device "$DEVICE" get)" = "0" ]; then
+        hyprctl dispatch dpms off >/dev/null
+      fi
+    fi
+    ;;
+  up)
+    if [ "$cur" = "0" ]; then
+      hyprctl dispatch dpms on >/dev/null
+      brightnessctl --device "$DEVICE" set "$STEP" >/dev/null
+    else
+      brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}+" >/dev/null
+    fi
+    ;;
+  *)
+    echo "usage: $(basename "$0") up|down [STEP%]" >&2
+    exit 2
+    ;;
+esac
