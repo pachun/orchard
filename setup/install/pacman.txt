@@ -90,6 +90,10 @@ jq
 cliphist
 wl-clipboard
 
+# Top status bar. Empty by default; modules added later in
+# dotfiles/config/waybar/config.jsonc.
+waybar
+
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.
 yazi

@@ -1,0 +1,16 @@
+/* Waybar — Catppuccin Frappé. Empty bar for now; styling here keeps the
+   bar itself themed when we start adding modules. */
+
+* {
+    font-family: "MonoLisa Variable", monospace;
+    font-size: 13px;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: #303446;            /* base */
+    color: #c6d0f5;                        /* text */
+    border-bottom: 1px solid #414559;     /* surface0 */
+}
