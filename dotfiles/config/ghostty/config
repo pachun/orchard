@@ -7,6 +7,22 @@
 keybind = super+c=copy_to_clipboard
 keybind = super+v=paste_from_clipboard
 
+# Cmd+W closes the current pane/tab; if it's the last one, closes the window.
+# (Cmd+Q is handled at the Hyprland level via killactive.)
+keybind = super+w=close_surface
+keybind = super+t=new_tab
+
+# Cmd+1..Cmd+9 jump to tab 1..8, Cmd+9 jumps to the last tab.
+keybind = super+one=goto_tab:1
+keybind = super+two=goto_tab:2
+keybind = super+three=goto_tab:3
+keybind = super+four=goto_tab:4
+keybind = super+five=goto_tab:5
+keybind = super+six=goto_tab:6
+keybind = super+seven=goto_tab:7
+keybind = super+eight=goto_tab:8
+keybind = super+nine=last_tab
+
 # Don't pop a "Potentially Unsafe Paste" warning for content with newlines
 # or escape sequences. Paste normally and trust the source.
 clipboard-paste-protection = false
