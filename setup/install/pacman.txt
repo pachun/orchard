@@ -84,6 +84,12 @@ libnotify
 # auth requests piped from cmd-polkit-agent.
 jq
 
+# Clipboard history. wl-clipboard provides wl-paste/wl-copy; cliphist is
+# the daemon that records every copy event and lets you paste older ones.
+# Wired to Cmd+Shift+V via a fuzzel picker in hyprland.conf.
+cliphist
+wl-clipboard
+
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.
 yazi
