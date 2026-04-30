@@ -531,46 +531,66 @@ fn main() -> Result<()> {
         source_path, keyboard_path, wmaj_palm, wmin_finger, pending_timeout_ms, typing_lockout_ms
     );
 
-    // Spawn one thread per keyboard device that stamps `last_keypress_ms`
-    // on every key-down event. Watching all keyboards (rather than a single
-    // hardcoded path) is important because remappers like xremap exclusively
-    // grab the real keyboard and re-emit events via a virtual uinput device;
-    // we need to read from that virtual device, not the grabbed original.
+    // Watch every keyboard device for keypresses to stamp `last_keypress_ms`.
+    // A supervisor thread periodically rescans /proc/bus/input/devices so we
+    // pick up keyboards that appear *after* palm-filter starts — most notably
+    // xremap's virtual keyboard, which only exists once xremap launches from
+    // Hyprland's exec-once during user login (well after this system service
+    // has started at boot). Without rescanning, palm-filter would only ever
+    // see the original keyboard, which xremap exclusively grabs and silences
+    // for everyone else.
     let last_keypress_ms = Arc::new(AtomicU64::new(0));
-    let mut kbd_paths = find_keyboard_paths();
-    if kbd_paths.is_empty() {
-        kbd_paths.push(keyboard_path.clone());
-    }
-    eprintln!("palm-filter: watching keyboards: {:?}", kbd_paths);
-    for path in kbd_paths {
+    {
         let last = last_keypress_ms.clone();
-        std::thread::spawn(move || loop {
-            let mut kbd = match Device::open(&path) {
-                Ok(d) => d,
-                Err(e) => {
-                    eprintln!("palm-filter: keyboard {} unavailable ({}); retrying in 5s", path, e);
-                    std::thread::sleep(std::time::Duration::from_secs(5));
-                    continue;
-                }
-            };
+        let fallback = keyboard_path.clone();
+        std::thread::spawn(move || {
+            let mut watched: std::collections::HashSet<String> = std::collections::HashSet::new();
             loop {
-                match kbd.fetch_events() {
-                    Ok(events) => {
-                        for ev in events {
-                            // Key-down (1) and auto-repeat (2) — both count as
-                            // "user is typing". Releases (value=0) don't refresh
-                            // the lockout; the natural pause after a release lets
-                            // the trackpad become responsive again.
-                            if ev.event_type() == EventType::KEY && ev.value() != 0 {
-                                last.store(now_ms(), Ordering::Relaxed);
+                let mut paths = find_keyboard_paths();
+                if paths.is_empty() {
+                    paths.push(fallback.clone());
+                }
+                for path in paths {
+                    if watched.contains(&path) {
+                        continue;
+                    }
+                    watched.insert(path.clone());
+                    eprintln!("palm-filter: watching keyboard {}", path);
+                    let last = last.clone();
+                    let p = path.clone();
+                    std::thread::spawn(move || loop {
+                        let mut kbd = match Device::open(&p) {
+                            Ok(d) => d,
+                            Err(e) => {
+                                eprintln!("palm-filter: keyboard {} unavailable ({}); retrying in 5s", p, e);
+                                std::thread::sleep(std::time::Duration::from_secs(5));
+                                continue;
+                            }
+                        };
+                        loop {
+                            match kbd.fetch_events() {
+                                Ok(events) => {
+                                    for ev in events {
+                                        // Key-down (1) and auto-repeat (2) — both count as
+                                        // "user is typing". Releases (value=0) don't refresh
+                                        // the lockout; the natural pause after a release lets
+                                        // the trackpad become responsive again.
+                                        if ev.event_type() == EventType::KEY && ev.value() != 0 {
+                                            last.store(now_ms(), Ordering::Relaxed);
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("palm-filter: keyboard read error on {}: {}; reopening", p, e);
+                                    break;
+                                }
                             }
                         }
-                    }
-                    Err(e) => {
-                        eprintln!("palm-filter: keyboard read error on {}: {}; reopening", path, e);
-                        break;
-                    }
+                    });
                 }
+                // Rescan periodically — xremap's virtual keyboard appears
+                // mid-session; this picks it up shortly after.
+                std::thread::sleep(std::time::Duration::from_secs(2));
             }
         });
     }
