@@ -12,8 +12,7 @@ neovim
 tmux
 direnv
 
-# compositor + browser
-hyprland
+# browser
 chromium
 
 # audio: PipeWire stack (server in /usr/bin/pipewire from the hyprland deps;
