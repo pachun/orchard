@@ -26,3 +26,18 @@ keybind = super+nine=last_tab
 # Don't pop a "Potentially Unsafe Paste" warning for content with newlines
 # or escape sequences. Paste normally and trust the source.
 clipboard-paste-protection = false
+
+# MonoLisa Variable ships named instances (Light, Regular, Medium,
+# SemiBold, Bold, ExtraBold, ...). On Linux, ghostty has no font-thicken
+# equivalent — pick a heavier named instance via font-style instead.
+font-family = "MonoLisa Variable"
+font-style = Medium
+
+# Disable programming ligatures (== stays "==", => stays "=>", etc.).
+font-feature = -calt, -liga, -dlig
+
+# Default to a block cursor everywhere — including at the shell prompt
+# (ghostty's shell integration normally sets a bar there, this disables that).
+cursor-style = block
+cursor-style-blink = false
+shell-integration-features = no-cursor
