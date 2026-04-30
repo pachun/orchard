@@ -5,9 +5,10 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
-# Pin hyprland to vendored .pkg before install-packages.sh runs `pacman -Syu`,
-# so the IgnorePkg entry takes effect and the upgrade skips the hypr stack.
-bash "$HERE/install/install-hyprland.sh"
+# Build patched aquamarine before install-packages.sh runs `pacman -Syu`,
+# so the IgnorePkg entry takes effect and the upgrade leaves our build
+# alone. See install-aquamarine.sh for the full why.
+bash "$HERE/install/install-aquamarine.sh"
 
 bash "$HERE/install/install-packages.sh"
 bash "$HERE/install/install-yay.sh"

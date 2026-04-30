@@ -54,10 +54,16 @@ wtype
 # isn't on it. foot is the lightest of the supported ones.
 foot
 
-# Hyprland-specific xdg-desktop-portal backend. Implements the Screencast
-# and Screenshot interfaces (browser tab sharing, Discord screen share,
-# screenshot tools). File pickers and settings come from the gtk backend
-# (xdg-desktop-portal-gtk, transitively installed).
+# Hyprland compositor itself + the welcome / Qt utilities. Other hypr*
+# packages (hyprutils, hyprlang, hyprcursor, hyprgraphics, hyprtoolkit,
+# hyprwayland-scanner, hyprwire) are pulled transitively. aquamarine is
+# NOT here — install-aquamarine.sh builds a patched version before this
+# step runs.
+hyprland
+hyprland-guiutils
+
+# Hyprland-specific xdg-desktop-portal backend (Screencast / Screenshot
+# for browser tab sharing, Discord screen share, screenshot tools).
 xdg-desktop-portal-hyprland
 
 # Qt theming engine + Qt6 settings. The xdg-desktop-portal-hyprland share
