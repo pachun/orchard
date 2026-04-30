@@ -18,3 +18,10 @@ keymap:
       Super-x: C-x   # cut
       Super-a: C-a   # select all
       Super-z: C-z   # undo
+
+  - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
+    remap:
+      # Cmd+Shift+[ → Ctrl+Shift+Tab (previous tab)
+      Super-Shift-LeftBrace: C-Shift-Tab
+      # Cmd+Shift+] → Ctrl+Tab (next tab)
+      Super-Shift-RightBrace: C-Tab
