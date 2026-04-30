@@ -9,6 +9,11 @@
 //   Pending = no events forwarded yet
 //     -> Palm   if WIDTH_MAJOR > WMAJ_PALM_THRESHOLD
 //     -> Finger if WIDTH_MINOR >= WMIN_FINGER_THRESHOLD
+//     -> Finger if another active slot started within PF_PAIR_WINDOW_MS
+//        (multi-slot heuristic: deliberate two-finger gestures arrive as
+//         a near-simultaneous pair; palm contacts during typing don't.
+//         Neither finger has to cross the width threshold individually,
+//         which fixes light or asymmetric two-finger scrolls.)
 //   Finger  = events forwarded
 //     -> Palm   if WIDTH_MAJOR > WMAJ_PALM_THRESHOLD (late palm; cancel via TID=-1)
 //   Palm    = sticky, all events dropped
@@ -25,11 +30,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Tunable thresholds. Override via env:
-//   PF_WMAJ_PALM, PF_WMIN_FINGER, PF_PENDING_TIMEOUT_MS, PF_TYPING_LOCKOUT_MS.
+//   PF_WMAJ_PALM, PF_WMIN_FINGER, PF_PENDING_TIMEOUT_MS, PF_TYPING_LOCKOUT_MS,
+//   PF_PAIR_WINDOW_MS.
 const DEFAULT_WMAJ_PALM: i32 = 2200;
 const DEFAULT_WMIN_FINGER: i32 = 1300;
 const DEFAULT_PENDING_TIMEOUT_MS: u64 = 500;
 const DEFAULT_TYPING_LOCKOUT_MS: u64 = 500;
+const DEFAULT_PAIR_WINDOW_MS: u64 = 150;
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
@@ -102,6 +109,7 @@ struct Slot {
     class: Class,
     tracking_id: i32,
     started_at_frame: u64,
+    started_at_ms: u64,
     touch_major: i32,
     touch_minor: i32,
     width_major: i32,
@@ -123,6 +131,7 @@ impl Slot {
             class: Class::Empty,
             tracking_id: -1,
             started_at_frame: 0,
+            started_at_ms: 0,
             touch_major: 0,
             touch_minor: 0,
             width_major: 0,
@@ -145,6 +154,7 @@ struct Filter {
     wmin_finger: i32,
     pending_timeout_frames: u64, // approximate; ~125Hz so 8ms/frame
     typing_lockout_ms: u64,
+    pair_window_ms: u64,
     last_keypress_ms: Arc<AtomicU64>,
     // Buffer for the current frame's events (between SYN_REPORTs).
     frame_events: Vec<InputEvent>,
@@ -160,6 +170,7 @@ impl Filter {
         wmin_finger: i32,
         pending_timeout_ms: u64,
         typing_lockout_ms: u64,
+        pair_window_ms: u64,
         last_keypress_ms: Arc<AtomicU64>,
     ) -> Self {
         // Apple MTP reports at ~125 Hz (8ms/frame). Convert ms to frames conservatively.
@@ -172,6 +183,7 @@ impl Filter {
             wmin_finger,
             pending_timeout_frames,
             typing_lockout_ms,
+            pair_window_ms,
             last_keypress_ms,
             frame_events: Vec::with_capacity(64),
             touched_this_frame: Vec::with_capacity(8),
@@ -215,6 +227,7 @@ impl Filter {
                             fresh.class = Class::Pending;
                             fresh.tracking_id = val;
                             fresh.started_at_frame = self.frame_count;
+                            fresh.started_at_ms = now_ms();
                             self.slots[s] = fresh;
                             self.mark_touched(s as u16);
                         }
@@ -317,11 +330,65 @@ impl Filter {
             return Ok(());
         }
 
-        // Phase 1: classify Pending slots and detect late-palm Finger -> Palm transitions.
-        for s_idx in &self.touched_this_frame {
-            let s = &mut self.slots[*s_idx as usize];
+        // Phase 1a: reset frame-local flags on every slot (not just touched
+        // ones — pair detection below may add slots to touched_this_frame
+        // and we don't want a stale just_promoted from a previous frame).
+        for s in self.slots.iter_mut() {
             s.just_promoted = false;
             s.just_cancelled = false;
+        }
+
+        // Phase 1b: multi-slot pair detection. A Pending slot is promoted to
+        // Finger if any other active slot (Pending or Finger) started within
+        // pair_window_ms — deliberate two-finger gestures arrive as a near-
+        // simultaneous pair, while palms during typing don't. Skip if the
+        // contact is already obviously a palm by width.
+        if self.pair_window_ms > 0 {
+            let mut to_promote: Vec<usize> = Vec::new();
+            for i in 0..NUM_SLOTS {
+                if self.slots[i].class != Class::Pending {
+                    continue;
+                }
+                if self.slots[i].width_major > self.wmaj_palm {
+                    continue;
+                }
+                let started = self.slots[i].started_at_ms;
+                for j in 0..NUM_SLOTS {
+                    if i == j {
+                        continue;
+                    }
+                    let other = &self.slots[j];
+                    if !matches!(other.class, Class::Pending | Class::Finger) {
+                        continue;
+                    }
+                    let dt = if started > other.started_at_ms {
+                        started - other.started_at_ms
+                    } else {
+                        other.started_at_ms - started
+                    };
+                    if dt <= self.pair_window_ms {
+                        to_promote.push(i);
+                        break;
+                    }
+                }
+            }
+            for i in to_promote {
+                self.slots[i].class = Class::Finger;
+                self.slots[i].just_promoted = true;
+                // Make sure the promoted slot is emitted this frame even if
+                // the kernel didn't send any new data for it (e.g. a finger
+                // that contacted earlier and held still while a partner came
+                // down).
+                if !self.touched_this_frame.contains(&(i as u16)) {
+                    self.touched_this_frame.push(i as u16);
+                }
+            }
+        }
+
+        // Phase 1c: per-slot width-based classification for slots that
+        // weren't covered by pair detection.
+        for s_idx in &self.touched_this_frame {
+            let s = &mut self.slots[*s_idx as usize];
             match s.class {
                 Class::Pending => {
                     if s.width_major > self.wmaj_palm {
@@ -525,10 +592,14 @@ fn main() -> Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(DEFAULT_TYPING_LOCKOUT_MS);
+    let pair_window_ms: u64 = env::var("PF_PAIR_WINDOW_MS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_PAIR_WINDOW_MS);
 
     eprintln!(
-        "palm-filter: source={} keyboard={} wmaj_palm={} wmin_finger={} pending_timeout_ms={} typing_lockout_ms={}",
-        source_path, keyboard_path, wmaj_palm, wmin_finger, pending_timeout_ms, typing_lockout_ms
+        "palm-filter: source={} keyboard={} wmaj_palm={} wmin_finger={} pending_timeout_ms={} typing_lockout_ms={} pair_window_ms={}",
+        source_path, keyboard_path, wmaj_palm, wmin_finger, pending_timeout_ms, typing_lockout_ms, pair_window_ms
     );
 
     // Watch every keyboard device for keypresses to stamp `last_keypress_ms`.
@@ -611,6 +682,7 @@ fn main() -> Result<()> {
         wmin_finger,
         pending_timeout_ms,
         typing_lockout_ms,
+        pair_window_ms,
         last_keypress_ms,
     );
 

@@ -23,6 +23,10 @@ Per touch slot, sticky from contact start to release:
 
 - `WIDTH_MAJOR > PF_WMAJ_PALM` → Palm (drop all events)
 - `WIDTH_MINOR >= PF_WMIN_FINGER` → Finger (forward events)
+- another active slot started within `PF_PAIR_WINDOW_MS` → Finger
+  (multi-slot heuristic — deliberate two-finger gestures arrive as a
+  near-simultaneous pair, even if neither contact crosses the width
+  threshold individually; palm contacts during typing don't pair up)
 - otherwise → Pending (drop until classified or 500ms timeout)
 
 A Finger that later exceeds `PF_WMAJ_PALM` is cancelled (TID=-1 sent to
@@ -37,6 +41,8 @@ were fitted against an M-series MacBook trackpad (vendor 0x05ac, product
 - `PF_WMAJ_PALM=2200`
 - `PF_WMIN_FINGER=1300`
 - `PF_PENDING_TIMEOUT_MS=500`
+- `PF_TYPING_LOCKOUT_MS=700`
+- `PF_PAIR_WINDOW_MS=150`
 
 If a different machine drops fingers or leaks palms, capture fresh data
 and re-fit:
