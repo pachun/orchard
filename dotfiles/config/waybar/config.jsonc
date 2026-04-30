@@ -1,7 +1,11 @@
 {
     "layer": "top",
     "position": "top",
-    "height": 28,
+    // Sized to match the M2 MacBook Air notch strip: 1664 - 1600 = 64
+    // physical px = 32 logical px at scale 2.0. The bar fills that strip
+    // exactly, with the camera cutout hiding the center. Modules need
+    // to live on the far left / right when added.
+    "height": 29,
     "spacing": 0,
     "modules-left": [],
     "modules-center": [],
