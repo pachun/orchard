@@ -1,3 +1,12 @@
 # AUR packages installed via yay (one per line; '#' comments allowed).
-# Currently empty — ghostty was the only AUR entry, and it's now built
-# from a pinned stable tag by install-ghostty.sh instead.
+
+# Catppuccin Frappé GTK theme. Drives the appearance of GTK apps —
+# chromium file picker (via xdg-desktop-portal-gtk) is the main user.
+# Accent variant is chosen via gtk-theme-name in the gtk-3.0 / gtk-4.0
+# settings.ini under dotfiles/config/.
+catppuccin-gtk-theme-frappe
+
+# Backend for fuzzel-polkit-agent (vendored at dotfiles/local/bin/).
+# Provides `cmd-polkit-agent`, which registers with polkit and pipes
+# JSON to/from a chosen UI command — in our case, fuzzel.
+cmd-polkit-git

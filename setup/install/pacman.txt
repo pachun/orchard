@@ -54,11 +54,6 @@ wtype
 # isn't on it. foot is the lightest of the supported ones.
 foot
 
-# Polkit authentication agent (Hyprland-native). Pops the GUI auth prompt
-# when an app asks for privilege escalation via polkit (e.g. mounting a
-# drive from a file manager). Without this, those prompts fail silently.
-hyprpolkitagent
-
 # Notification daemon. Implements org.freedesktop.Notifications so apps
 # (chromium, electron, libnotify-using CLIs) actually display toasts.
 # Without one, those apps can freeze waiting for the D-Bus interface.
@@ -67,6 +62,10 @@ mako
 # Client side of the notification protocol — provides `notify-send` for
 # shell scripts and is what most CLI/GUI apps link against to emit toasts.
 libnotify
+
+# JSON parser. Used by fuzzel-polkit-agent (dotfiles/local/bin/) to read
+# auth requests piped from cmd-polkit-agent.
+jq
 
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.
