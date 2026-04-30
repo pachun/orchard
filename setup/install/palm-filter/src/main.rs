@@ -20,11 +20,50 @@ use evdev::{
     UinputAbsSetup,
 };
 use std::env;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-// Tunable thresholds. Override with env: PF_WMAJ_PALM, PF_WMIN_FINGER, PF_PENDING_TIMEOUT_MS.
+// Tunable thresholds. Override via env:
+//   PF_WMAJ_PALM, PF_WMIN_FINGER, PF_PENDING_TIMEOUT_MS, PF_TYPING_LOCKOUT_MS.
 const DEFAULT_WMAJ_PALM: i32 = 2200;
 const DEFAULT_WMIN_FINGER: i32 = 1300;
 const DEFAULT_PENDING_TIMEOUT_MS: u64 = 500;
+const DEFAULT_TYPING_LOCKOUT_MS: u64 = 500;
+
+fn now_ms() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
+
+// Scan /proc/bus/input/devices for all keyboards (any device whose Handlers
+// list includes `kbd`). Returns /dev/input/event* paths. We need this so
+// palm-filter's keypress watcher catches events from xremap's virtual
+// keyboard too, since xremap exclusively grabs the real keyboard device.
+fn find_keyboard_paths() -> Vec<String> {
+    let Ok(content) = std::fs::read_to_string("/proc/bus/input/devices") else {
+        return Vec::new();
+    };
+    let mut paths = Vec::new();
+    for block in content.split("\n\n") {
+        let mut handlers_line = None;
+        for line in block.lines() {
+            if let Some(rest) = line.strip_prefix("H: Handlers=") {
+                handlers_line = Some(rest);
+            }
+        }
+        let Some(h) = handlers_line else { continue };
+        let tokens: Vec<&str> = h.split_whitespace().collect();
+        if !tokens.iter().any(|t| *t == "kbd") {
+            continue;
+        }
+        for t in &tokens {
+            if t.starts_with("event") {
+                paths.push(format!("/dev/input/{}", t));
+            }
+        }
+    }
+    paths
+}
 
 const NUM_SLOTS: usize = 16;
 
@@ -105,6 +144,8 @@ struct Filter {
     wmaj_palm: i32,
     wmin_finger: i32,
     pending_timeout_frames: u64, // approximate; ~125Hz so 8ms/frame
+    typing_lockout_ms: u64,
+    last_keypress_ms: Arc<AtomicU64>,
     // Buffer for the current frame's events (between SYN_REPORTs).
     frame_events: Vec<InputEvent>,
     // Slots touched by the current frame.
@@ -114,7 +155,13 @@ struct Filter {
 }
 
 impl Filter {
-    fn new(wmaj_palm: i32, wmin_finger: i32, pending_timeout_ms: u64) -> Self {
+    fn new(
+        wmaj_palm: i32,
+        wmin_finger: i32,
+        pending_timeout_ms: u64,
+        typing_lockout_ms: u64,
+        last_keypress_ms: Arc<AtomicU64>,
+    ) -> Self {
         // Apple MTP reports at ~125 Hz (8ms/frame). Convert ms to frames conservatively.
         let pending_timeout_frames = pending_timeout_ms / 8 + 1;
         Self {
@@ -124,10 +171,17 @@ impl Filter {
             wmaj_palm,
             wmin_finger,
             pending_timeout_frames,
+            typing_lockout_ms,
+            last_keypress_ms,
             frame_events: Vec::with_capacity(64),
             touched_this_frame: Vec::with_capacity(8),
             closed_this_frame: Vec::with_capacity(8),
         }
+    }
+
+    fn in_typing_lockout(&self) -> bool {
+        let elapsed = now_ms().saturating_sub(self.last_keypress_ms.load(Ordering::Relaxed));
+        elapsed < self.typing_lockout_ms
     }
 
     fn mark_touched(&mut self, slot: u16) {
@@ -222,6 +276,47 @@ impl Filter {
 
     // Apply classification transitions and produce the output event stream.
     fn emit_frame(&mut self, vd: &mut VirtualDevice) -> Result<()> {
+        // Typing-lockout: any keystroke within the last `typing_lockout_ms`
+        // suppresses all trackpad emissions. If we had Finger slots being
+        // forwarded to libinput when typing started, send synthetic releases
+        // so libinput sees "no fingers" during the lockout. Slots are marked
+        // Palm so they don't re-promote when the lockout window ends.
+        if self.in_typing_lockout() {
+            let mut out: Vec<InputEvent> = Vec::with_capacity(16);
+            let mut emitted_slot: Option<u16> = None;
+            for (i, slot) in self.slots.iter_mut().enumerate() {
+                if slot.class == Class::Finger && slot.emitted_open {
+                    if emitted_slot != Some(i as u16) {
+                        out.push(abs(ABS_MT_SLOT, i as i32));
+                        emitted_slot = Some(i as u16);
+                    }
+                    out.push(abs(ABS_MT_TRACKING_ID, -1));
+                    slot.emitted_open = false;
+                    slot.class = Class::Palm;
+                }
+            }
+            if !out.is_empty() {
+                // Aggregate state: no fingers active during lockout.
+                out.push(key(BTN_TOUCH, 0));
+                out.push(key(BTN_TOOL_FINGER, 0));
+                out.push(key(BTN_TOOL_DOUBLETAP, 0));
+                out.push(key(BTN_TOOL_TRIPLETAP, 0));
+                out.push(key(BTN_TOOL_QUADTAP, 0));
+                out.push(key(BTN_TOOL_QUINTTAP, 0));
+                out.push(InputEvent::new(EventType::SYNCHRONIZATION.0, SYN_REPORT, 0));
+                vd.emit(&out)?;
+            }
+            self.frame_events.clear();
+            self.touched_this_frame.clear();
+            // Reset closed slots to Empty so kernel-level resets follow through.
+            for s_idx in &self.closed_this_frame {
+                self.slots[*s_idx as usize] = Slot::empty();
+            }
+            self.closed_this_frame.clear();
+            self.frame_count = self.frame_count.wrapping_add(1);
+            return Ok(());
+        }
+
         // Phase 1: classify Pending slots and detect late-palm Finger -> Palm transitions.
         for s_idx in &self.touched_this_frame {
             let s = &mut self.slots[*s_idx as usize];
@@ -410,6 +505,9 @@ fn main() -> Result<()> {
     let source_path = env::args()
         .nth(1)
         .unwrap_or_else(|| "/dev/input/event2".to_string());
+    let keyboard_path = env::args()
+        .nth(2)
+        .unwrap_or_else(|| "/dev/input/event1".to_string());
 
     let wmaj_palm: i32 = env::var("PF_WMAJ_PALM")
         .ok()
@@ -423,11 +521,59 @@ fn main() -> Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(DEFAULT_PENDING_TIMEOUT_MS);
+    let typing_lockout_ms: u64 = env::var("PF_TYPING_LOCKOUT_MS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_TYPING_LOCKOUT_MS);
 
     eprintln!(
-        "palm-filter: source={} wmaj_palm={} wmin_finger={} pending_timeout_ms={}",
-        source_path, wmaj_palm, wmin_finger, pending_timeout_ms
+        "palm-filter: source={} keyboard={} wmaj_palm={} wmin_finger={} pending_timeout_ms={} typing_lockout_ms={}",
+        source_path, keyboard_path, wmaj_palm, wmin_finger, pending_timeout_ms, typing_lockout_ms
     );
+
+    // Spawn one thread per keyboard device that stamps `last_keypress_ms`
+    // on every key-down event. Watching all keyboards (rather than a single
+    // hardcoded path) is important because remappers like xremap exclusively
+    // grab the real keyboard and re-emit events via a virtual uinput device;
+    // we need to read from that virtual device, not the grabbed original.
+    let last_keypress_ms = Arc::new(AtomicU64::new(0));
+    let mut kbd_paths = find_keyboard_paths();
+    if kbd_paths.is_empty() {
+        kbd_paths.push(keyboard_path.clone());
+    }
+    eprintln!("palm-filter: watching keyboards: {:?}", kbd_paths);
+    for path in kbd_paths {
+        let last = last_keypress_ms.clone();
+        std::thread::spawn(move || loop {
+            let mut kbd = match Device::open(&path) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("palm-filter: keyboard {} unavailable ({}); retrying in 5s", path, e);
+                    std::thread::sleep(std::time::Duration::from_secs(5));
+                    continue;
+                }
+            };
+            loop {
+                match kbd.fetch_events() {
+                    Ok(events) => {
+                        for ev in events {
+                            // Key-down (1) and auto-repeat (2) — both count as
+                            // "user is typing". Releases (value=0) don't refresh
+                            // the lockout; the natural pause after a release lets
+                            // the trackpad become responsive again.
+                            if ev.event_type() == EventType::KEY && ev.value() != 0 {
+                                last.store(now_ms(), Ordering::Relaxed);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("palm-filter: keyboard read error on {}: {}; reopening", path, e);
+                        break;
+                    }
+                }
+            }
+        });
+    }
 
     let mut src = Device::open(&source_path).with_context(|| format!("opening {}", source_path))?;
     eprintln!("source: {:?}", src.name());
@@ -440,7 +586,13 @@ fn main() -> Result<()> {
     src.grab().context("grabbing source device")?;
     eprintln!("grabbed source; entering event loop");
 
-    let mut filter = Filter::new(wmaj_palm, wmin_finger, pending_timeout_ms);
+    let mut filter = Filter::new(
+        wmaj_palm,
+        wmin_finger,
+        pending_timeout_ms,
+        typing_lockout_ms,
+        last_keypress_ms,
+    );
 
     loop {
         let events = src.fetch_events()?;

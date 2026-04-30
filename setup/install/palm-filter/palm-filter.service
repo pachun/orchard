@@ -8,7 +8,8 @@ Type=simple
 Environment=PF_WMAJ_PALM=2200
 Environment=PF_WMIN_FINGER=1300
 Environment=PF_PENDING_TIMEOUT_MS=500
-ExecStart=/usr/local/bin/palm-filter /dev/input/event2
+Environment=PF_TYPING_LOCKOUT_MS=700
+ExecStart=/usr/local/bin/palm-filter /dev/input/event2 /dev/input/event1
 Restart=on-failure
 RestartSec=2
 StartLimitIntervalSec=30
