@@ -10,3 +10,7 @@ catppuccin-gtk-theme-frappe
 # Provides `cmd-polkit-agent`, which registers with polkit and pipes
 # JSON to/from a chosen UI command — in our case, fuzzel.
 cmd-polkit-git
+
+# Catppuccin Kvantum theme. Selected variant set in
+# dotfiles/config/Kvantum/kvantum.kvconfig.
+kvantum-theme-catppuccin-git

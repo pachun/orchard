@@ -8,3 +8,9 @@ airpods connection
 top bar: time/date, battery, weather, bluetooth, wifi
 external monitor connection
 nord vpn
+imessage integration
+icloud files integration
+everything looks a little too zoomed in; the whole UI/desktop
+screenshot / record tool
+color picker tool
+home theatre setup w/ mac mini + plex to auto search for, download, populate movies and shows from iptorrents

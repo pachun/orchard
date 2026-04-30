@@ -54,6 +54,19 @@ wtype
 # isn't on it. foot is the lightest of the supported ones.
 foot
 
+# Hyprland-specific xdg-desktop-portal backend. Implements the Screencast
+# and Screenshot interfaces (browser tab sharing, Discord screen share,
+# screenshot tools). File pickers and settings come from the gtk backend
+# (xdg-desktop-portal-gtk, transitively installed).
+xdg-desktop-portal-hyprland
+
+# Qt theming engine + Qt6 settings. The xdg-desktop-portal-hyprland share
+# picker and any future Qt apps inherit a Catppuccin look via Kvantum
+# instead of the default unstyled gray. catppuccin-kvantum theme is
+# pulled from the AUR.
+kvantum
+qt6ct
+
 # Notification daemon. Implements org.freedesktop.Notifications so apps
 # (chromium, electron, libnotify-using CLIs) actually display toasts.
 # Without one, those apps can freeze waiting for the D-Bus interface.
