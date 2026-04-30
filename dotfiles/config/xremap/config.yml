@@ -20,17 +20,6 @@ keymap:
       Super-z: C-z   # undo
       Super-w: C-w   # close tab (or window if last tab)
       Super-t: C-t   # new tab
-      # Cmd+1..Cmd+9 jump to tab 1..8; Cmd+9 jumps to the last tab
-      # (matches chromium's Ctrl+1..Ctrl+9 convention)
-      Super-1: C-1
-      Super-2: C-2
-      Super-3: C-3
-      Super-4: C-4
-      Super-5: C-5
-      Super-6: C-6
-      Super-7: C-7
-      Super-8: C-8
-      Super-9: C-9
 
   - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
     remap:
