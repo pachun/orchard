@@ -54,13 +54,11 @@ wtype
 # isn't on it. foot is the lightest of the supported ones.
 foot
 
-# Hyprland compositor itself + the welcome / Qt utilities. Other hypr*
-# packages (hyprutils, hyprlang, hyprcursor, hyprgraphics, hyprtoolkit,
-# hyprwayland-scanner, hyprwire) are pulled transitively. aquamarine is
-# NOT here — install-aquamarine.sh builds a patched version before this
-# step runs.
+# Hyprland compositor. Other hypr* packages (hyprutils, hyprlang,
+# hyprcursor, hyprgraphics, hyprtoolkit, hyprwayland-scanner, hyprwire,
+# hyprland-guiutils) are pulled transitively. aquamarine is NOT here —
+# install-aquamarine.sh builds a patched version before this step runs.
 hyprland
-hyprland-guiutils
 
 # Hyprland-specific xdg-desktop-portal backend (Screencast / Screenshot
 # for browser tab sharing, Discord screen share, screenshot tools).
