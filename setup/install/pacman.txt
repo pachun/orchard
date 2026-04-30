@@ -68,8 +68,11 @@ mako
 # shell scripts and is what most CLI/GUI apps link against to emit toasts.
 libnotify
 
-# TUI file manager. Launched in a ghostty window via Cmd+E in hyprland.conf.
+# TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
+# extend yazi's preview support to extra image formats and video thumbnails.
 yazi
+imagemagick
+ffmpegthumbnailer
 
 # Wallpaper daemon. Invoked from hyprland.conf with `-i <image> -m fill`;
 # no config file. Switched off hyprpaper because hyprpaper 0.8.x crashes on
