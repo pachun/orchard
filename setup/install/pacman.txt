@@ -39,3 +39,11 @@ playerctl
 # OSD: on-screen pill that pops up when volume / brightness changes. Purely
 # visual — swap for `wob`, `avizo`, or remove entirely without touching audio.
 swayosd
+
+# Emoji picker (Ctrl+Cmd+Space binding in hyprland.conf, macOS-style).
+# rofimoji is the picker; fuzzel is the fast minimal wlroots selector it
+# draws into; wtype is the wayland typing tool that injects the chosen
+# emoji into the focused window.
+rofimoji
+fuzzel
+wtype
