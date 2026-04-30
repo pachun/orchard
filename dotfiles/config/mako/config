@@ -1,0 +1,36 @@
+# Mako notification daemon. Symlinked from this repo by dotfiles/link.sh.
+# Reload after edits with `makoctl reload`.
+#
+# Palette: Catppuccin Frappé — same theme ghostty uses, so toasts and
+# terminal output share a look. Hex values are taken from the upstream
+# Catppuccin spec; the section headers below override per-urgency.
+
+font=MonoLisa Variable Medium 11
+
+background-color=#303446
+text-color=#c6d0f5
+border-color=#8caaee
+border-size=2
+border-radius=10
+
+# Top-right, with a small inset so toasts don't kiss the screen edge.
+anchor=top-right
+margin=12
+padding=12,16
+
+width=360
+height=120
+max-icon-size=48
+
+default-timeout=5000
+ignore-timeout=1
+
+[urgency=low]
+border-color=#a5adce
+
+[urgency=normal]
+border-color=#8caaee
+
+[urgency=critical]
+border-color=#e78284
+default-timeout=0

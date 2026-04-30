@@ -59,6 +59,15 @@ foot
 # drive from a file manager). Without this, those prompts fail silently.
 hyprpolkitagent
 
+# Notification daemon. Implements org.freedesktop.Notifications so apps
+# (chromium, electron, libnotify-using CLIs) actually display toasts.
+# Without one, those apps can freeze waiting for the D-Bus interface.
+mako
+
+# Client side of the notification protocol — provides `notify-send` for
+# shell scripts and is what most CLI/GUI apps link against to emit toasts.
+libnotify
+
 # Wallpaper daemon. Invoked from hyprland.conf with `-i <image> -m fill`;
 # no config file. Switched off hyprpaper because hyprpaper 0.8.x crashes on
 # Asahi (empty EDID/monitor description → null std::string deref in the
