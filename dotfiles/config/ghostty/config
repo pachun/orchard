@@ -30,6 +30,8 @@ clipboard-paste-protection = false
 # MonoLisa Variable ships named instances (Light, Regular, Medium,
 # SemiBold, Bold, ExtraBold, ...). On Linux, ghostty has no font-thicken
 # equivalent — pick a heavier named instance via font-style instead.
+theme = "Catppuccin Frappe"
+
 font-family = "MonoLisa Variable"
 font-style = Medium
 

@@ -53,3 +53,8 @@ wtype
 # specific terminal binaries (kitty/alacritty/foot/...) and ghostty
 # isn't on it. foot is the lightest of the supported ones.
 foot
+
+# Polkit authentication agent (Hyprland-native). Pops the GUI auth prompt
+# when an app asks for privilege escalation via polkit (e.g. mounting a
+# drive from a file manager). Without this, those prompts fail silently.
+hyprpolkitagent
