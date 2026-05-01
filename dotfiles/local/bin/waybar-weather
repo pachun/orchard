@@ -1,9 +1,10 @@
 #!/bin/bash
 # Waybar weather module: fetches current condition + temperature from
 # wttr.in (location auto-detected from IP, units forced to US/Fahrenheit)
-# and emits "<icon> <temp>". Requires bash for $'\uXXXX' escape sequences
-# used by the icon glyphs from the Weather Icons subset of Symbols Nerd
-# Font Mono.
+# and emits "<icon> <temp>". Requires bash for the $'\UXXXXXXXX' escape
+# sequences used to embed the supplementary-plane MDI weather glyphs
+# from Symbols Nerd Font Mono (same icon family as battery / wifi —
+# outlined silhouette with state shown by partial fills inside).
 #
 # Resilience: every successful fetch caches its output. On network
 # failure we emit the cached value instead of "--", so the bar stays
@@ -42,25 +43,23 @@ if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
     is_night=1
 fi
 
-# Filled-style glyphs from the Weather Icons subset (wi-*) of the
-# Symbols Nerd Font. Codepoints from https://www.nerdfonts.com/cheat-sheet
-# — search for `nf-weather-...`.
-icon=$''  # wi-day-sunny
+# Outlined MDI weather glyphs from Symbols Nerd Font (U+F05xx range,
+# nf-md-weather_*). Same icon family as battery (nf-md-battery_*) and
+# wifi (nf-md-wifi_*) — outlined silhouette, state shown by fills inside.
+icon=$'\U000F0599'  # mdi-weather-sunny
 case "$condition" in
     Sunny|Clear)
-        if [ "$is_night" -eq 1 ]; then icon=$''; else icon=$''; fi
+        if [ "$is_night" -eq 1 ]; then icon=$'\U000F0594'; else icon=$'\U000F0599'; fi
         ;;
     'Partly cloudy'|'Partly Cloudy')
-        if [ "$is_night" -eq 1 ]; then icon=$''; else icon=$''; fi
+        if [ "$is_night" -eq 1 ]; then icon=$'\U000F0F31'; else icon=$'\U000F0595'; fi
         ;;
-    Cloudy|Overcast)              icon=$'' ;;
-    Mist|Fog|Haze)                icon=$'' ;;
-    *Rain*|Drizzle*|*Shower*)     icon=$'' ;;
-    *Snow*|Blizzard*|Sleet*)      icon=$'' ;;
-    *Thunder*|*Storm*)            icon=$'' ;;
+    Cloudy|Overcast)              icon=$'\U000F0590' ;;
+    Mist|Fog|Haze)                icon=$'\U000F0591' ;;
+    *Rain*|Drizzle*|*Shower*)     icon=$'\U000F0596' ;;
+    *Snow*|Blizzard*|Sleet*)      icon=$'\U000F0598' ;;
+    *Thunder*|*Storm*)            icon=$'\U000F0593' ;;
 esac
 
-# Pango span sizes just the icon up — leaves the temperature at the
-# module's default size so baselines with the other modules still align.
-output=$(printf "<span size='14pt'>%s</span> %s\n" "$icon" "$temp")
+output=$(printf '%s %s\n' "$icon" "$temp")
 printf '%s\n' "$output" | tee "$CACHE"

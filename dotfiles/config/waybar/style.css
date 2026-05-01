@@ -1,9 +1,10 @@
-/* Shared text style — every module inherits font-family, size, weight,
-   and color from here so baselines line up. Per-module CSS below only
-   touches padding and the few exceptions. */
+/* Single shared text style. Every module inherits font-family, size,
+   weight, and color from here so baselines and visual weight match.
+   Per-module CSS below only adjusts padding. If anything ever needs to
+   look different, override exactly one property — don't accumulate. */
 * {
-    font-family: "SF Pro Text", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
-    font-size: 12px;
+    font-family: "SF Pro", "Symbols Nerd Font Mono", sans-serif;
+    font-size: 14px;
     font-weight: 600;
     border: none;
     border-radius: 0;
@@ -18,5 +19,5 @@ window#waybar {
 
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
 #battery        { padding: 0 8px;          color: #c6d0f5; }
-#network        { padding: 0 4px 0 8px;    color: #c6d0f5; font-size: 15px; margin-top: 3px; }  /* icon-only — bumped to read closer to the weather icon's pango size; margin nudges the glyph down to sit on the same line as text in adjacent modules */
-#custom-clock   { padding: 0 14px 0 11px;  color: #c6d0f5; }                   /* 14 right = screen-edge breathing room */
+#network        { padding: 0 8px;          color: #c6d0f5; }
+#custom-clock   { padding: 0 14px 0 8px;   color: #c6d0f5; }   /* 14 right = screen-edge breathing room */
