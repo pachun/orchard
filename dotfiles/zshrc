@@ -148,9 +148,9 @@ function use_aliases {
 
   alias tls="tmux ls"
 
-  function tsr {
+  function trn {
     if [[ -z "$1" ]]; then
-      echo "Usage: sr NEW_SESSION_NAME"
+      echo "Usage: trn NEW_SESSION_NAME"
       return 1
     fi
 
@@ -169,16 +169,47 @@ function use_aliases {
   function t {
     if [[ -z "$1" ]]; then
       echo "Usage: t SESSION_NAME"
-      echo "  If the session name exists, you'll attach"
+      echo "  If the session name exists, you'll attach (or switch, if already in tmux)"
       echo "  If the session name does not exist, you'll create a new named session"
       echo "  (You can list the current sessions with: \`tls\`)"
       return 1
     fi
 
-    if tmux has-session -t "$1" 2>/dev/null; then
-      tmux attach-session -t "$1"
+    # Inside tmux already: use switch-client so we don't try to nest a
+    # second tmux instance inside the current pane. Also garbage-collect
+    # the session we're leaving if every pane in it is just an idle
+    # shell prompt — keeps stray auto-numbered sessions from piling up
+    # when you `t somewhere-else` out of a fresh ghostty.
+    if [[ -n "$TMUX" ]]; then
+      local current_session
+      current_session=$(tmux display-message -p "#S")
+
+      if [[ "$current_session" == "$1" ]]; then
+        return 0
+      fi
+
+      # Count panes whose foreground command is something other than a
+      # plain shell. If 0, the session has nothing running and is safe
+      # to kill after we switch out of it.
+      local non_idle_count
+      non_idle_count=$(tmux list-panes -s -t "$current_session" \
+        -F "#{pane_current_command}" 2>/dev/null \
+        | grep -vxE "zsh|bash|sh|fish|dash" | wc -l)
+
+      if ! tmux has-session -t "$1" 2>/dev/null; then
+        tmux new-session -d -s "$1"
+      fi
+      tmux switch-client -t "$1"
+
+      if [[ "$non_idle_count" == "0" ]]; then
+        tmux kill-session -t "$current_session"
+      fi
     else
-      tmux new-session -s "$1"
+      if tmux has-session -t "$1" 2>/dev/null; then
+        tmux attach-session -t "$1"
+      else
+        tmux new-session -s "$1"
+      fi
     fi
   }
 }

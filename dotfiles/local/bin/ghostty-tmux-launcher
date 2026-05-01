@@ -1,0 +1,6 @@
+#!/bin/sh
+# Launch a fresh tmux session per ghostty window so we're always in tmux
+# but new windows never attach to an existing session. tmux auto-names
+# the session "0", "1", "2"… and the prefix+d binding in tmux.conf
+# detects those numeric names and prompts for a rename when you detach.
+exec tmux new-session
