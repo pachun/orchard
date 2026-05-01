@@ -1,0 +1,7 @@
+/* Pull the Catppuccin Frappé GTK4 stylesheet in for libadwaita apps.
+   Doesn't fully theme libadwaita (it ignores @define-color, which is
+   most of what this theme uses), but does enough to nudge a few
+   surfaces toward Frappé. Some apps (gnome-calendar event text in
+   particular) will still render in Adwaita defaults — accepted tradeoff
+   instead of fighting libadwaita's anti-theming. */
+@import url("file:///usr/share/themes/catppuccin-frappe-blue-standard+default/gtk-4.0/gtk.css");

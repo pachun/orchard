@@ -48,7 +48,8 @@
         // don't wait 10 min for the next poll after wifi reconnects.
         "exec": "$HOME/.local/bin/waybar-weather",
         "interval": 600,
-        "signal": 8
+        "signal": 8,
+        "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Weather gnome-weather"
     },
 
     "battery": {

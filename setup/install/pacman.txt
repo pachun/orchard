@@ -29,6 +29,9 @@ gnome-online-accounts
 gnome-control-center
 gnome-keyring
 
+# weather — clickable from waybar's weather icon
+gnome-weather
+
 # audio: PipeWire stack (server in /usr/bin/pipewire from the hyprland deps;
 # wireplumber is the session manager, pipewire-pulse/alsa are API shims for
 # apps that talk to PulseAudio/ALSA respectively).
