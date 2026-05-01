@@ -7,9 +7,28 @@
     // to live on the far left / right when added.
     "height": 29,
     "spacing": 0,
-    "modules-left": [],
+    "modules-left": ["custom/system", "hyprland/workspaces"],
+
+    "custom/system": {
+        // Placeholder for a future system-settings entry point. macOS-style
+        // Apple glyph (nf-fa-apple, U+F179). Wire `on-click` later when we
+        // pick the actual settings target.
+        "format": "",
+        "tooltip": false
+    },
     "modules-center": [],
     "modules-right": ["custom/weather", "battery", "network", "custom/clock"],
+
+    "hyprland/workspaces": {
+        // Always show 1..5 even when empty. Click to switch. Each
+        // workspace shows its number; the active one is replaced by
+        // a rounded square via CSS (color: transparent + filled bg).
+        "format": "{id}",
+        "persistent-workspaces": {
+            "*": [1, 2, 3, 4, 5]
+        },
+        "on-click": "activate"
+    },
 
     "custom/weather": {
         // Wraps wttr.in via dotfiles/local/bin/waybar-weather. Polls

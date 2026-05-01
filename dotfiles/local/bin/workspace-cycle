@@ -1,45 +1,26 @@
 #!/usr/bin/env bash
-# macOS-Spaces-style workspace switcher. Constrains motion to:
-#   left  : down to the leftmost workspace that contains windows
-#   right : up to (max-occupied + 1)  i.e. one blank scratch space
-# So you can't aimlessly slide off into infinitely many empty desktops.
+# Cycle through workspaces 1..MAX with wrap-around at both ends. Bound
+# to Ctrl+Left/Right in hyprland.conf.
 #
 # Usage: workspace-cycle left|right
 set -euo pipefail
 
+MAX=5
+
 dir="${1:-}"
 [ "$dir" = "left" ] || [ "$dir" = "right" ] || { echo "usage: $(basename "$0") left|right" >&2; exit 2; }
 
-mapfile -t occupied < <(
-  hyprctl workspaces -j | python3 -c '
-import json, sys
-data = json.load(sys.stdin)
-ids = sorted(w["id"] for w in data if w["windows"] > 0 and w["id"] >= 1)
-print("\n".join(str(i) for i in ids))
-'
-)
-
 current=$(hyprctl activeworkspace -j | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-
-if [ "${#occupied[@]}" -eq 0 ]; then
-  # Empty everywhere; refuse to wander.
-  exit 0
-fi
-
-min_occ="${occupied[0]}"
-max_occ="${occupied[-1]}"
 
 case "$dir" in
   right)
     target=$((current + 1))
-    if [ "$target" -le $((max_occ + 1)) ]; then
-      hyprctl dispatch workspace "$target" >/dev/null
-    fi
+    [ "$target" -gt "$MAX" ] && target=1
     ;;
   left)
     target=$((current - 1))
-    if [ "$target" -ge "$min_occ" ]; then
-      hyprctl dispatch workspace "$target" >/dev/null
-    fi
+    [ "$target" -lt 1 ] && target="$MAX"
     ;;
 esac
+
+hyprctl dispatch workspace "$target" >/dev/null
