@@ -1,0 +1,10 @@
+# Runs on every successful login shell start (after tty/getty auth).
+# Auto-launch Hyprland on tty1 so we land in the graphical session
+# instead of at a bare shell prompt. Other ttys (Ctrl+Alt+F2…F6) still
+# give a regular zsh — useful as a recovery shell if Hyprland breaks.
+#
+# `exec` replaces the shell with start-hyprland, so when Hyprland exits
+# the login session ends cleanly and getty re-prompts.
+if [[ -z "$DISPLAY" && -z "$WAYLAND_DISPLAY" && "$XDG_VTNR" == "1" ]]; then
+    exec start-hyprland
+fi
