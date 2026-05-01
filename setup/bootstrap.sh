@@ -17,6 +17,16 @@ bash "$HERE/bootstrap/install-base.sh"
 bash "$HERE/bootstrap/configure-locale.sh"
 bash "$HERE/bootstrap/create-user.sh"      "$USERNAME"
 bash "$HERE/bootstrap/enable-wheel-sudo.sh"
+
+# System-level setup that doesn't need the new user. Runs at first boot
+# so it's done before the user logs in (rather than re-prompting on every
+# install.sh re-run later).
+bash "$HERE/bootstrap/configure-hostname.sh"
+bash "$HERE/bootstrap/configure-timezone.sh"
+bash "$HERE/bootstrap/configure-kernel-cmdline.sh"
+bash "$HERE/bootstrap/configure-network-dispatcher.sh"
+bash "$HERE/bootstrap/configure-remove-default-user.sh"
+
 bash "$HERE/bootstrap/move-repo-to-home.sh" "$USERNAME" "$ROOT"
 
 # Repo has moved; call the user-install via its new path.
