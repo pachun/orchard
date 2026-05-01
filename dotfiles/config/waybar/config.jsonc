@@ -10,10 +10,10 @@
     "modules-left": ["custom/system", "hyprland/workspaces"],
 
     "custom/system": {
-        // Placeholder for a future system-settings entry point. macOS-style
-        // Apple glyph (nf-fa-apple, U+F179). Wire `on-click` later when we
-        // pick the actual settings target.
-        "format": "",
+        // Placeholder for a future system-settings entry point. Arch
+        // logo (nf-md-arch, U+F08C7) — same MDI family as the icons on
+        // the right. Wire `on-click` later when we pick the action.
+        "format": "󰣇",
         "tooltip": false
     },
     "modules-center": [],
