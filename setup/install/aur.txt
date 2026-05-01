@@ -21,3 +21,7 @@ kvantum-theme-catppuccin-git
 # time Apple silently re-publishes the DMG; this metapackage is more
 # actively maintained.
 apple-fonts
+
+# BlueBubbles desktop client — pairs with BlueBubbles Server running on
+# an always-on Mac (the Mac handles iMessage; this is the Linux UI).
+bluebubbles-bin
