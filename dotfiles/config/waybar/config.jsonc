@@ -74,7 +74,8 @@
         "tooltip-format-wifi": "{essid} ({signalStrength}%)",
         "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
         "tooltip-format-disconnected": "Disconnected",
-        "interval": 5
+        "interval": 5,
+        "on-click": "$HOME/.local/bin/wifi-menu"
     },
 
     "custom/clock": {

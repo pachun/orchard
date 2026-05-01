@@ -1,0 +1,44 @@
+#!/bin/sh
+# Pick a wifi network via the Frappé-themed fuzzel picker. Connects with
+# saved credentials if available; falls back to a fuzzel password prompt.
+# Triggered from waybar's network module on-click.
+#
+# Top of the list is a Disconnect entry that drops the active wifi
+# connection (visible only when one exists).
+set -eu
+
+DISCONNECT='[Disconnect]'
+
+active_wifi=$(nmcli -t -f NAME,TYPE connection show --active \
+              | awk -F: '$2=="802-11-wireless"{print $1; exit}')
+
+nmcli device wifi rescan 2>/dev/null || true
+
+ssids=$(nmcli -t -f SSID device wifi list | sort -u | grep -v '^$')
+
+if [ -n "$active_wifi" ]; then
+    list=$(printf '%s\n%s' "$DISCONNECT" "$ssids")
+else
+    list="$ssids"
+fi
+
+choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt 'wifi: ' --width 40) || exit 0
+
+if [ "$choice" = "$DISCONNECT" ]; then
+    nmcli connection down "$active_wifi" >/dev/null
+    notify-send 'WiFi' "Disconnected from $active_wifi"
+    exit 0
+fi
+
+if nmcli connection up "$choice" 2>/dev/null; then
+    notify-send 'WiFi' "Connected to $choice"
+    exit 0
+fi
+
+pw=$(fuzzel --dmenu --password --prompt "password for $choice: " --width 40) || exit 0
+
+if nmcli device wifi connect "$choice" password "$pw"; then
+    notify-send 'WiFi' "Connected to $choice"
+else
+    notify-send 'WiFi' "Failed to connect to $choice"
+fi
