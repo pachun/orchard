@@ -1,0 +1,7 @@
+#!/bin/sh
+# Wrapper that sets XDG_CURRENT_DESKTOP=GNOME so gnome-control-center
+# stops refusing to launch under Hyprland with "Running ... is only
+# supported under GNOME and Unity, exiting". Needed so apps (like
+# gnome-calendar's "Online Accounts" menu entry) can launch the
+# Settings panels for account setup.
+exec env XDG_CURRENT_DESKTOP=GNOME /usr/bin/gnome-control-center "$@"

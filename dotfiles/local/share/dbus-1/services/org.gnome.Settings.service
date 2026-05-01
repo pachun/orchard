@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.gnome.Settings
+Exec=/usr/bin/env XDG_CURRENT_DESKTOP=GNOME /usr/bin/gnome-control-center --gapplication-service

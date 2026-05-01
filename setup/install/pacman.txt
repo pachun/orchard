@@ -18,6 +18,17 @@ chromium
 # maps — OSM-backed, GNOME's default
 gnome-maps
 
+# calendar — GNOME's default; pair with gnome-online-accounts to sync
+# Google Calendar. gnome-control-center provides the Online Accounts
+# panel (the only UI for adding a Google account via OAuth).
+# gnome-keyring provides the Secret Service backend that GOA needs to
+# persist OAuth tokens — without it, account auth silently fails after
+# the browser OAuth round-trip succeeds.
+gnome-calendar
+gnome-online-accounts
+gnome-control-center
+gnome-keyring
+
 # audio: PipeWire stack (server in /usr/bin/pipewire from the hyprland deps;
 # wireplumber is the session manager, pipewire-pulse/alsa are API shims for
 # apps that talk to PulseAudio/ALSA respectively).
