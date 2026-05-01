@@ -94,6 +94,12 @@ wl-clipboard
 # dotfiles/config/waybar/config.jsonc.
 waybar
 
+# Symbol-only Nerd Font for waybar icons (wifi-by-strength, battery
+# levels, bluetooth state, audio level, weather, etc.). Used as a
+# fallback in waybar's font-family chain alongside SF Pro — SF Pro
+# renders text, this fills in icon codepoints.
+ttf-nerd-fonts-symbols-mono
+
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.
 yazi

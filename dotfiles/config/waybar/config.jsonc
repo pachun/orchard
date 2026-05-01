@@ -9,14 +9,40 @@
     "spacing": 0,
     "modules-left": [],
     "modules-center": [],
-    "modules-right": ["custom/clock"],
+    "modules-right": ["battery", "network", "custom/clock"],
+
+    "battery": {
+        // 11 fill-level glyphs mapped to 10-percent buckets. When
+        // charging, swap the fill-level icon for a lightning bolt —
+        // distinct silhouette so the state reads at a glance even at
+        // small sizes. 2-second poll picks up plug/unplug nearly
+        // instantly; reading a sysfs file is free.
+        "format": "{capacity}% {icon}",
+        "format-charging": "{capacity}% 󱐋",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "interval": 2
+    },
+
+    "network": {
+        // Five granular signal strength icons (mdi wifi-strength-0..4
+        // from Symbols Nerd Font), with separate glyphs for ethernet
+        // and disconnected. Hover for SSID + percent / IP.
+        "format-wifi": "{icon}",
+        "format-ethernet": "󰈀",
+        "format-disconnected": "󰤭",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+        "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
+        "tooltip-format-disconnected": "Disconnected",
+        "interval": 5
+    },
 
     "custom/clock": {
         // macOS-style: "Thu Apr 30 9:28 PM". Goes through `date` (GNU
         // strftime) instead of waybar's built-in clock module because
         // the latter uses C++ chrono, which doesn't support the `-`
         // modifier needed to strip leading zeros from day and hour.
-        "exec": "date +'%a %b %-d %-I:%M %p'",
+        "exec": "date +'%a %b %-d  %-I:%M %p'",
         "interval": 60
     }
 }
