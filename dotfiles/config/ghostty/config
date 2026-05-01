@@ -36,3 +36,6 @@ shell-integration-features = no-cursor
 # Auto-start each ghostty surface inside a fresh tmux session. The wrapper
 # is symlinked into ~/.local/bin/ by dotfiles/link.sh.
 command = $HOME/.local/bin/ghostty-tmux-launcher
+
+# Slight transparency so the wallpaper shows through.
+background-opacity = 0.7
