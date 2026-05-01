@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Subscribe to Hyprland's event socket and, whenever the active workspace
 becomes empty as the result of a window closing or moving, switch focus
-to the most recently used workspace. Avoids stranding the user staring
-at an empty desktop after closing the last window in it — works for any
-close path (Cmd+Q at the WM level, Cmd+W in ghostty, app self-quit, etc.)
-because we react to the event stream rather than wrapping any one bind.
+to the closest workspace that *still has windows*. If no other populated
+workspace exists, stay put rather than warp to another empty one.
+
+Hyprland's `workspace previous` dispatcher only knows the last-used
+workspace, not whether it still has content — so chained closes (close,
+close, close) would just walk back through a trail of empty workspaces.
+This script picks the closest populated one by id distance instead.
+Works for any close path (Cmd+Q, ghostty Cmd+W, app self-quit, etc.).
 """
 import json
 import os
@@ -30,10 +34,26 @@ def hyprctl_json(*args):
 def jump_back_if_empty():
     ws = hyprctl_json("activeworkspace") or {}
     ws_id = ws.get("id")
+    if ws_id is None:
+        return
+
     clients = hyprctl_json("clients") or []
+
+    # Still has windows? Nothing to do.
     if any(c.get("workspace", {}).get("id") == ws_id for c in clients):
         return
-    subprocess.run(["hyprctl", "dispatch", "workspace", "previous"], check=False)
+
+    # Collect workspace ids that have at least one window, excluding the
+    # current (now-empty) one.
+    populated = {
+        c["workspace"]["id"] for c in clients
+        if c.get("workspace", {}).get("id") not in (None, ws_id)
+    }
+    if not populated:
+        return  # nowhere meaningful to go; stay put
+
+    target = min(populated, key=lambda i: (abs(i - ws_id), i))
+    subprocess.run(["hyprctl", "dispatch", "workspace", str(target)], check=False)
 
 
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
