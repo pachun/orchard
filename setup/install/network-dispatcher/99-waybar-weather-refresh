@@ -1,0 +1,13 @@
+#!/bin/bash
+# NetworkManager dispatcher hook. On any interface coming up (wifi
+# reconnect after sleep, fresh boot, etc.) signal waybar to re-fetch
+# its weather module. Without this, waybar would happily sit on
+# cached/stale weather for up to 10 minutes after wifi recovers.
+#
+# `signal: 8` in the waybar custom/weather module config maps to
+# SIGRTMIN+8. pkill -RTMIN+8 finds and signals the running waybar.
+case "$2" in
+    up|connectivity-change)
+        pkill -RTMIN+8 -x waybar
+        ;;
+esac

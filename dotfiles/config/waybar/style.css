@@ -1,9 +1,10 @@
-/* Waybar — Catppuccin Frappé. Empty bar for now; styling here keeps the
-   bar itself themed when we start adding modules. */
-
+/* Shared text style — every module inherits font-family, size, weight,
+   and color from here so baselines line up. Per-module CSS below only
+   touches padding and the few exceptions. */
 * {
-    font-family: "SF Pro", "Symbols Nerd Font Mono", sans-serif;
-    font-size: 13px;
+    font-family: "SF Pro Text", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
     border: none;
     border-radius: 0;
     min-height: 0;
@@ -15,25 +16,7 @@ window#waybar {
     border-bottom: 1px solid #414559;     /* surface0 */
 }
 
-#battery {
-    padding: 0 8px;
-    color: #c6d0f5;                        /* text */
-    font-family: "SF Pro Text", "SF Pro", sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-
-#network {
-    padding: 0 4px 0 8px;                  /* less right padding — wifi glyph has built-in trailing whitespace */
-    color: #c6d0f5;                        /* text */
-    font-size: 14px;
-}
-
-#custom-clock {
-    padding: 0 14px 0 11px;                /* 11 left = a touch more breathing room from the wifi glyph; 14 right = screen edge */
-    color: #c6d0f5;                        /* text */
-    font-family: "SF Pro Text", "SF Pro", sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-}
+#custom-weather { padding: 0 8px;          color: #c6d0f5; }
+#battery        { padding: 0 8px;          color: #c6d0f5; }
+#network        { padding: 0 4px 0 8px;    color: #c6d0f5; font-size: 13px; }  /* icon-only, slightly bigger reads better */
+#custom-clock   { padding: 0 14px 0 11px;  color: #c6d0f5; }                   /* 14 right = screen-edge breathing room */

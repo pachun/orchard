@@ -9,7 +9,18 @@
     "spacing": 0,
     "modules-left": [],
     "modules-center": [],
-    "modules-right": ["battery", "network", "custom/clock"],
+    "modules-right": ["custom/weather", "battery", "network", "custom/clock"],
+
+    "custom/weather": {
+        // Wraps wttr.in via dotfiles/local/bin/waybar-weather. Polls
+        // every 10 minutes — weather doesn't move fast and this keeps
+        // network chatter low. SIGRTMIN+8 forces an immediate refresh;
+        // a NetworkManager dispatcher fires it on interface-up so we
+        // don't wait 10 min for the next poll after wifi reconnects.
+        "exec": "$HOME/.local/bin/waybar-weather",
+        "interval": 600,
+        "signal": 8
+    },
 
     "battery": {
         // 11 fill-level glyphs mapped to 10-percent buckets. When

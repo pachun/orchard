@@ -1,0 +1,66 @@
+#!/bin/bash
+# Waybar weather module: fetches current condition + temperature from
+# wttr.in (location auto-detected from IP, units forced to US/Fahrenheit)
+# and emits "<icon> <temp>". Requires bash for $'\uXXXX' escape sequences
+# used by the icon glyphs from the Weather Icons subset of Symbols Nerd
+# Font Mono.
+#
+# Resilience: every successful fetch caches its output. On network
+# failure we emit the cached value instead of "--", so the bar stays
+# populated through brief outages and post-sleep wifi reconnects.
+# A NetworkManager dispatcher (configure-network-dispatcher.sh) sends
+# SIGRTMIN+8 to waybar on interface up so the next refresh happens
+# within seconds of reconnect rather than up to 10 minutes later.
+set -eu
+
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather"
+mkdir -p "$(dirname "$CACHE")"
+
+emit_cached() {
+    if [ -s "$CACHE" ]; then
+        cat "$CACHE"
+    else
+        printf '%s\n' '--'
+    fi
+}
+
+raw=$(curl -s --max-time 5 'https://wttr.in/?u&format=%C|%t' 2>/dev/null || true)
+
+if [ -z "$raw" ] || echo "$raw" | grep -qiE 'unknown|error|<html'; then
+    emit_cached
+    exit 0
+fi
+
+condition=${raw%|*}
+temp=${raw#*|}
+temp=${temp#+}    # strip the leading "+" from "+71°F"
+
+# Use night glyph for clear-sky conditions outside daylight hours.
+hour=$(date +%H)
+is_night=0
+if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
+    is_night=1
+fi
+
+# Filled-style glyphs from the Weather Icons subset (wi-*) of the Symbols
+# Nerd Font. Codepoints from https://www.nerdfonts.com/cheat-sheet —
+# search for `nf-weather-...`.
+icon=$''  # default: wi-day-sunny
+case "$condition" in
+    Sunny|Clear)
+        if [ "$is_night" -eq 1 ]; then icon=$''; else icon=$''; fi
+        ;;
+    'Partly cloudy'|'Partly Cloudy')
+        if [ "$is_night" -eq 1 ]; then icon=$''; else icon=$''; fi
+        ;;
+    Cloudy|Overcast)              icon=$'' ;;
+    Mist|Fog|Haze)                icon=$'' ;;
+    *Rain*|Drizzle*|*Shower*)     icon=$'' ;;
+    *Snow*|Blizzard*|Sleet*)      icon=$'' ;;
+    *Thunder*|*Storm*)            icon=$'' ;;
+esac
+
+# Larger size + negative rise so the icon sits lower (the larger glyph
+# was visually drifting toward the top of the bar otherwise).
+output=$(printf "%s %s\n" "$icon" "$temp")
+printf '%s\n' "$output" | tee "$CACHE"
