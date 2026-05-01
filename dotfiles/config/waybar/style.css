@@ -12,9 +12,8 @@
 }
 
 window#waybar {
-    background-color: #303446;            /* base */
+    background-color: #303446;            /* base — same as ghostty's Frappé bg, so the bar blends */
     color: #c6d0f5;                        /* text */
-    border-bottom: 1px solid #414559;     /* surface0 */
 }
 
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
