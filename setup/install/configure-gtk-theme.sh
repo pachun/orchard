@@ -6,3 +6,4 @@ set -euo pipefail
 
 gsettings set org.gnome.desktop.interface gtk-theme 'catppuccin-frappe-blue-standard+default'
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+gsettings set org.gnome.desktop.interface font-name 'SF Pro 11'

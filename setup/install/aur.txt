@@ -14,3 +14,10 @@ cmd-polkit-git
 # Catppuccin Kvantum theme. Selected variant set in
 # dotfiles/config/Kvantum/kvantum.kvconfig.
 kvantum-theme-catppuccin-git
+
+# Apple's font collection — SF Pro for system UI, SF Mono as an
+# alternative monospace, plus New York serif. Picked over the targeted
+# `otf-apple-sf-pro` AUR package because that one's checksums lag every
+# time Apple silently re-publishes the DMG; this metapackage is more
+# actively maintained.
+apple-fonts

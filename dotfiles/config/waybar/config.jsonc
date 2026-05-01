@@ -9,5 +9,14 @@
     "spacing": 0,
     "modules-left": [],
     "modules-center": [],
-    "modules-right": []
+    "modules-right": ["custom/clock"],
+
+    "custom/clock": {
+        // macOS-style: "Thu Apr 30 9:28 PM". Goes through `date` (GNU
+        // strftime) instead of waybar's built-in clock module because
+        // the latter uses C++ chrono, which doesn't support the `-`
+        // modifier needed to strip leading zeros from day and hour.
+        "exec": "date +'%a %b %-d %-I:%M %p'",
+        "interval": 60
+    }
 }

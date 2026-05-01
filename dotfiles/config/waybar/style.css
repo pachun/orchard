@@ -2,7 +2,7 @@
    bar itself themed when we start adding modules. */
 
 * {
-    font-family: "MonoLisa Variable", monospace;
+    font-family: "SF Pro", sans-serif;
     font-size: 13px;
     border: none;
     border-radius: 0;
@@ -13,4 +13,12 @@ window#waybar {
     background-color: #303446;            /* base */
     color: #c6d0f5;                        /* text */
     border-bottom: 1px solid #414559;     /* surface0 */
+}
+
+#custom-clock {
+    padding: 0 12px;
+    color: #c6d0f5;                        /* text */
+    font-family: "SF Pro Text", "SF Pro", sans-serif;
+    font-size: 12px;
+    font-weight: 500;
 }
