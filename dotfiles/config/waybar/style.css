@@ -12,14 +12,15 @@
 }
 
 window#waybar {
-    background-color: #303446;            /* base — same as ghostty's Frappé bg, so the bar blends */
+    background-color: #1f2331;            /* sampled from wallpaper top edge so the bar blends in */
     color: #c6d0f5;                        /* text */
 }
 
 #custom-system              { padding: 0 10px 0 12px; color: #c6d0f5; }
 #workspaces                 { padding: 0 4px; }
-#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; color: #c6d0f5; border-radius: 0; }
-#workspaces button.active   { background-color: #c6d0f5; color: transparent; border-radius: 3px; }
+#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; color: #c6d0f5; border-radius: 3px; }
+#workspaces button:hover    { background-color: rgba(198, 208, 245, 0.15); }   /* faint text-color tint, matches active corner radius */
+#workspaces button.active   { background-color: #c6d0f5; color: transparent; }
 
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
 #battery        { padding: 0 8px;          color: #c6d0f5; }

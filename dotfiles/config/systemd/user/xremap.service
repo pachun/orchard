@@ -1,0 +1,15 @@
+[Unit]
+Description=xremap key remapper (Cmd-letter macOS-style shortcuts via wlroots)
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/xremap --watch=config,device %h/.config/xremap/config.yml
+Restart=on-failure
+RestartSec=2
+
+# default.target rather than graphical-session.target — Hyprland launched
+# manually via start-hyprland doesn't activate graphical-session.target,
+# so a binding to it would never fire. xremap reads /dev/input via
+# uinput and works fine at any login, no compositor needed.
+[Install]
+WantedBy=default.target
