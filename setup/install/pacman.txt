@@ -100,6 +100,13 @@ waybar
 # renders text, this fills in icon codepoints.
 ttf-nerd-fonts-symbols-mono
 
+# Screenshot + recording stack (Cmd+Shift+3/4/5 in hyprland.conf).
+# grim grabs pixels, slurp picks regions, wf-recorder writes mp4.
+# Each shot also goes to the clipboard via wl-copy (already installed).
+grim
+slurp
+wf-recorder
+
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.
 yazi

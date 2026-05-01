@@ -17,7 +17,17 @@
         "tooltip": false
     },
     "modules-center": [],
-    "modules-right": ["custom/weather", "battery", "network", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "network", "custom/clock"],
+
+    "custom/recording": {
+        // Visible only while wf-recorder is running. Click stops the
+        // recording (the screenrecord script detects an existing
+        // wf-recorder and pkills it as its toggle-off behavior).
+        "exec": "$HOME/.local/bin/waybar-recording-status",
+        "return-type": "json",
+        "interval": 1,
+        "on-click": "$HOME/.local/bin/screenrecord"
+    },
 
     "hyprland/workspaces": {
         // Always show 1..5 even when empty. Click to switch. Each

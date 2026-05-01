@@ -1,0 +1,11 @@
+#!/bin/sh
+# Emits JSON for waybar's custom/recording module. Shows a stop icon
+# (mdi-stop, in Frappé red via the css class) while wf-recorder is
+# running; emits empty text otherwise so the module is invisible.
+if pgrep -x wf-recorder >/dev/null; then
+    # U+F04DB = mdi-stop. printf %b expands the \u escape into UTF-8.
+    icon=$(printf '\xf3\xb0\x93\x9b')
+    printf '{"text":"%s","class":"recording","tooltip":"Click to stop recording"}\n' "$icon"
+else
+    printf '{"text":""}\n'
+fi

@@ -1,0 +1,80 @@
+#!/bin/sh
+# Toggle wf-recorder. First press pops a fuzzel picker; second press
+# stops + saves + notifies. Recordings land in ~/videos/recordings/.
+#
+# Audio modes:
+#   none      — silent
+#   system    — what's playing through the speakers (default sink monitor)
+#   mic       — default microphone (default source)
+#   system+mic — both, mixed via a temporary null sink + two loopbacks.
+#                Modules are loaded only for the duration of the recording
+#                and unloaded by the trap on exit.
+set -eu
+
+if pgrep -x wf-recorder >/dev/null; then
+    pkill -INT wf-recorder
+    sleep 0.3
+    last=$(ls -t "$HOME/videos/recordings/"recording-*.mp4 2>/dev/null | head -1)
+    notify-send "Screen recording" "Stopped: $last"
+    exit 0
+fi
+
+choice=$(printf '%s\n' \
+    'Full screen — no audio' \
+    'Full screen — system audio' \
+    'Full screen — microphone' \
+    'Full screen — system + mic' \
+    'Region — no audio' \
+    'Region — system audio' \
+    'Region — microphone' \
+    'Region — system + mic' \
+    | fuzzel --dmenu --prompt 'Record: ' --width 32) || exit 0
+
+dir="$HOME/videos/recordings"
+mkdir -p "$dir"
+file="$dir/recording-$(date +%Y-%m-%d_%H-%M-%S).mp4"
+
+# Set up a combined source that mixes mic + system audio into one stream
+# wf-recorder can capture. Cleanup runs on any exit so we don't leak
+# pulse modules.
+COMBINED_SINK="screenrecord_combined"
+combined_setup() {
+    null_id=$(pactl load-module module-null-sink \
+        sink_name="$COMBINED_SINK" \
+        sink_properties=device.description=ScreenRecordCombined)
+    sleep 0.1
+    sys=$(pactl get-default-sink).monitor
+    mic=$(pactl get-default-source)
+    sys_id=$(pactl load-module module-loopback source="$sys" sink="$COMBINED_SINK" latency_msec=1)
+    mic_id=$(pactl load-module module-loopback source="$mic" sink="$COMBINED_SINK" latency_msec=1)
+    trap 'pactl unload-module "$sys_id" 2>/dev/null || true; pactl unload-module "$mic_id" 2>/dev/null || true; pactl unload-module "$null_id" 2>/dev/null || true' EXIT INT TERM
+}
+
+geom_or_exit() { slurp 2>/dev/null || exit 0; }
+
+case "$choice" in
+    'Full screen — no audio')        exec wf-recorder -f "$file" ;;
+    'Full screen — system audio')    exec wf-recorder --audio="$(pactl get-default-sink).monitor" -f "$file" ;;
+    'Full screen — microphone')      exec wf-recorder --audio="$(pactl get-default-source)" -f "$file" ;;
+    'Full screen — system + mic')
+        combined_setup
+        wf-recorder --audio="${COMBINED_SINK}.monitor" -f "$file"
+        ;;
+    'Region — no audio')
+        geom=$(geom_or_exit)
+        exec wf-recorder -g "$geom" -f "$file"
+        ;;
+    'Region — system audio')
+        geom=$(geom_or_exit)
+        exec wf-recorder -g "$geom" --audio="$(pactl get-default-sink).monitor" -f "$file"
+        ;;
+    'Region — microphone')
+        geom=$(geom_or_exit)
+        exec wf-recorder -g "$geom" --audio="$(pactl get-default-source)" -f "$file"
+        ;;
+    'Region — system + mic')
+        geom=$(geom_or_exit)
+        combined_setup
+        wf-recorder -g "$geom" --audio="${COMBINED_SINK}.monitor" -f "$file"
+        ;;
+esac

@@ -1,0 +1,31 @@
+#!/bin/sh
+# Capture full screen or a slurp-selected region. Saves to
+# ~/pictures/screenshots/<timestamp>.png AND copies to the clipboard,
+# so it's immediately available to attach OR paste — no preview popup,
+# no annotation step.
+#
+# Usage: screenshot full|region
+set -eu
+
+mode="${1:-region}"
+dir="$HOME/pictures/screenshots"
+mkdir -p "$dir"
+file="$dir/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png"
+
+case "$mode" in
+    full)
+        grim "$file"
+        ;;
+    region)
+        # slurp returns empty (and exits non-zero) on Esc — bail quietly.
+        geom=$(slurp 2>/dev/null) || exit 0
+        grim -g "$geom" "$file"
+        ;;
+    *)
+        echo "usage: $(basename "$0") full|region" >&2
+        exit 2
+        ;;
+esac
+
+wl-copy --type image/png < "$file"
+notify-send "Screenshot" "Saved to $file"
