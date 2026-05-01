@@ -26,6 +26,7 @@ bash "$HERE/bootstrap/configure-timezone.sh"
 bash "$HERE/bootstrap/configure-kernel-cmdline.sh"
 bash "$HERE/bootstrap/configure-network-dispatcher.sh"
 bash "$HERE/bootstrap/configure-geoclue.sh"
+bash "$HERE/bootstrap/configure-pam-keyring.sh"
 bash "$HERE/bootstrap/configure-remove-default-user.sh"
 
 bash "$HERE/bootstrap/move-repo-to-home.sh" "$USERNAME" "$ROOT"
