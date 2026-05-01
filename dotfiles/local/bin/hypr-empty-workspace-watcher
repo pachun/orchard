@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Subscribe to Hyprland's event socket and, whenever the active workspace
+becomes empty as the result of a window closing or moving, switch focus
+to the most recently used workspace. Avoids stranding the user staring
+at an empty desktop after closing the last window in it — works for any
+close path (Cmd+Q at the WM level, Cmd+W in ghostty, app self-quit, etc.)
+because we react to the event stream rather than wrapping any one bind.
+"""
+import json
+import os
+import socket
+import subprocess
+import sys
+
+instance = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+if not instance:
+    sys.exit("HYPRLAND_INSTANCE_SIGNATURE not set; not inside a Hyprland session?")
+
+sock_path = f"{xdg_runtime}/hypr/{instance}/.socket2.sock"
+
+
+def hyprctl_json(*args):
+    out = subprocess.run(
+        ["hyprctl", *args, "-j"], capture_output=True, text=True, check=False
+    ).stdout
+    return json.loads(out) if out else None
+
+
+def jump_back_if_empty():
+    ws = hyprctl_json("activeworkspace") or {}
+    ws_id = ws.get("id")
+    clients = hyprctl_json("clients") or []
+    if any(c.get("workspace", {}).get("id") == ws_id for c in clients):
+        return
+    subprocess.run(["hyprctl", "dispatch", "workspace", "previous"], check=False)
+
+
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect(sock_path)
+buf = b""
+while True:
+    chunk = s.recv(4096)
+    if not chunk:
+        break
+    buf += chunk
+    while b"\n" in buf:
+        line, buf = buf.split(b"\n", 1)
+        event = line.decode(errors="replace")
+        # closewindow fires when any window dies; movewindow when one
+        # changes workspace (could empty its old one). Both are cheap
+        # to react to.
+        if event.startswith("closewindow") or event.startswith("movewindow"):
+            jump_back_if_empty()

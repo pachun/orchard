@@ -42,10 +42,10 @@ if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
     is_night=1
 fi
 
-# Filled-style glyphs from the Weather Icons subset (wi-*) of the Symbols
-# Nerd Font. Codepoints from https://www.nerdfonts.com/cheat-sheet —
-# search for `nf-weather-...`.
-icon=$''  # default: wi-day-sunny
+# Filled-style glyphs from the Weather Icons subset (wi-*) of the
+# Symbols Nerd Font. Codepoints from https://www.nerdfonts.com/cheat-sheet
+# — search for `nf-weather-...`.
+icon=$''  # wi-day-sunny
 case "$condition" in
     Sunny|Clear)
         if [ "$is_night" -eq 1 ]; then icon=$''; else icon=$''; fi
@@ -60,7 +60,7 @@ case "$condition" in
     *Thunder*|*Storm*)            icon=$'' ;;
 esac
 
-# Larger size + negative rise so the icon sits lower (the larger glyph
-# was visually drifting toward the top of the bar otherwise).
-output=$(printf "%s %s\n" "$icon" "$temp")
+# Pango span sizes just the icon up — leaves the temperature at the
+# module's default size so baselines with the other modules still align.
+output=$(printf "<span size='14pt'>%s</span> %s\n" "$icon" "$temp")
 printf '%s\n' "$output" | tee "$CACHE"
