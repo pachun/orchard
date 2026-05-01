@@ -83,6 +83,7 @@
         // the latter uses C++ chrono, which doesn't support the `-`
         // modifier needed to strip leading zeros from day and hour.
         "exec": "date +'%a %b %-d  %-I:%M %p'",
-        "interval": 60
+        "interval": 60,
+        "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Calendar gnome-calendar"
     }
 }

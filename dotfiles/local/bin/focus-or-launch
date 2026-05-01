@@ -1,0 +1,21 @@
+#!/bin/sh
+# Focus an existing Hyprland window matching a class, or spawn the
+# command if none exists. Used by waybar on-click handlers and any
+# other "click app icon → bring it forward" flow.
+#
+# Usage: focus-or-launch <window-class> <command...>
+set -eu
+
+if [ "$#" -lt 2 ]; then
+    echo "usage: $(basename "$0") <window-class> <command...>" >&2
+    exit 2
+fi
+
+class="$1"
+shift
+
+if hyprctl clients -j | jq -e ".[] | select(.class == \"$class\")" >/dev/null 2>&1; then
+    hyprctl dispatch focuswindow "class:$class" >/dev/null
+else
+    exec "$@"
+fi
