@@ -17,7 +17,7 @@
         "tooltip": false
     },
     "modules-center": [],
-    "modules-right": ["custom/recording", "custom/weather", "battery", "network", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "network", "custom/clock"],
 
     "custom/recording": {
         // Visible only while wf-recorder is running. Click stops the
@@ -62,6 +62,19 @@
         "format-charging": "{capacity}% 󱐋",
         "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
         "interval": 2
+    },
+
+    "custom/nordvpn": {
+        // Shield icon. Filled+check when connected, off-outline when
+        // not. Click → fuzzel picker (Disconnect / Dedicated IP /
+        // Quickest / countries → cities). Polled every 10s; nordvpn-menu
+        // sends SIGRTMIN+9 after explicit actions so the icon flips
+        // immediately instead of waiting for the next poll.
+        "exec": "$HOME/.local/bin/waybar-nordvpn",
+        "return-type": "json",
+        "interval": 10,
+        "signal": 9,
+        "on-click": "$HOME/.local/bin/nordvpn-menu"
     },
 
     "network": {

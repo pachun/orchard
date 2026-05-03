@@ -1,0 +1,24 @@
+#!/bin/sh
+# JSON status for waybar's custom/nordvpn module. Shield icon flips
+# between connected (filled+check) and disconnected (off-outline);
+# tooltip carries the location detail. Polled every 10s plus a
+# SIGRTMIN+9 nudge from nordvpn-menu after explicit actions.
+set -eu
+
+command -v nordvpn >/dev/null 2>&1 || exit 0
+
+status=$(nordvpn status 2>/dev/null || true)
+
+if printf '%s' "$status" | grep -q '^Status: Connected'; then
+    country=$(printf '%s' "$status" | awk -F': ' '/^Country:/ {print $2}')
+    city=$(printf '%s' "$status" | awk -F': ' '/^City:/ {print $2}')
+    icon='󰕥'
+    tooltip="NordVPN: ${city}, ${country}"
+    class="connected"
+else
+    icon='󰦝'
+    tooltip="NordVPN: disconnected"
+    class="disconnected"
+fi
+
+printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' "$icon" "$tooltip" "$class"

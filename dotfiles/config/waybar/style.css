@@ -25,5 +25,6 @@ window#waybar {
 #custom-recording { padding: 0 8px;        color: #e78284; font-size: 14px; }   /* Frappé red — calls attention while live */
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
 #battery        { padding: 0 8px;          color: #c6d0f5; }
+#custom-nordvpn { padding: 0 8px;          color: #c6d0f5; }
 #network        { padding: 0 8px;          color: #c6d0f5; }
 #custom-clock   { padding: 0 14px 0 8px;   color: #c6d0f5; }   /* 14 right = screen-edge breathing room */

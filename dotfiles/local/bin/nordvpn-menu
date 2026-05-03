@@ -1,0 +1,87 @@
+#!/bin/sh
+# Fuzzel-driven NordVPN picker. Toggles closed if already open. Two
+# levels: top picker offers Disconnect (when connected), Dedicated IP,
+# Quickest, then a sorted country list; selecting a country opens a
+# second picker with "Any city" + that country's cities. The city
+# picker's first entry is "[Back]", which re-opens the country picker
+# without quitting the menu.
+#
+# NordVPN's CLI uses underscores for multi-word names (United_States,
+# New_York); we strip them for display and re-add them on connect.
+#
+# Dedicated IP is offered unconditionally — there's no reliable way to
+# query subscription state from the CLI. If the account doesn't have
+# one, nordvpn errors out and we surface that via notify-send.
+set -eu
+
+pkill -x fuzzel 2>/dev/null && exit 0
+
+status=$(nordvpn status 2>/dev/null || true)
+connected=0
+printf '%s' "$status" | grep -q '^Status: Connected' && connected=1
+
+countries=$(nordvpn countries 2>/dev/null \
+            | tr -s '[:space:]' '\n' \
+            | grep -v '^$' \
+            | sed 's/_/ /g' \
+            | sort)
+
+run() {
+    out=$("$@" 2>&1) || true
+    notify-send 'NordVPN' "$out"
+    pkill -RTMIN+9 waybar 2>/dev/null || true
+}
+
+pick_country() {
+    {
+        [ "$connected" -eq 1 ] && echo '[Disconnect]'
+        echo 'Dedicated IP'
+        echo 'Quickest'
+        printf '%s\n' "$countries"
+    } | fuzzel --dmenu --prompt 'nordvpn: ' --width 30 --lines 15
+}
+
+pick_city() {
+    country_display=$1
+    country_arg=$(printf '%s' "$country_display" | tr ' ' '_')
+    cities=$(nordvpn cities "$country_arg" 2>/dev/null \
+             | tr -s '[:space:]' '\n' \
+             | grep -v '^$' \
+             | sed 's/_/ /g' \
+             | sort)
+    {
+        echo '[Back]'
+        echo "[Any city in $country_display]"
+        printf '%s\n' "$cities"
+    } | fuzzel --dmenu --prompt "$country_display: " --width 30 --lines 15
+}
+
+while :; do
+    choice=$(pick_country) || exit 0
+    case "$choice" in
+        '[Disconnect]')   run nordvpn disconnect; exit 0 ;;
+        'Dedicated IP')   run nordvpn connect --group Dedicated_IP; exit 0 ;;
+        'Quickest')       run nordvpn connect; exit 0 ;;
+    esac
+
+    # Country path — loop city picker so [Back] returns here.
+    while :; do
+        city_choice=$(pick_city "$choice") || exit 0
+        case "$city_choice" in
+            '[Back]')
+                break  # back to outer loop → country picker
+                ;;
+            "[Any city in $choice]")
+                country_arg=$(printf '%s' "$choice" | tr ' ' '_')
+                run nordvpn connect "$country_arg"
+                exit 0
+                ;;
+            *)
+                country_arg=$(printf '%s' "$choice" | tr ' ' '_')
+                city_arg=$(printf '%s' "$city_choice" | tr ' ' '_')
+                run nordvpn connect "$country_arg" "$city_arg"
+                exit 0
+                ;;
+        esac
+    done
+done

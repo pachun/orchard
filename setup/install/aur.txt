@@ -25,3 +25,8 @@ apple-fonts
 # BlueBubbles desktop client — pairs with BlueBubbles Server running on
 # an always-on Mac (the Mac handles iMessage; this is the Linux UI).
 bluebubbles-bin
+
+# NordVPN official client. CLI-driven (`nordvpn login`, `nordvpn c`).
+# Daemon needs `systemctl enable --now nordvpnd` and the user added to
+# the `nordvpn` group, both done manually post-install.
+nordvpn-bin
