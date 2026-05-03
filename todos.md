@@ -4,7 +4,6 @@ hyprexpo plugin for mission-control-style workspace overview (must be built agai
 airpods connection / bluetooth
 external monitor connection
 everything looks a little too zoomed in; the whole UI/desktop
-screenshot / record tool
 color picker tool
 
 icloud files integration
