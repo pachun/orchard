@@ -16,6 +16,23 @@ set -eu
 
 pkill -x fuzzel 2>/dev/null && exit 0
 
+# If not logged in, the picker is useless — kick off the OAuth flow.
+# `nordvpn login` prints a URL and exits; the daemon handles the
+# callback from the browser. We pull the URL from its output and hand
+# it to xdg-open so the user lands in chromium ready to log in. Bound
+# the call with `timeout` in case a future CLI version blocks instead.
+if ! nordvpn account >/dev/null 2>&1; then
+    out=$(timeout 5 nordvpn login 2>&1 || true)
+    url=$(printf '%s\n' "$out" | grep -oE 'https?://[^[:space:]]+' | head -1)
+    if [ -n "$url" ]; then
+        xdg-open "$url" >/dev/null 2>&1 &
+        notify-send 'NordVPN' 'Complete login in the browser.'
+    else
+        notify-send 'NordVPN' "${out:-Could not start login flow.}"
+    fi
+    exit 0
+fi
+
 status=$(nordvpn status 2>/dev/null || true)
 connected=0
 printf '%s' "$status" | grep -q '^Status: Connected' && connected=1

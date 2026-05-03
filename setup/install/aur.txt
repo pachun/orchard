@@ -27,6 +27,6 @@ apple-fonts
 bluebubbles-bin
 
 # NordVPN official client. CLI-driven (`nordvpn login`, `nordvpn c`).
-# Daemon needs `systemctl enable --now nordvpnd` and the user added to
-# the `nordvpn` group, both done manually post-install.
+# Daemon enable, group membership, and DNS override are wired up by
+# configure-nordvpn.sh. `nordvpn login` / `connect` stay manual.
 nordvpn-bin
