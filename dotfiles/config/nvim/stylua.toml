@@ -1,0 +1,6 @@
+# stylua picks this up automatically when run from anywhere under
+# ~/.config/nvim/. 2-space indent matches the rest of the user's
+# muscle memory across other ecosystems; everything else stays on
+# stylua defaults.
+indent_type = "Spaces"
+indent_width = 2

@@ -7,4 +7,6 @@
 -- Example:
 --   prettier = { "javascript", "typescript", "json", "yaml" },
 --   stylua   = { "lua" },
-return {}
+return {
+  stylua = { "lua" },
+}

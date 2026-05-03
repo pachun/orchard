@@ -13,15 +13,15 @@
 --     },
 --   },
 return {
-	lua_ls = {
-		settings = {
-			Lua = {
-				-- treat `vim` as a known global so the LSP doesn't flag
-				-- every `vim.opt`, `vim.keymap`, etc. as undefined
-				diagnostics = { globals = { "vim" } },
-				-- expand snippet placeholders on completion accept
-				completion = { callSnippet = "Replace" },
-			},
-		},
-	},
+  lua_ls = {
+    settings = {
+      Lua = {
+        -- treat `vim` as a known global so the LSP doesn't flag
+        -- every `vim.opt`, `vim.keymap`, etc. as undefined
+        diagnostics = { globals = { "vim" } },
+        -- expand snippet placeholders on completion accept
+        completion = { callSnippet = "Replace" },
+      },
+    },
+  },
 }
