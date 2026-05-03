@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
-# Pre-warm the nvim plugin set so the first interactive launch lands
-# straight on a styled buffer instead of lazy.nvim's installer UI.
+# Pre-warm the nvim plugin set + every tool declared in lua/tools/* so
+# the first interactive launch lands on a styled buffer with LSPs,
+# formatters, and linters already installed — no lazy.nvim installer UI,
+# no Mason install spinner.
 #
-# `nvim --headless "+Lazy! sync" +qa` runs nvim with no TTY, asks
-# lazy.nvim to install/update everything declared under lua/plugins/
-# (the `!` skips prompts), then quits. lazy.nvim itself bootstraps on
-# first run via the clone block in init.lua, so this works on a fresh
-# machine where ~/.local/share/nvim/lazy/lazy.nvim doesn't exist yet.
+# Two blocking steps in one nvim invocation:
+#   1. `Lazy! sync` downloads/updates plugins (the `!` skips prompts and
+#      blocks until done).
+#   2. `MasonToolsInstallSync` blocks on every tool listed in
+#      lua/tools/{language_servers,formatters,linters}.lua. Without
+#      this, Mason kicks installs off async and headless nvim would
+#      exit before they completed.
 #
-# Idempotent — sync is a no-op when every plugin is already at its
-# pinned version.
+# lazy.nvim self-bootstraps on first run via the clone block in
+# init.lua, so this works on a fresh machine where ~/.local/share/nvim/
+# is empty.
+#
+# Idempotent — both commands are no-ops when nothing is out of date.
 set -euo pipefail
 
 if ! command -v nvim >/dev/null 2>&1; then
@@ -22,4 +29,4 @@ if [ ! -f "$HOME/.config/nvim/init.lua" ]; then
     exit 0
 fi
 
-nvim --headless "+Lazy! sync" +qa
+nvim --headless "+Lazy! sync" "+MasonToolsInstallSync" +qa
