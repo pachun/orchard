@@ -24,4 +24,34 @@ return {
       },
     },
   },
+
+  -- Bash language server. The default filetypes only cover `sh` and
+  -- `bash`; extending to `zsh` so the same diagnostics/completion
+  -- light up when editing ~/.zshrc and friends.
+  bashls = {
+    filetypes = { "sh", "bash", "zsh" },
+  },
+
+  -- Markdown LSP — cross-file link resolution, heading completion,
+  -- diagnostics for broken refs.
+  marksman = {},
+
+  -- Elixir LSP. Mason installs the binary as `elixir-ls`; lspconfig's
+  -- default cmd points at `elixir-ls.sh` (a shell wrapper), which
+  -- doesn't ship with the Mason package.
+  elixirls = {
+    cmd = { "elixir-ls" },
+  },
+
+  -- TypeScript / JavaScript LSP. Formatting is disabled because we
+  -- delegate that to prettier (added to lua/tools/formatters.lua
+  -- separately); ts_ls's built-in formatter conflicts with prettier
+  -- on style decisions and we don't want it racing on save.
+  ts_ls = {
+    on_attach = function(client, _)
+      client.server_capabilities.documentFormattingProvider = false
+    end,
+  },
+
+  rust_analyzer = {},
 }

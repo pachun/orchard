@@ -15,6 +15,9 @@ direnv
 # browser
 chromium
 
+# git GUI (Cmd+G in hyprland.conf)
+gitg
+
 # maps — OSM-backed, GNOME's default
 gnome-maps
 
@@ -136,3 +139,13 @@ ffmpegthumbnailer
 # hyprtoolkit rewrite). swaybg is the Hyprland wiki's recommended simple
 # alternative and just calls into wlr-layer-shell, no monitor introspection.
 swaybg
+
+# mise — language version manager (Rust rewrite of asdf, asdf-vm isn't
+# packaged for aarch64 in extra/). Provides the `node`/`npm` shims
+# that Mason uses at install time to fetch npm-distributed language
+# servers (typescript-language-server, bash-language-server, etc.),
+# and lets per-project `.tool-versions` or `.mise.toml` files override
+# versions for actual project work. configure-mise.sh installs the
+# latest LTS Node as the global default so Mason has something to
+# call.
+mise

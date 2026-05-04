@@ -30,5 +30,13 @@ bash "$HERE/install/configure-claude.sh"
 bash "$HERE/install/configure-xdg-dirs.sh"
 bash "$HERE/install/configure-user-services.sh"
 bash "$HERE/install/configure-nordvpn.sh"
+
+# mise provisions node/npm before nvim's Mason install flow runs. The
+# subshell that runs configure-nvim.sh inherits the parent PATH but not
+# zshrc, so we export the shims dir explicitly here for it to find the
+# mise-managed `node` and `npm`.
+bash "$HERE/install/configure-mise.sh"
+export PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+
 bash "$HERE/install/configure-nvim.sh"
 bash "$HERE/install/palm-filter/install.sh"

@@ -218,15 +218,13 @@ function enable_git_command_tab_completions {
   autoload -Uz compinit && compinit -C
 }
 
-function setup_asdf {
-  # https://asdf-vm.com/guide/getting-started.html#add-shims-directory-to-path-required-3
-  export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
-}
-
-function enable_asdf_autocompletion {
-  # https://asdf-vm.com/guide/getting-started.html#set-up-shell-completions-optional-3
-  fpath=(${ASDF_DATA_DIR:-$HOME/.asdf}/completions $fpath)
-  autoload -Uz compinit && compinit -C
+function setup_mise {
+  # mise is the asdf successor (Rust rewrite, in extra/ on Arch).
+  # `mise activate zsh` emits the shim-PATH export, the cd hook that
+  # auto-swaps versions when entering a project with .tool-versions or
+  # .mise.toml, and the completion bindings — one line replaces asdf's
+  # separate setup + completion functions.
+  eval "$(mise activate zsh)"
 }
 
 function use_direnv {
@@ -253,8 +251,7 @@ use_custom_prompt
 set_neovim_as_default_editor
 use_aliases
 enable_git_command_tab_completions
-setup_asdf
-enable_asdf_autocompletion
+setup_mise
 use_direnv
 fix_paste_redraw_in_vim_mode
 

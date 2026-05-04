@@ -19,6 +19,12 @@ modmap:
 
 keymap:
   - name: macOS-style shortcuts (skipped in ghostty)
+    # exact_match=true keeps these rules from swallowing Shift-modified
+    # variants. Without it, xremap's default loose-match treats Super-3
+    # as matching Super+Shift+3, which would steal the screenshot bind
+    # (and Super-V the clipboard-history bind, etc.) before Hyprland
+    # ever sees them.
+    exact_match: true
     application:
       not:
         - com.mitchellh.ghostty

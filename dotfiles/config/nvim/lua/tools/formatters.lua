@@ -9,4 +9,15 @@
 --   stylua   = { "lua" },
 return {
   stylua = { "lua" },
+  prettier = {
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact",
+    "css",
+    "html",
+    "json",
+    "yaml",
+    "markdown",
+  },
 }
