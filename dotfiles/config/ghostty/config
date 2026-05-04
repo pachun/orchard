@@ -22,6 +22,11 @@ clipboard-paste-protection = false
 theme = "Catppuccin Frappe"
 
 font-family = "MonoLisa Variable"
+# Fallback font for nerd-font codepoints (diagnostic icons in nvim,
+# git/folder glyphs in lazygit/gh, devicons via lualine, etc.). MonoLisa
+# doesn't ship those glyphs; without a fallback they render as tofu.
+# Repeated `font-family` directives form ghostty's fallback chain.
+font-family = "Symbols Nerd Font Mono"
 font-style = Medium
 
 # Disable programming ligatures (== stays "==", => stays "=>", etc.).

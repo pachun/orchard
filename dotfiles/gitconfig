@@ -1,5 +1,8 @@
 [init]
 	defaultBranch = main
 
+[format]
+	pretty = format:%C(yellow)%h%C(green)%d%Creset %C(blue)%s %C(magenta) [%an, %cr]%Creset
+
 [include]
 	path = ~/.gitconfig.local
