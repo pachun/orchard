@@ -49,6 +49,11 @@ vim.opt.shiftwidth = 2
 vim.opt.softtabstop = 2
 vim.opt.tabstop = 2
 
+-- y/p use the system clipboard ("+" register) by default. Without this,
+-- p pastes nvim's internal yank register and ghostty's copy goes
+-- nowhere nvim can see. Backed by wl-copy/wl-paste on Wayland.
+vim.opt.clipboard:append("unnamedplus")
+
 -- 1-cell sign column for the diagnostic markers below. "yes:1" keeps
 -- the gutter reserved permanently so it doesn't shift when signs come
 -- and go.
