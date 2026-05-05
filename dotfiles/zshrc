@@ -228,12 +228,6 @@ function setup_mise {
   eval "$(mise activate zsh)"
 }
 
-function use_direnv {
-  eval "$(direnv hook zsh)"
-  # silence loading & unloading env var output
-  export DIRENV_LOG_FORMAT=""
-}
-
 function fix_paste_redraw_in_vim_mode {
   # Pasted content lands in zsh's buffer without triggering a screen redraw —
   # characters only appear after the next keypress. Wrap the built-in
@@ -253,7 +247,6 @@ set_neovim_as_default_editor
 use_aliases
 enable_git_command_tab_completions
 setup_mise
-use_direnv
 fix_paste_redraw_in_vim_mode
 
 # for claude code:
