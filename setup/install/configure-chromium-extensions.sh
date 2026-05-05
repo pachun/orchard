@@ -12,6 +12,9 @@
 #       third-party scripts, while AdGuard's defaults block ads without
 #       nuking analytics/CDN payloads. AdGuard is the same company
 #       behind the popular paid Safari blocker.
+#   - Privacy.com (hmgpakheknboplhmlicfkkgjipfabmhp)
+#       Generates one-time / merchant-locked virtual cards at checkout
+#       so the real card number never leaves the Privacy.com vault.
 #
 # To add another extension: get its ID from the Chrome Web Store URL
 # (the long string at the end), then append a "<id>;<update_url>"
@@ -31,12 +34,14 @@ UPDATE_URL="https://clients2.google.com/service/update2/crx"
 # the extension's chromewebstore.google.com URL. Add new entries here
 # and reference them in the JSON below.
 ADGUARD_ADBLOCKER="bgnkhhnnamicmpeenaelnjfhikgbkllg"
+PRIVACY_DOT_COM="hmgpakheknboplhmlicfkkgjipfabmhp"
 
 sudo mkdir -p "$POLICY_DIR"
 sudo tee "$POLICY_FILE" >/dev/null <<EOF
 {
   "ExtensionInstallForcelist": [
-    "$ADGUARD_ADBLOCKER;$UPDATE_URL"
+    "$ADGUARD_ADBLOCKER;$UPDATE_URL",
+    "$PRIVACY_DOT_COM;$UPDATE_URL"
   ]
 }
 EOF
