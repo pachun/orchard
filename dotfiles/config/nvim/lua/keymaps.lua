@@ -5,6 +5,10 @@
 -- exit insert mode
 vim.keymap.set("i", "jj", "<Esc>")
 
+-- save / quit
+vim.keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "save buffer" })
+vim.keymap.set("n", "<leader>q", "<cmd>q<CR>", { desc = "quit window" })
+
 -- diagnostics / LSP
 vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "show line diagnostics" })
 vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "rename symbol (LSP)" })

@@ -105,6 +105,7 @@ function use_aliases {
   alias e=exit
   alias c=clear
   alias vim=nvim
+  alias x=serie
   alias p='git push origin $(git rev-parse --abbrev-ref HEAD)'
   alias gs="git status"
   alias gl="git log"
