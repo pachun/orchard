@@ -140,6 +140,12 @@ ffmpegthumbnailer
 # alternative and just calls into wlr-layer-shell, no monitor introspection.
 swaybg
 
+# PostgreSQL server + CLI. configure-postgres.sh handles initdb,
+# enabling the service, and creating a superuser matching $USER so
+# local apps (Phoenix/Ecto, etc.) connect cleanly without per-project
+# DB user setup.
+postgresql
+
 # ripgrep — telescope's live_grep picker shells out to `rg`. Without it,
 # searching by content silently returns no results.
 ripgrep

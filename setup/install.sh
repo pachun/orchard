@@ -30,6 +30,7 @@ bash "$HERE/install/configure-claude.sh"
 bash "$HERE/install/configure-xdg-dirs.sh"
 bash "$HERE/install/configure-user-services.sh"
 bash "$HERE/install/configure-nordvpn.sh"
+bash "$HERE/install/configure-postgres.sh"
 
 # mise provisions node/npm before nvim's Mason install flow runs. The
 # subshell that runs configure-nvim.sh inherits the parent PATH but not
