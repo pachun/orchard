@@ -1,0 +1,44 @@
+#!/bin/sh
+# Cmd+I toggle for BlueBubbles, three-state:
+#   1. not running                  → launch it
+#   2. running, currently focused   → move to a hidden "special" workspace
+#                                     (Hyprland's scratchpad equivalent of
+#                                     macOS minimize)
+#   3. running, on special ws       → move back to the focused workspace
+#                                     and refocus (the "unminimize" path)
+#   4. running, on a regular ws     → focus its workspace + raise
+set -eu
+
+CLASS="bluebubbles"
+SPECIAL="special:bluebubbles"
+
+clients="$(hyprctl clients -j)"
+client="$(printf '%s' "$clients" | jq -c ".[] | select(.class == \"$CLASS\")" | head -1)"
+
+if [ -z "$client" ]; then
+    exec bluebubbles
+fi
+
+addr="$(printf '%s' "$client" | jq -r '.address')"
+ws_name="$(printf '%s' "$client" | jq -r '.workspace.name')"
+active_addr="$(hyprctl activewindow -j | jq -r '.address // ""')"
+
+case "$ws_name" in
+    "special:bluebubbles")
+        # Unminimize: bring the window to the workspace the user is
+        # currently looking at, and focus it.
+        current_ws="$(hyprctl activeworkspace -j | jq -r '.id')"
+        hyprctl dispatch movetoworkspace "$current_ws,address:$addr"
+        hyprctl dispatch focuswindow "address:$addr"
+        ;;
+    *)
+        if [ "$active_addr" = "$addr" ]; then
+            # Minimize: stash it in the named special workspace.
+            # `movetoworkspacesilent` doesn't switch the user's view.
+            hyprctl dispatch movetoworkspacesilent "$SPECIAL,address:$addr"
+        else
+            # Visible somewhere else — jump to it.
+            hyprctl dispatch focuswindow "address:$addr"
+        fi
+        ;;
+esac
