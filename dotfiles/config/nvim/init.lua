@@ -97,3 +97,4 @@ vim.diagnostic.config({
 
 -- All keymaps live in lua/keymaps.lua so there's one place to look.
 require("keymaps")
+require("autocmds")
