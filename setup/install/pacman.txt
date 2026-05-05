@@ -140,6 +140,15 @@ ffmpegthumbnailer
 # alternative and just calls into wlr-layer-shell, no monitor introspection.
 swaybg
 
+# ripgrep — telescope's live_grep picker shells out to `rg`. Without it,
+# searching by content silently returns no results.
+ripgrep
+
+# tree-sitter CLI — nvim-treesitter's `main` branch compiles parsers
+# locally via this. Without it, configure-nvim.sh fails per-parser with
+# `ENOENT (cmd): 'tree-sitter'` and no syntax highlighting works.
+tree-sitter-cli
+
 # mise — language version manager (Rust rewrite of asdf, asdf-vm isn't
 # packaged for aarch64 in extra/). Provides the `node`/`npm` shims
 # that Mason uses at install time to fetch npm-distributed language

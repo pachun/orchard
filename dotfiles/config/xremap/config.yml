@@ -36,6 +36,7 @@ keymap:
       Super-z: C-z   # undo
       Super-w: C-w   # close tab (or window if last tab)
       Super-t: C-t   # new tab
+      Super-Shift-t: C-Shift-t   # reopen last closed tab
       Super-f: C-f   # find in page
       Super-s: C-s   # save
       Super-r: C-r   # reload page

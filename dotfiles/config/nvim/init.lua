@@ -54,10 +54,10 @@ vim.opt.tabstop = 2
 -- nowhere nvim can see. Backed by wl-copy/wl-paste on Wayland.
 vim.opt.clipboard:append("unnamedplus")
 
--- 1-cell sign column for the diagnostic markers below. "yes:1" keeps
--- the gutter reserved permanently so it doesn't shift when signs come
--- and go.
-vim.opt.signcolumn = "yes:1"
+-- No sign column. Diagnostic indication happens via line-number
+-- highlighting (numhl below) instead, so the gutter stays as narrow
+-- as just the line numbers.
+vim.opt.signcolumn = "no"
 
 -- Minimum width of the line number column. Default 4 leaves a wad of
 -- empty space to the left of short line numbers ("   1" rather than "1").
@@ -65,24 +65,28 @@ vim.opt.signcolumn = "yes:1"
 -- the absolute number outgrows it on bigger files.
 vim.opt.numberwidth = 2
 
+-- Hide nvim's intro splash ("VIM - Vi IMproved", version, donate
+-- prompt) so empty-buffer startup is blank.
+vim.opt.shortmess:append("I")
+
 -- Hide the "~" markers that vim draws on every line past end-of-file.
 -- Default fillchars eob="~" — purely decorative, no functional value.
 -- Setting to space makes those lines render blank.
 vim.opt.fillchars:append({ eob = " " })
 
--- Diagnostics: a single dot in the gutter on lines with any kind of
--- diagnostic (color indicates severity). No inline message and no
--- underline — <leader>d pops the full text on demand.
+-- Diagnostics: color the line number itself by severity (numhl) instead
+-- of placing a sign in a dedicated column. Same visual cue, no extra
+-- gutter cell. <leader>d still pops the full text on demand.
 vim.diagnostic.config({
   virtual_text = false,
   underline = false,
   update_in_insert = false,
   signs = {
-    text = {
-      [vim.diagnostic.severity.ERROR] = "●",
-      [vim.diagnostic.severity.WARN] = "●",
-      [vim.diagnostic.severity.INFO] = "●",
-      [vim.diagnostic.severity.HINT] = "●",
+    numhl = {
+      [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+      [vim.diagnostic.severity.WARN] = "DiagnosticSignWarn",
+      [vim.diagnostic.severity.INFO] = "DiagnosticSignInfo",
+      [vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
     },
   },
   float = {

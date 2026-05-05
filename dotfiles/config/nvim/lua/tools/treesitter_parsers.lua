@@ -1,0 +1,33 @@
+-- Treesitter parsers to install. Each entry must match a parser name
+-- from nvim-treesitter — list available parsers with:
+--   nvim --headless +"lua print(table.concat(require('nvim-treesitter.parsers').available_parsers(), '\n'))" +q
+return {
+  "bash",
+  "c",
+  "css",
+  "csv",
+  "diff",
+  "dockerfile",
+  "elixir",
+  "git_config",
+  "git_rebase",
+  "gitcommit",
+  "gitignore",
+  "go",
+  "html",
+  "javascript",
+  "json",
+  "lua",
+  "markdown",
+  "markdown_inline",
+  "python",
+  "ruby",
+  "rust",
+  "scss",
+  "tmux",
+  "tsx",
+  "typescript",
+  "vim",
+  "vimdoc",
+  "yaml",
+}

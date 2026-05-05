@@ -16,6 +16,19 @@ vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "goto definition (LSP
 -- search
 vim.keymap.set("n", "<leader>nh", "<cmd>nohlsearch<CR>", { desc = "clear search highlights" })
 
+-- telescope
+vim.keymap.set("n", "<leader>ff", function()
+  require("telescope.builtin").find_files({ cwd_only = true, hidden = true })
+end, { desc = "find files" })
+
+vim.keymap.set("n", "<leader>fs", function()
+  require("telescope.builtin").live_grep({ cwd_only = true, hidden = true })
+end, { desc = "find string (live grep)" })
+
+vim.keymap.set("n", "<leader>fr", function()
+  require("telescope.builtin").oldfiles({ cwd_only = true, hidden = true })
+end, { desc = "find recent files" })
+
 -- file explorer
 vim.keymap.set("n", "<leader>ee", function()
   local api = require("nvim-tree.api")
