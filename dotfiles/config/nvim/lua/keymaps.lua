@@ -51,6 +51,12 @@ vim.keymap.set("n", "<leader>fr", function()
   require("telescope.builtin").oldfiles({ cwd_only = true, hidden = true })
 end, { desc = "find recent files" })
 
+-- vim-test (sends to an idle tmux pane in the same cwd; see
+-- plugins/vim-test.lua for the strategy)
+vim.keymap.set("n", "<leader>s", "<cmd>TestNearest<CR>", { desc = "run test under cursor" })
+vim.keymap.set("n", "<leader>t", "<cmd>TestFile<CR>", { desc = "run tests in file" })
+vim.keymap.set("n", "<leader>a", "<cmd>TestSuite<CR>", { desc = "run all tests" })
+
 -- file explorer
 vim.keymap.set("n", "<leader>ee", function()
   local api = require("nvim-tree.api")
