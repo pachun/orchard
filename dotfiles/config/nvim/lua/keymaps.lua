@@ -6,8 +6,17 @@
 vim.keymap.set("i", "jj", "<Esc>")
 
 -- save / quit
+local splits = require("splits")
 vim.keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "save buffer" })
-vim.keymap.set("n", "<leader>q", "<cmd>q<CR>", { desc = "quit window" })
+vim.keymap.set("n", "<leader>q", splits.close_split, { desc = "quit window (unzooms first if zoomed)" })
+
+-- split management
+vim.keymap.set("n", "<leader>d|", splits.vsplit, { desc = "vsplit" })
+vim.keymap.set("n", "<leader>d_", splits.split, { desc = "split" })
+vim.keymap.set("n", "<leader>d+", splits.toggle_zoom, { desc = "toggle zoom" })
+vim.keymap.set("n", "<leader>de", "<C-w>=", { desc = "equalize splits" })
+vim.keymap.set("n", "<leader>d{", "<C-w>r", { desc = "rotate splits forward" })
+vim.keymap.set("n", "<leader>d}", "<C-w>R", { desc = "rotate splits backward" })
 
 -- toggle nvim-cmp dropdown completions (the popup menu, not LSP itself)
 vim.keymap.set("n", "<leader>dd", function()
