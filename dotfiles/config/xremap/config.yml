@@ -11,7 +11,7 @@
 # Hyprland's `kb_options = ctrl:nocaps` so the keymap rules below see
 # real Ctrl events when the user presses Caps. Hyprland's XKB-level
 # remap runs *after* xremap, so it would have left xremap blind to the
-# Caps-as-Ctrl press and our Ctrl-N workspace rules wouldn't fire.
+# Caps-as-Ctrl press.
 modmap:
   - name: caps lock → control
     remap:
@@ -40,18 +40,6 @@ keymap:
       Super-f: C-f   # find in page
       Super-s: C-s   # save
       Super-r: C-r   # reload page
-      # Numbered tab switching — Cmd+1..9 → Ctrl+1..9 (chromium's
-      # native shortcut, also works in most other tabbed apps).
-      # Ghostty is excluded so its own Super-N tab binds keep working.
-      Super-1: C-1
-      Super-2: C-2
-      Super-3: C-3
-      Super-4: C-4
-      Super-5: C-5
-      Super-6: C-6
-      Super-7: C-7
-      Super-8: C-8
-      Super-9: C-9
 
   - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
     remap:
@@ -60,18 +48,10 @@ keymap:
       # Cmd+Shift+] → Ctrl+Tab (next tab)
       Super-Shift-RightBrace: C-Tab
 
-  # Workspace switching is handled HERE rather than as a Hyprland bind
-  # because the bind path causes a conflict: the rule above remaps
-  # Cmd+1 → Ctrl+1 in chromium so the browser switches tabs, but a
-  # global Hyprland `bind = CTRL, 1, workspace, 1` would intercept the
-  # synthesized Ctrl+1 before chromium ever sees it. By dispatching the
-  # workspace switch from xremap (via `launch`), we consume the Ctrl+1
-  # at the input layer for the workspace-switch case while leaving the
-  # remapped-from-Cmd Ctrl+1 to flow through to chromium.
-  # More specific (Super+Ctrl+N) MUST come before Ctrl-N. xremap evaluates
-  # rules top-down and stops at the first match; if Ctrl-N came first
-  # and exact-match wasn't honored, Cmd+Ctrl+N would trigger a workspace
-  # switch instead of moving the focused window.
+  # More specific (Super+Ctrl+N) MUST come before Super+N. xremap evaluates
+  # rules top-down and stops at the first match; if Super+N came first,
+  # Cmd+Ctrl+N would trigger a workspace switch instead of moving the
+  # focused window.
   - name: move window to workspace (Cmd+Ctrl+1..5)
     remap:
       Super-Ctrl-1: { launch: ["hyprctl", "dispatch", "movetoworkspace", "1"] }
@@ -80,10 +60,10 @@ keymap:
       Super-Ctrl-4: { launch: ["hyprctl", "dispatch", "movetoworkspace", "4"] }
       Super-Ctrl-5: { launch: ["hyprctl", "dispatch", "movetoworkspace", "5"] }
 
-  - name: workspace switching (Ctrl+1..5)
+  - name: workspace switching (Cmd+1..5)
     remap:
-      Ctrl-1: { launch: ["hyprctl", "dispatch", "workspace", "1"] }
-      Ctrl-2: { launch: ["hyprctl", "dispatch", "workspace", "2"] }
-      Ctrl-3: { launch: ["hyprctl", "dispatch", "workspace", "3"] }
-      Ctrl-4: { launch: ["hyprctl", "dispatch", "workspace", "4"] }
-      Ctrl-5: { launch: ["hyprctl", "dispatch", "workspace", "5"] }
+      Super-1: { launch: ["hyprctl", "dispatch", "workspace", "1"] }
+      Super-2: { launch: ["hyprctl", "dispatch", "workspace", "2"] }
+      Super-3: { launch: ["hyprctl", "dispatch", "workspace", "3"] }
+      Super-4: { launch: ["hyprctl", "dispatch", "workspace", "4"] }
+      Super-5: { launch: ["hyprctl", "dispatch", "workspace", "5"] }
