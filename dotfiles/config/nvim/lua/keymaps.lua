@@ -60,6 +60,21 @@ vim.keymap.set("n", "<leader>fr", function()
   require("telescope.builtin").oldfiles({ cwd_only = true, hidden = true })
 end, { desc = "find recent files" })
 
+-- git
+-- Toggle full-file blame side window. Gitsigns has no built-in toggle;
+-- we walk visible windows and close the blame buffer if found, open
+-- otherwise. Filetype check covers both common gitsigns naming variants.
+vim.keymap.set("n", "<leader>gb", function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
+    if ft == "gitsigns.blame" or ft == "gitsigns-blame" then
+      vim.api.nvim_win_close(win, false)
+      return
+    end
+  end
+  vim.cmd("Gitsigns blame")
+end, { desc = "toggle full-file git blame" })
+
 -- vim-test (sends to an idle tmux pane in the same cwd; see
 -- plugins/vim-test.lua for the strategy)
 vim.keymap.set("n", "<leader>s", "<cmd>TestNearest<CR>", { desc = "run test under cursor" })
