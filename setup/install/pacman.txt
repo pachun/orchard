@@ -147,10 +147,6 @@ ripgrep
 # highlighting. Wired in via gitconfig's core.pager / interactive.diffFilter.
 git-delta
 
-# Rich terminal UI for git commit graphs — `serie` in any repo gives a
-# scrollable, color-coded log/graph view. Replaces `git log --graph`
-# squinting.
-serie
 
 # tree-sitter CLI — nvim-treesitter's `main` branch compiles parsers
 # locally via this. Without it, configure-nvim.sh fails per-parser with

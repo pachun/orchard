@@ -105,7 +105,7 @@ function use_aliases {
   alias e=exit
   alias c=clear
   alias vim=nvim
-  alias x=serie
+  alias x=gitspine
   alias cw="gcalcli calw"
   alias cm="gcalcli calm"
   alias ca="gcalcli add"
