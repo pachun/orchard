@@ -52,7 +52,12 @@ keymap:
   # rules top-down and stops at the first match; if Super+N came first,
   # Cmd+Ctrl+N would trigger a workspace switch instead of moving the
   # focused window.
+  #
+  # exact_match=true on both rules below for the same reason as the
+  # macOS-style shortcuts above: without it, Super-3 also matches
+  # Super+Shift+3, stealing the Cmd+Shift+3 screenshot bind.
   - name: move window to workspace (Cmd+Ctrl+1..5)
+    exact_match: true
     remap:
       Super-Ctrl-1: { launch: ["hyprctl", "dispatch", "movetoworkspace", "1"] }
       Super-Ctrl-2: { launch: ["hyprctl", "dispatch", "movetoworkspace", "2"] }
@@ -61,6 +66,7 @@ keymap:
       Super-Ctrl-5: { launch: ["hyprctl", "dispatch", "movetoworkspace", "5"] }
 
   - name: workspace switching (Cmd+1..5)
+    exact_match: true
     remap:
       Super-1: { launch: ["hyprctl", "dispatch", "workspace", "1"] }
       Super-2: { launch: ["hyprctl", "dispatch", "workspace", "2"] }
