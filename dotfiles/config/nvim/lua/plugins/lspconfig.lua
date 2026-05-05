@@ -6,6 +6,16 @@
 return {
   "neovim/nvim-lspconfig",
   config = function()
+    -- Advertise nvim-cmp's expanded completion capabilities to every
+    -- LSP. Without this, servers send the bare-bones default set and
+    -- richer features (snippets, resolve, etc.) silently no-op. pcall
+    -- guards the case where cmp isn't installed yet (first headless
+    -- bootstrap before Lazy syncs).
+    local ok, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+    if ok then
+      vim.lsp.config("*", { capabilities = cmp_lsp.default_capabilities() })
+    end
+
     local servers = require("tools.language_servers")
     for name, opts in pairs(servers) do
       vim.lsp.config(name, opts)

@@ -9,6 +9,12 @@ vim.keymap.set("i", "jj", "<Esc>")
 vim.keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "save buffer" })
 vim.keymap.set("n", "<leader>q", "<cmd>q<CR>", { desc = "quit window" })
 
+-- toggle nvim-cmp dropdown completions (the popup menu, not LSP itself)
+vim.keymap.set("n", "<leader>dd", function()
+  _G.cmp_enabled = not _G.cmp_enabled
+  print(_G.cmp_enabled and "dropdown suggestions enabled" or "dropdown suggestions disabled")
+end, { desc = "toggle dropdown suggestions" })
+
 -- diagnostics / LSP
 vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "show line diagnostics" })
 vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "rename symbol (LSP)" })
