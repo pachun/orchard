@@ -15,6 +15,18 @@ vim.keymap.set("n", "<leader>dd", function()
   print(_G.cmp_enabled and "dropdown suggestions enabled" or "dropdown suggestions disabled")
 end, { desc = "toggle dropdown suggestions" })
 
+-- comment toggle (Ctrl+/). <C-_> is what terminals emit for Ctrl+/.
+-- Pressed twice matches boo muscle memory; change to single <C-_> if
+-- preferred. In visual mode we drop out to normal first, otherwise the
+-- API call stays scoped to the current line.
+vim.keymap.set("n", "<C-_><C-_>", function()
+  require("Comment.api").toggle.linewise.current()
+end, { desc = "toggle comment line" })
+vim.keymap.set("v", "<C-_><C-_>", function()
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", false)
+  require("Comment.api").toggle.linewise(vim.fn.visualmode())
+end, { desc = "toggle comment block" })
+
 -- diagnostics / LSP
 vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "show line diagnostics" })
 vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "rename symbol (LSP)" })
