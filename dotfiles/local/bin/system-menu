@@ -1,0 +1,15 @@
+#!/bin/sh
+# fuzzel dmenu wired to waybar's arch logo (custom/system on-click).
+# Three actions: full system update, reboot, shut down. Update opens
+# a dedicated ghostty window — see ./system-update for details.
+set -eu
+
+choice=$(printf 'Update\nReboot\nShut down\n' \
+    | fuzzel --dmenu --width=20 --lines=3 --prompt='')
+
+case "$choice" in
+    Update)        exec "$HOME/.local/bin/system-update" ;;
+    Reboot)        exec systemctl reboot ;;
+    "Shut down")   exec systemctl poweroff ;;
+    *)             exit 0 ;;  # user pressed Esc
+esac

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Run `yay -Syu` (sync repos + AUR) in a dedicated ghostty window
+# attached to a tmux session named "system-update".
+#
+# Why a dedicated window: the user's regular ghostty(s) usually have
+# their own tmux session(s) running. We don't want to disrupt them by
+# switching to a different session. Giving the update window its own
+# WM_CLASS (system-update) lets focus-or-launch find it specifically.
+#
+# Why tmux: the update can take minutes. tmux means closing the window
+# accidentally won't kill the upgrade, and re-clicking Update brings
+# the same window back via focus-or-launch.
+set -eu
+
+CLASS=system-update
+
+# Outer tmux command keeps the session alive after the upgrade finishes
+# so the user can read the output before the window closes.
+CMD="tmux new-session -A -s system-update 'yay -Syu; echo; echo --- Done. Press any key to close. ---; read -n 1'"
+
+exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \
+    ghostty --class="$CLASS" -e sh -c "$CMD"

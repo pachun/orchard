@@ -10,14 +10,15 @@
     "modules-left": ["custom/system", "hyprland/workspaces"],
 
     "custom/system": {
-        // Placeholder for a future system-settings entry point. Arch
-        // logo (nf-md-arch, U+F08C7) — same MDI family as the icons on
-        // the right. Wire `on-click` later when we pick the action.
+        // Arch logo (nf-md-arch, U+F08C7) — same MDI family as the icons
+        // on the right. Click opens a fuzzel menu with Update / Reboot /
+        // Shut down actions. See ~/.local/bin/system-menu.
         "format": "󰣇",
-        "tooltip": false
+        "tooltip": false,
+        "on-click": "$HOME/.local/bin/system-menu"
     },
     "modules-center": [],
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "network", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
 
     "custom/recording": {
         // Visible only while wf-recorder is running. Click stops the
@@ -75,6 +76,18 @@
         "interval": 10,
         "signal": 9,
         "on-click": "$HOME/.local/bin/nordvpn-menu"
+    },
+
+    "custom/wifi-status": {
+        // Spinner shown while wifi-menu is in the middle of connecting.
+        // wifi-menu drops /tmp/wifi-connecting and sends SIGRTMIN+8 to
+        // flip the icon on; removes the file and resignals when nmcli
+        // returns. Polled every second so the half-circle frames rotate
+        // visibly during the connect window.
+        "exec": "$HOME/.local/bin/waybar-wifi-status",
+        "return-type": "json",
+        "interval": 1,
+        "signal": 8
     },
 
     "network": {

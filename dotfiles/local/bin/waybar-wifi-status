@@ -1,0 +1,20 @@
+#!/bin/sh
+# Waybar custom module backing the wifi-connect spinner.
+#
+# Idle state (no /tmp/wifi-connecting): emits empty text — the module
+# disappears from the bar.
+#
+# Connecting state (the file exists, dropped by wifi-menu): emits one
+# of four half-circle frames cycled by wall-clock seconds. Waybar polls
+# this every second, so the icon visibly rotates.
+set -eu
+
+if [ ! -f /tmp/wifi-connecting ]; then
+    printf '{"text":""}\n'
+    exit 0
+fi
+
+frames='◐◓◑◒'
+n=$(( $(date +%s) % 4 ))
+frame=$(printf '%s' "$frames" | cut -c $((n + 1)))
+printf '{"text":"%s","tooltip":"connecting…","class":"connecting"}\n' "$frame"

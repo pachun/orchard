@@ -1,7 +1,17 @@
 #!/bin/sh
 # Pick a wifi network via the Frappé-themed fuzzel picker. Connects with
-# saved credentials if available; falls back to a fuzzel password prompt.
+# saved credentials if available; falls back to a fuzzel password prompt
+# for secured networks. Open networks skip the password prompt entirely.
 # Triggered from waybar's network module on-click.
+#
+# Each row has a 4-char prefix encoding two pieces of state:
+#   "● " / "  "   — currently connected to this SSID (or not)
+#   "󰌾 " / "  "   — secured (any non-empty SECURITY) or open
+# So:
+#   "● 󰌾 SSID"  — connected + secured
+#   "●   SSID"  — connected + open
+#   "  󰌾 SSID"  — secured, available
+#   "    SSID"  — open, available
 #
 # Top of the list:
 #   [Disconnect] — drops the active wifi connection (only when one exists)
@@ -12,18 +22,49 @@ set -eu
 
 DISCONNECT='[Disconnect]'
 RESCAN='[Rescan]'
+ACTIVE='● '
+INACTIVE='  '
+LOCK='󰌾 '
+OPEN='  '
+
+# waybar-wifi-status renders a spinner while this file exists. The trap
+# guarantees it's cleared even if the script is killed mid-connect, so
+# we don't strand the spinner on the bar.
+spinner_on() {
+    touch /tmp/wifi-connecting
+    pkill -RTMIN+8 waybar 2>/dev/null || true
+}
+spinner_off() {
+    rm -f /tmp/wifi-connecting
+    pkill -RTMIN+8 waybar 2>/dev/null || true
+}
+trap spinner_off EXIT INT TERM
 
 while :; do
     active_wifi=$(nmcli -t -f NAME,TYPE connection show --active \
                   | awk -F: '$2=="802-11-wireless"{print $1; exit}')
 
     nmcli device wifi rescan 2>/dev/null || true
-    ssids=$(nmcli -t -f SSID device wifi list | sort -u | grep -v '^$')
+
+    # SSID + security pair per visible network. Empty SECURITY field means
+    # open. Prefix each row with the active/inactive + lock/open state so
+    # the prompt signals at a glance both which network you're already on
+    # and which networks will ask for a password.
+    networks=$(nmcli -t -f SSID,SECURITY device wifi list \
+        | awk -F: -v lock="$LOCK" -v open="$OPEN" \
+                  -v active="$ACTIVE" -v inactive="$INACTIVE" \
+                  -v active_ssid="$active_wifi" '
+            $1 != "" {
+                status = ($1 == active_ssid) ? active : inactive
+                sec    = ($2 == "" || $2 == "--") ? open : lock
+                print status sec $1
+            }' \
+        | sort -u)
 
     list=$(
         [ -n "$active_wifi" ] && printf '%s\n' "$DISCONNECT"
         printf '%s\n' "$RESCAN"
-        printf '%s\n' "$ssids"
+        printf '%s\n' "$networks"
     )
 
     choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt 'wifi: ' --width 40) || exit 0
@@ -39,17 +80,48 @@ while :; do
             ;;
     esac
 
-    if nmcli connection up "$choice" 2>/dev/null; then
-        notify-send 'WiFi' "Connected to $choice"
+    # Strip the prefix in two stages: first the active/inactive marker,
+    # then the lock/open marker. What's left is the raw SSID.
+    case "$choice" in
+        "$ACTIVE"*)   rest=${choice#"$ACTIVE"} ;;
+        "$INACTIVE"*) rest=${choice#"$INACTIVE"} ;;
+        *)            rest=$choice ;;
+    esac
+    case "$rest" in
+        "$LOCK"*) ssid=${rest#"$LOCK"}; secured=1 ;;
+        "$OPEN"*) ssid=${rest#"$OPEN"}; secured=0 ;;
+        *)        ssid=$rest;           secured=0 ;;
+    esac
+
+    # Saved-connection path — works for both open and secured networks
+    # we've connected to before.
+    spinner_on
+    if nmcli connection up "$ssid" 2>/dev/null; then
+        spinner_off
+        notify-send 'WiFi' "Connected to $ssid"
+        exit 0
+    fi
+    spinner_off
+
+    # No saved connection. Open networks just connect; secured prompts.
+    if [ "$secured" -eq 0 ]; then
+        spinner_on
+        if nmcli device wifi connect "$ssid"; then
+            notify-send 'WiFi' "Connected to $ssid"
+        else
+            notify-send 'WiFi' "Failed to connect to $ssid"
+        fi
+        spinner_off
         exit 0
     fi
 
-    pw=$(fuzzel --dmenu --password --prompt "password for $choice: " --width 40) || exit 0
-
-    if nmcli device wifi connect "$choice" password "$pw"; then
-        notify-send 'WiFi' "Connected to $choice"
+    pw=$(fuzzel --dmenu --password --prompt "password for $ssid: " --width 40) || exit 0
+    spinner_on
+    if nmcli device wifi connect "$ssid" password "$pw"; then
+        notify-send 'WiFi' "Connected to $ssid"
     else
-        notify-send 'WiFi' "Failed to connect to $choice"
+        notify-send 'WiFi' "Failed to connect to $ssid"
     fi
+    spinner_off
     exit 0
 done
