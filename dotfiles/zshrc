@@ -106,6 +106,9 @@ function use_aliases {
   alias c=clear
   alias vim=nvim
   alias x=serie
+  alias cw="gcalcli calw"
+  alias cm="gcalcli calm"
+  alias ca="gcalcli add"
   alias p='git push origin $(git rev-parse --abbrev-ref HEAD)'
   alias gs="git status"
   alias gl="git log"

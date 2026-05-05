@@ -30,3 +30,9 @@ bluebubbles-bin
 # Daemon enable, group membership, and DNS override are wired up by
 # configure-nordvpn.sh. `nordvpn login` / `connect` stay manual.
 nordvpn-bin
+
+# gcalcli — Google Calendar CLI. Talks to the REST API (not CalDAV)
+# so it sidesteps the URL-encoded UID issues vdirsyncer choked on.
+# First run: `gcalcli init` walks through OAuth via browser. After
+# that: `gcalcli calw` (week view), `gcalcli agenda` (upcoming list).
+gcalcli

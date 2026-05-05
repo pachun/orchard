@@ -20,15 +20,8 @@ gitg
 # maps — OSM-backed, GNOME's default
 gnome-maps
 
-# calendar — GNOME's default; pair with gnome-online-accounts to sync
-# Google Calendar. gnome-control-center provides the Online Accounts
-# panel (the only UI for adding a Google account via OAuth).
-# gnome-keyring provides the Secret Service backend that GOA needs to
-# persist OAuth tokens — without it, account auth silently fails after
-# the browser OAuth round-trip succeeds.
-gnome-calendar
-gnome-online-accounts
-gnome-control-center
+# gnome-keyring is the Secret Service backend used by chromium and
+# other apps for password storage.
 gnome-keyring
 
 # weather — clickable from waybar's weather icon

@@ -16,3 +16,4 @@ nvim plugins explicitly skipped during the boo port (revisit if needed):
 - snacks.nvim — folke's UI toolkit; only used in boo for vim.ui.input styling, which noice already covers
 - supermaven — AI ghost-text completion; redundant alongside Claude Code
 - vim-ruby — ruby filetype enhancements; not currently writing ruby
+
