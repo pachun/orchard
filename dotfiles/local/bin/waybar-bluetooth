@@ -2,14 +2,21 @@
 # waybar custom/bluetooth status. Always emits something (stays visible
 # in the bar at all times per design — never blanks).
 #
-# State → output:
+# Steady-state output:
 #   service down / no adapter   → bluetooth-slash, "off" tooltip,    grey
 #   on, no devices connected    → bluetooth,       "no connections", grey (default)
 #   on, ≥1 device connected     → bluetooth-conn., device list,      class=connected (white)
 #
+# Active scan: when /tmp/bluetooth-scanning exists (dropped by
+# bluetooth-menu under a trap on auto-scan start, removed on end),
+# we append "scanning" to the class. CSS animates opacity on
+# .scanning so the existing bluetooth glyph itself pulses — no
+# separate module, no layout shift, scanning is just a *state* of
+# the icon you already know.
+#
 # CSS handles the color: default #b5bfe2 (subtext1, grey), .connected
-# bumps to #c6d0f5 (text, white). One-class toggle, no per-state colors
-# in JS-on-bash.
+# bumps to #c6d0f5 (text, white), .scanning runs the bt-pulse
+# keyframe on whatever class is also present.
 #
 # Phosphor codepoints:
 #   bluetooth            U+E0DA
@@ -17,14 +24,34 @@
 #   bluetooth-slash      U+E0DE
 #
 # Refresh: bluetooth-menu sends SIGRTMIN+11 after any action that
-# changes connection state.
+# changes connection state, including scan start/stop. The 30s
+# polling interval in waybar config is the steady-state safety
+# net, not the primary refresh path.
 
-ICON_OFF=''
-ICON_ON=''
-ICON_CONNECTED=''
+ICON_OFF=$(printf      '\356\203\236')   # U+E0DE bluetooth-slash
+ICON_ON=$(printf       '\356\203\232')   # U+E0DA bluetooth
+ICON_CONNECTED=$(printf '\356\203\234')  # U+E0DC bluetooth-connected
+
+emit() {
+    # $1 = icon, $2 = tooltip, $3 = base class (may be empty).
+    # Appends "scanning" to the class if the scan indicator is up.
+    icon=$1; tooltip=$2; class=$3
+    if [ -f /tmp/bluetooth-scanning ]; then
+        if [ -n "$class" ]; then
+            class="$class scanning"
+        else
+            class="scanning"
+        fi
+    fi
+    if [ -n "$class" ]; then
+        printf '{"text":"%s","class":"%s","tooltip":"%s"}\n' "$icon" "$class" "$tooltip"
+    else
+        printf '{"text":"%s","tooltip":"%s"}\n' "$icon" "$tooltip"
+    fi
+}
 
 if ! command -v bluetoothctl >/dev/null 2>&1; then
-    printf '{"text":"%s","tooltip":"Bluetooth unavailable"}\n' "$ICON_OFF"
+    emit "$ICON_OFF" "Bluetooth unavailable" ""
     exit 0
 fi
 
@@ -32,12 +59,12 @@ powered=$(bluetoothctl show 2>/dev/null | awk -F': *' '/Powered:/ {print $2; exi
 
 if [ -z "$powered" ]; then
     # Adapter or service missing.
-    printf '{"text":"%s","tooltip":"Bluetooth service inactive"}\n' "$ICON_OFF"
+    emit "$ICON_OFF" "Bluetooth service inactive" ""
     exit 0
 fi
 
 if [ "$powered" != "yes" ]; then
-    printf '{"text":"%s","tooltip":"Bluetooth off"}\n' "$ICON_OFF"
+    emit "$ICON_OFF" "Bluetooth off" ""
     exit 0
 fi
 
@@ -46,9 +73,9 @@ connected_lines=$(bluetoothctl devices Connected 2>/dev/null)
 count=$(printf '%s' "$connected_lines" | grep -c .)
 
 if [ "$count" -eq 0 ]; then
-    printf '{"text":"%s","tooltip":"Bluetooth on, nothing connected"}\n' "$ICON_ON"
+    emit "$ICON_ON" "Bluetooth on, nothing connected" ""
 else
     # Tooltip: "Connected: Name1, Name2"
     names=$(printf '%s\n' "$connected_lines" | sed 's/^Device [^ ]* //' | paste -sd ", " -)
-    printf '{"text":"%s","class":"connected","tooltip":"Connected: %s"}\n' "$ICON_CONNECTED" "$names"
+    emit "$ICON_CONNECTED" "Connected: $names" "connected"
 fi

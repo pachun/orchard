@@ -1,14 +1,28 @@
 #!/bin/sh
-# Fuzzel-driven Bluetooth picker. Toggles power, scans for new devices,
-# and connects/disconnects paired devices. Mirrors wifi-menu and
+# Fuzzel-driven Bluetooth picker. Toggles power, connects /
+# disconnects / pairs / forgets devices. Mirrors wifi-menu and
 # nordvpn-menu (icon-led rows, ● dot for currently-active devices,
 # special actions get their own glyph).
 #
-# Phosphor codepoints used in the menu:
-#   bluetooth-connected  U+E0DC  — paired-device rows
+# Behavior summary:
+#   - Menu opens INSTANTLY using bluez's cache. Paired devices are
+#     always actionable; no scan wait blocks the user.
+#   - A 12s background scan auto-fires on every open, unless a
+#     device is connected (would glitch audio over the shared radio)
+#     or another scan is already running. Notification + waybar
+#     spinner indicate progress.
+#   - Clicking a device row first kills any in-flight scan to free
+#     the radio — BR/EDR connect contends with active discovery on
+#     combo chips, and the click would otherwise transient-fail.
+#   - Each paired device has a sibling "Forget" row that runs
+#     disconnect → untrust → remove. Stuck pair states recover from
+#     the menu without dropping to a CLI.
+#
+# Phosphor codepoints used:
 #   bluetooth            U+E0DA  — power toggle (when on)
+#   bluetooth-connected  U+E0DC  — paired-device rows
 #   bluetooth-slash      U+E0DE  — power toggle (when off)
-#   arrows-clockwise     U+E094  — scan
+#   trash                U+E4A6  — forget rows
 set -eu
 
 . "$HOME/.local/bin/_fuzzel-menu-toggle"
@@ -18,15 +32,22 @@ if ! command -v bluetoothctl >/dev/null 2>&1; then
     exit 0
 fi
 
-ICON_BT_ON=''
-ICON_BT_OFF=''
-ICON_DEVICE=''
-ICON_SCAN=''
+# Icon bytes can't be inlined as literals through every editing
+# pipeline (some strip private-use UTF-8), so we materialise them
+# from octal escapes at startup. One subshell per icon at menu open
+# is well below the noise floor.
+ICON_BT_ON=$(printf  '\356\203\232')   # U+E0DA bluetooth
+ICON_BT_OFF=$(printf '\356\203\236')   # U+E0DE bluetooth-slash
+ICON_DEVICE=$(printf '\356\203\234')   # U+E0DC bluetooth-connected
+ICON_FORGET=$(printf '\356\222\246')   # U+E4A6 trash
 ACTIVE_DOT='●'
 
 POWER_ON_LABEL="$ICON_BT_OFF  Turn Bluetooth on"
 POWER_OFF_LABEL="$ICON_BT_ON  Turn Bluetooth off"
-SCAN_LABEL="$ICON_SCAN  Scan for new devices"
+
+SCAN_PID_FILE=/tmp/bluetooth-menu.scan.pid
+SCAN_INDICATOR=/tmp/bluetooth-scanning
+LOG=/tmp/bluetooth-menu.log
 
 powered=$(bluetoothctl show 2>/dev/null | awk -F': *' '/Powered:/ {print $2; exit}')
 
@@ -42,68 +63,222 @@ if [ "$powered" != "yes" ]; then
     exit 0
 fi
 
-# Bluetooth on — power-toggle, scan, then a list of paired devices.
-paired=$(bluetoothctl devices 2>/dev/null)
-connected=$(bluetoothctl devices Connected 2>/dev/null)
+# Four views from bluetoothctl:
+#   `devices`         — paired + transient discoveries (master list)
+#   `devices Paired`  — bond status (drives connect-vs-pair branch)
+#   `devices Trusted` — covers the half-stuck state where a device
+#                       has Trusted=yes but Paired=no (e.g. a pair
+#                       attempt got partway through then was canned).
+#                       The menu must show a Forget row for these
+#                       too, otherwise there's no in-menu recovery.
+#   `devices Connected` — drives the trailing ● indicator
+all_devices=$(bluetoothctl devices 2>/dev/null)
+paired_macs=$(bluetoothctl devices Paired 2>/dev/null | awk '/^Device / {print $2}')
+trusted_macs=$(bluetoothctl devices Trusted 2>/dev/null | awk '/^Device / {print $2}')
+connected_macs=$(bluetoothctl devices Connected 2>/dev/null | awk '/^Device / {print $2}')
 
-# Format paired devices: "<icon>  <name>  [<dot>]" — dot when connected.
-device_rows=$(printf '%s\n' "$paired" | awk -v icon="$ICON_DEVICE" \
-    -v dot="$ACTIVE_DOT" -v conn="$connected" '
+scan_already_running() {
+    [ -f "$SCAN_PID_FILE" ] || return 1
+    pid=$(cat "$SCAN_PID_FILE" 2>/dev/null) || return 1
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+# Auto-scan on open. Skip when:
+#   - $BLUETOOTH_MENU_NO_AUTOSCAN — set on the post-scan respawn so
+#     the menu doesn't loop scanning forever.
+#   - A device is currently connected — discovery + audio share the
+#     radio on combo chips and cause glitching, plus the user
+#     usually opens the menu mid-listening to disconnect, not to
+#     hunt for new gear.
+#   - A scan is already running — dedupe via the PID file so rapid
+#     menu open/close doesn't pile up duplicate scans.
+if [ -z "${BLUETOOTH_MENU_NO_AUTOSCAN:-}" ] \
+   && [ -z "$connected_macs" ] \
+   && ! scan_already_running; then
+    notify-send 'Bluetooth' 'Scanning…'
+    bluetooth_menu_pid=$$
+    (
+        # Trap covers any path out: clean exit, killed by the
+        # click-handler, or crashed. Always clears the spinner +
+        # PID file so a stuck scan can never strand the indicator.
+        trap '
+            rm -f "$SCAN_INDICATOR" "$SCAN_PID_FILE"
+            pkill -RTMIN+11 waybar 2>/dev/null || true
+        ' EXIT INT TERM
+
+        # Spinner up: drop the indicator file + signal waybar.
+        : > "$SCAN_INDICATOR"
+        pkill -RTMIN+11 waybar 2>/dev/null || true
+
+        # Run bluetoothctl in the background of THIS subshell so we
+        # have a stable PID to record. Click-handler kills this PID
+        # to free the radio; bluez auto-releases its discovery
+        # client the instant the dbus connection drops.
+        bluetoothctl --timeout 12 scan on >/dev/null 2>&1 &
+        btctl_pid=$!
+        echo "$btctl_pid" > "$SCAN_PID_FILE"
+        wait "$btctl_pid" 2>/dev/null || true
+
+        # Respawn the menu only if the user is still looking at it.
+        # Both checks (a fuzzel is up AND our shell is alive) defend
+        # against the menu having been replaced by a different
+        # fuzzel-driven menu (wifi-menu, etc.) — we don't want to
+        # nuke that one.
+        if pgrep -x fuzzel >/dev/null 2>&1 \
+           && kill -0 "$bluetooth_menu_pid" 2>/dev/null; then
+            kill "$bluetooth_menu_pid" 2>/dev/null || true
+            pkill -x fuzzel 2>/dev/null || true
+            sleep 0.3
+            BLUETOOTH_MENU_NO_AUTOSCAN=1 "$0" >/dev/null 2>&1 &
+        fi
+    ) >/dev/null 2>&1 &
+fi
+
+# Build the device list. Paired devices each get a "Forget" sibling
+# row immediately below — gives one-click recovery from stuck pair
+# states without making the user remember bluetoothctl invocations.
+# Sort ranks: 0 = connected, 1 = its forget row, 2 = paired-not-
+# connected, 3 = its forget row, 4 = trusted-but-not-paired (the
+# half-stuck state), 5 = its forget row, 6 = unpaired discovery (no
+# forget, nothing to clean up).
+device_rows=$(printf '%s\n' "$all_devices" | awk \
+    -v device_icon="$ICON_DEVICE" \
+    -v forget_icon="$ICON_FORGET" \
+    -v dot="$ACTIVE_DOT" \
+    -v paired="$paired_macs" \
+    -v trusted="$trusted_macs" \
+    -v connected="$connected_macs" '
     BEGIN {
-        n = split(conn, lines, "\n")
-        for (i = 1; i <= n; i++) {
-            if (lines[i] ~ /^Device /) {
-                split(lines[i], a, " ")
-                connected_macs[a[2]] = 1
-            }
-        }
+        n = split(paired,    pa, "\n"); for (i=1; i<=n; i++) is_paired[pa[i]]    = 1
+        n = split(trusted,   tr, "\n"); for (i=1; i<=n; i++) is_trusted[tr[i]]   = 1
+        n = split(connected, co, "\n"); for (i=1; i<=n; i++) is_connected[co[i]] = 1
     }
     /^Device / {
         mac = $2
-        # Strip "Device <mac> " prefix to get the name.
         sub(/^Device [^ ]+ /, "")
         name = $0
-        if (mac in connected_macs)
-            printf "%s  %s  %s\n", icon, name, dot
-        else
-            printf "%s  %s\n", icon, name
+        # Drop MAC-as-name fallback rows (e.g. "AA-BB-CC-DD-EE-FF") —
+        # no friendly name, listing them is useless noise.
+        if (name ~ /^[0-9A-Fa-f]{2}(-[0-9A-Fa-f]{2}){5}$/) next
+        if (is_connected[mac]) {
+            printf "0\t%s  %s  %s\n", device_icon, name, dot
+            printf "1\t%s  Forget %s\n", forget_icon, name
+        } else if (is_paired[mac]) {
+            printf "2\t%s  %s\n",       device_icon, name
+            printf "3\t%s  Forget %s\n", forget_icon, name
+        } else if (is_trusted[mac]) {
+            # Half-stuck: trusted but unbonded. Click triggers a
+            # fresh pair attempt; forget row is the escape hatch
+            # if the pair keeps failing.
+            printf "4\t%s  %s\n",       device_icon, name
+            printf "5\t%s  Forget %s\n", forget_icon, name
+        } else {
+            printf "6\t%s  %s\n",       device_icon, name
+        }
     }
-')
+' | sort -u | cut -f2-)
 
-# Note: the empty-device-list case must use `if/fi`, not `[ … ] && …`.
-# Under `set -e`, the subshell's exit status is the last command's,
-# and `[ -z "$x" ] && …` evaluating to 1 would kill the parent script.
-# `if/fi` returns 0 whether the condition matched or not.
+# Empty-device-list case must use if/fi, not `[…] && …` — set -e +
+# last-cmd-nonzero would otherwise kill the parent script.
 list=$(
     printf '%s\n' "$POWER_OFF_LABEL"
-    printf '%s\n' "$SCAN_LABEL"
     if [ -n "$device_rows" ]; then printf '%s\n' "$device_rows"; fi
 )
 
 choice=$(printf '%s' "$list" \
-    | fuzzel --dmenu --prompt 'bluetooth: ' --width 38 --lines 12) || exit 0
+    | fuzzel --dmenu --prompt 'bluetooth: ' --width 38 --lines 14) || exit 0
 
+# bluetoothctl wrapper that records every step to LOG so failures
+# can be diagnosed (exit codes alone don't say *why* something
+# failed). The notification only summarises; tail the log for the
+# actual error text.
+run() {
+    label=$1; shift
+    out=$(bluetoothctl "$@" 2>&1); rc=$?
+    {
+        printf '\n[%s] %s %s\n' "$(date +%H:%M:%S)" "$label" "$*"
+        printf '%s\n' "$out"
+        printf '[exit %d]\n' "$rc"
+    } >>"$LOG"
+    return "$rc"
+}
+
+# Pair via a bluetoothctl REPL session with an agent explicitly
+# registered. Workaround for bluez issue #748: `bluetoothctl pair
+# MAC` invoked as a one-shot CLI command runs without an agent, so
+# the kernel emits the new-link-key event with `store_hint=0`, and
+# bluez follows the hint and never writes /var/lib/bluetooth/<...>
+# /info's [LinkKey] section. Result: audio works for the live
+# session, then the bond is gone the moment the device disconnects
+# (case cycle, sleep, etc). bluez maintainers closed #748 as
+# "not planned"; this is the userspace workaround.
+#
+# Mechanism: `agent on` + `default-agent` registers a NoInputNoOutput
+# agent, then `pair MAC` runs with that agent in scope, which makes
+# the kernel set `store_hint=1` and bluez writes the [LinkKey]
+# section to disk. Trust is set in the same session because we have
+# the agent active anyway.
+#
+# Timing: bluetoothctl's stdin is a pipe (not a TTY) so it exits on
+# EOF. We have to keep stdin alive until pair is async-complete. The
+# subshell sleeps in BACKGROUND of bluetoothctl's stdin reader, so
+# echos arrive immediately and bluetoothctl waits for more input
+# during the sleep. 18s covers a generous pair window on bcm4377;
+# pairing typically completes in 5-10s.
+run_pair() {
+    mac=$1
+    out=$( {
+        printf 'agent on\n'
+        printf 'default-agent\n'
+        printf 'pair %s\n' "$mac"
+        printf 'trust %s\n' "$mac"
+        sleep 18
+        printf 'quit\n'
+    } | bluetoothctl 2>&1)
+    rc=$?
+    {
+        printf '\n[%s] pair (interactive) %s\n' "$(date +%H:%M:%S)" "$mac"
+        printf '%s\n' "$out"
+        printf '[exit %d]\n' "$rc"
+    } >>"$LOG"
+    # bluetoothctl exit code reflects `quit`, not pair success.
+    # Determine outcome by parsing the output.
+    if printf '%s' "$out" | grep -q 'Pairing successful'; then
+        return 0
+    fi
+    return 1
+}
+
+# Free the radio before any device action: kill any in-flight scan
+# and wait briefly for bluez to release its discovery state. Without
+# this, BR/EDR connect attempts contend with active inquiry and
+# transient-fail.
+free_radio() {
+    if scan_already_running; then
+        kill "$(cat "$SCAN_PID_FILE" 2>/dev/null)" 2>/dev/null || true
+        # Bluez tears down discovery the instant its client drops;
+        # 200ms is well over the typical settle time.
+        sleep 0.2
+    fi
+    rm -f "$SCAN_INDICATOR" "$SCAN_PID_FILE"
+    pkill -RTMIN+11 waybar 2>/dev/null || true
+}
+
+# Forget rows arrive as "<forget-icon>  Forget <device-name>".
+# Match that prefix first so device-name resolution doesn't see
+# "Forget " glued to the front. The double-quoted pattern means
+# literal match (no glob expansion of the icon byte).
 case "$choice" in
     "$POWER_OFF_LABEL")
+        free_radio
         bluetoothctl power off >/dev/null 2>&1 || true
         notify-send 'Bluetooth' 'Powered off'
         pkill -RTMIN+11 waybar 2>/dev/null || true
         ;;
-    "$SCAN_LABEL")
-        notify-send 'Bluetooth' 'Scanning for 10 seconds…'
-        # bluetoothctl scan blocks; spawn it, sleep, terminate.
-        bluetoothctl --timeout 10 scan on >/dev/null 2>&1 || true
-        # Re-open menu so newly-found devices appear in the list.
-        exec "$0"
-        ;;
-    *)
-        # Strip leading "<icon>  " and trailing "  <dot>" if present.
-        rest=${choice#*  }
-        case "$rest" in
-            *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
-        esac
-        # Resolve display name back to MAC by lookup in `paired`.
-        mac=$(printf '%s\n' "$paired" \
+    "$ICON_FORGET  Forget "*)
+        free_radio
+        rest=${choice#"$ICON_FORGET  Forget "}
+        mac=$(printf '%s\n' "$all_devices" \
             | awk -v n="$rest" '/^Device / {
                 m = $2; sub(/^Device [^ ]+ /, ""); if ($0 == n) { print m; exit }
             }')
@@ -111,14 +286,63 @@ case "$choice" in
             notify-send 'Bluetooth' "Could not resolve device: $rest"
             exit 1
         fi
-        if printf '%s\n' "$connected" | awk '{print $2}' | grep -qx "$mac"; then
-            bluetoothctl disconnect "$mac" >/dev/null 2>&1 \
-                && notify-send 'Bluetooth' "Disconnected from $rest" \
-                || notify-send 'Bluetooth' "Disconnect failed: $rest"
+        # disconnect → untrust → remove. `remove` alone usually
+        # suffices, but explicit steps make the log readable when
+        # something fails partway and we need to retry.
+        run disconnect disconnect "$mac" || true
+        run untrust untrust "$mac" || true
+        if run remove remove "$mac"; then
+            notify-send 'Bluetooth' "Forgot $rest"
         else
-            bluetoothctl connect "$mac" >/dev/null 2>&1 \
-                && notify-send 'Bluetooth' "Connected to $rest" \
-                || notify-send 'Bluetooth' "Connect failed: $rest"
+            notify-send 'Bluetooth' "Forget failed: $rest (see $LOG)"
+        fi
+        pkill -RTMIN+11 waybar 2>/dev/null || true
+        ;;
+    *)
+        free_radio
+        # Strip leading "<icon>  " and trailing "  <dot>" if present.
+        rest=${choice#*  }
+        case "$rest" in
+            *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
+        esac
+        mac=$(printf '%s\n' "$all_devices" \
+            | awk -v n="$rest" '/^Device / {
+                m = $2; sub(/^Device [^ ]+ /, ""); if ($0 == n) { print m; exit }
+            }')
+        if [ -z "$mac" ]; then
+            notify-send 'Bluetooth' "Could not resolve device: $rest"
+            exit 1
+        fi
+        # Three click semantics:
+        #   connected  → disconnect
+        #   paired     → connect
+        #   unpaired   → pair + trust + connect (first-time setup)
+        if printf '%s\n' "$connected_macs" | grep -qx "$mac"; then
+            if run disconnect disconnect "$mac"; then
+                notify-send 'Bluetooth' "Disconnected from $rest"
+            else
+                notify-send 'Bluetooth' "Disconnect failed: $rest (see $LOG)"
+            fi
+        elif printf '%s\n' "$paired_macs" | grep -qx "$mac"; then
+            if run connect connect "$mac"; then
+                notify-send 'Bluetooth' "Connected to $rest"
+            else
+                notify-send 'Bluetooth' "Connect failed: $rest (see $LOG)"
+            fi
+        else
+            # First-time pair flow. run_pair runs an agent-registered
+            # bluetoothctl REPL session so the kernel persists the
+            # link key (works around bluez issue #748). Trust is set
+            # in the same session. We then run a separate connect to
+            # bring up the audio profile.
+            notify-send 'Bluetooth' "Pairing $rest…"
+            if ! run_pair "$mac"; then
+                notify-send 'Bluetooth' "Pair failed: $rest (see $LOG)"
+            elif ! run connect connect "$mac"; then
+                notify-send 'Bluetooth' "Paired but connect failed: $rest (see $LOG)"
+            else
+                notify-send 'Bluetooth' "Paired + connected to $rest"
+            fi
         fi
         pkill -RTMIN+11 waybar 2>/dev/null || true
         ;;

@@ -18,8 +18,13 @@
 __menu_lock="/tmp/$(basename "$0").lock"
 __menu_pid=$(cat "$__menu_lock" 2>/dev/null || true)
 
-if [ -n "$__menu_pid" ] && kill -0 "$__menu_pid" 2>/dev/null; then
-    # This menu is already open — toggle off.
+# Skip self — `exec "$0"` from inside a menu (e.g. bluetooth-menu's
+# scan-refresh path) re-runs the script with the SAME pid, so the
+# lockfile we just wrote looks like "another instance" without this
+# guard, and we'd self-kill on every refresh.
+if [ -n "$__menu_pid" ] && [ "$__menu_pid" != "$$" ] \
+   && kill -0 "$__menu_pid" 2>/dev/null; then
+    # This menu is already open in a different process — toggle off.
     kill "$__menu_pid" 2>/dev/null
     pkill -x fuzzel 2>/dev/null   # backstop in case the shell dies before fuzzel
     exit 0

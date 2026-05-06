@@ -47,6 +47,24 @@ changes), figure out why it didn't auto-approve and propose the fix:
 Both files are symlinked from `~/code/orchard/dotfiles/claude/`, so
 edits land in the dotfiles automatically — just remember to commit.
 
+## Workflow preferences
+
+- **Use files, not copy-paste, for both input and output of
+  terminal commands.** Copy-paste is friction in either direction —
+  same friction-class as screenshots for visual-only stuff.
+    - **Output direction**: when you need me to run a command you
+      can't run via tools (sudo with prompt, interactive
+      bluetoothctl/gcloud sessions, anything askpass), have me
+      redirect output to a `/tmp/<descriptive>.log` file with `tee`
+      or `>`. Then `Read` the file yourself.
+    - **Input direction**: when handing me a multi-line script,
+      heredoc, or anything more than a one-line command, write it
+      to `/tmp/<descriptive>.sh`, `chmod +x` it, and tell me to run
+      that path. Don't paste a multi-line block expecting me to
+      copy it.
+    - Keep paste-back only for genuinely-tiny output (one short
+      line that's faster to read than to fopen).
+
 ## Reproducibility prompts
 
 - **Right after the user installs a Claude Code plugin** (`/plugin

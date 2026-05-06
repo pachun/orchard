@@ -1,0 +1,37 @@
+#!/bin/sh
+# Cmd+Ctrl+Space emoji picker — bound from hyprland.conf.
+#
+# Why this exists instead of `rofimoji --action type`: neither wtype
+# (wlr-virtual-keyboard) nor ydotool (uinput, falling back to GTK-style
+# Ctrl+Shift+U+<hex> for non-ASCII) can land emoji codepoints in
+# chromium URL bars / form fields. Chromium-on-ozone either ignores
+# synthetic typing entirely or doesn't honor the Unicode-entry combo.
+# Workaround: copy the emoji to the clipboard, send Ctrl+V via ydotool
+# to paste, then restore the previous clipboard from cliphist so the
+# emoji detour doesn't clobber whatever the user had copied.
+#
+# Toggle: if fuzzel is already up (this picker OR any other
+# fuzzel-driven popup — wifi/system/etc.), close it.
+
+set -eu
+
+if pkill -x fuzzel 2>/dev/null; then
+    exit 0
+fi
+
+rofimoji --action copy --skin-tone neutral --prompt "" --selector fuzzel || exit 0
+
+# Ctrl+V via ydotool. 29 = KEY_LEFTCTRL, 47 = KEY_V; :1 = press, :0 = release.
+ydotool key 29:1 47:1 47:0 29:0
+
+# Wait for the paste to consume the clipboard. Chromium reads the
+# clipboard asynchronously after the keystroke arrives, so restoring
+# too early would replace the emoji with the previous value mid-paste.
+sleep 0.3
+
+# Restore the pre-emoji clipboard. After rofimoji's wl-copy, the
+# `wl-paste --type * --watch cliphist store` hooks (exec-once in
+# hyprland.conf) record the emoji as cliphist's newest entry, pushing
+# the original clipboard content to line 2 of `cliphist list`.
+prev=$(cliphist list | sed -n 2p)
+[ -n "$prev" ] && printf '%s\n' "$prev" | cliphist decode | wl-copy

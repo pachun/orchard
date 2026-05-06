@@ -55,6 +55,16 @@ window#waybar {
 #network            { padding: 0 8px;        color: #b5bfe2; }
 #custom-bluetooth          { padding: 0 8px; color: #b5bfe2; }   /* dim grey when nothing connected */
 #custom-bluetooth.connected { color: #c6d0f5; }                  /* bright text when ≥1 device connected */
+/* Active scan: the bluetooth glyph itself pulses. No separate
+ * indicator slot — the user's eye already knows where bluetooth
+ * lives, and modifying the existing icon avoids the layout shift
+ * a sibling module would cause. Opacity oscillation runs at
+ * compositor framerate independent of the 30s waybar polling. */
+#custom-bluetooth.scanning { animation: bt-pulse 1.4s ease-in-out infinite alternate; }
+@keyframes bt-pulse {
+    from { opacity: 0.40; }
+    to   { opacity: 1.00; }
+}
 #custom-updates     { padding: 0 8px;        color: #b5bfe2; }
 #custom-clock       { padding: 0 14px 0 8px; color: #b5bfe2; }   /* 14 right = screen-edge breathing room */
 

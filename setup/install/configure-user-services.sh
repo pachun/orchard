@@ -7,3 +7,8 @@ set -euo pipefail
 
 systemctl --user daemon-reload
 systemctl --user enable xremap.service
+# ydotoold (provided by the ydotool pacman pkg) — feeds the rofimoji
+# emoji picker on Ctrl+Cmd+Space. Needs to be running before any
+# ydotool invocation; running it as a user service keeps it scoped to
+# the graphical session.
+systemctl --user enable ydotool.service

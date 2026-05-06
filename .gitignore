@@ -1,0 +1,5 @@
+# Python bytecode cache. The hook in dotfiles/claude/hooks/ is
+# imported/executed by Claude Code and Python writes a __pycache__
+# next to it on first run.
+__pycache__/
+*.pyc

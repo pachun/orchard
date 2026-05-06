@@ -1,9 +1,11 @@
+- clicking waybar things should close them
+- clicking a different waybar icon should replace the menu
+- whenever the wifi menu is closed, the weather disappears for a second.
+
 tui login
 
 hyprexpo plugin for mission-control-style workspace overview (must be built against pinned hyprland 0.54.3 — vendor the .so the same way as the hypr .pkgs) (map to f3 like mission control)
 f3 bind to mission control thing
-
-airpods connection / bluetooth
 
 external monitor connection
 

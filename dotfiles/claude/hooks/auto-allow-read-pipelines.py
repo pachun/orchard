@@ -34,9 +34,9 @@ import sys
 # First word of each pipeline segment must be in here.
 ALLOWLIST = {
     # core file/dir reads
-    "ls", "pwd", "cat", "head", "tail", "tac", "rev", "wc", "file", "stat",
-    "du", "df", "tree", "which", "type", "command", "basename", "dirname",
-    "realpath", "readlink", "less", "more",
+    "ls", "pwd", "cd", "cat", "head", "tail", "tac", "rev", "wc", "file",
+    "stat", "du", "df", "tree", "which", "type", "command", "basename",
+    "dirname", "realpath", "readlink", "less", "more",
     # search
     "grep", "rg", "egrep", "fgrep", "find", "fd", "ack", "pcregrep", "ag",
     # text shuffling/transform (read-only)
@@ -74,16 +74,26 @@ GIT_CONFIG_READ_FLAGS = {"--list", "-l", "--get", "--get-all",
 # bare `stash` saves a new entry). Only `list` and `show` read.
 GIT_STASH_READ_SUBCMDS = {"list", "show"}
 
-# Commands that mix read and write subcommands — they can't go in the
-# simple ALLOWLIST because, e.g., `pacman -S <pkg>` installs (write).
-# Each entry maps command → (set of read-only first-args after any
-# leading flags, skip_leading_flags).
+# Commands that mix read/auto-allow subcommands with write/dangerous
+# ones — they can't go in the simple ALLOWLIST because, e.g., `pacman
+# -S <pkg>` installs (write). Each entry maps command → (set of
+# allowed first-args after any leading flags, skip_leading_flags).
+#
+# Most entries here are pure-read (pacman -Q, systemctl status, etc).
+# A few are not strictly read-only but trusted enough to chain
+# (`cargo build`, `bluetoothctl scan`) — these also live in
+# settings.json's permissions.allow as the auditable record. The hook
+# entry exists so the same trust applies inside pipelines/sequences.
+# Standalone forms with flag-values the hook can't express (e.g.
+# `bluetoothctl --timeout 5 scan on`) rely on settings.allow alone.
 #
 # skip_leading_flags=True walks past tokens that start with "-" before
 # checking the subcommand position. Used by tools like `hyprctl -j
 # clients` where -j is a global flag and `clients` is the actual
 # subcommand. Set False for pacman-style tools where the operation
-# itself starts with "-" (`pacman -Q`).
+# itself starts with "-" (`pacman -Q`). Note: this skips dash-prefixed
+# tokens but NOT the *values* that follow them — so it can't match
+# `cmd --flag value sub` patterns.
 SUBCMD_READ_OPS = {
     "pacman": ({
         # query installed
@@ -91,6 +101,9 @@ SUBCMD_READ_OPS = {
         "-Qk", "-Qo", "-Qp", "-Qs", "-Qg", "-Qt", "-Qu",
         # sync repo reads (info, search, list, groups)
         "-Si", "-Ss", "-Sl", "-Sg",
+        # file database reads (list, owner, search, regex). -Fy/-Fyy
+        # download/refresh the file db (mutation) — kept out.
+        "-Fl", "-Fo", "-Fs", "-Fx",
         # version / help
         "-V", "--version", "-h", "--help",
     }, False),
@@ -104,24 +117,55 @@ SUBCMD_READ_OPS = {
         "globalshortcuts", "systeminfo", "activewindow",
     }, True),
     "xdg-mime": ({"query", "--help", "-h"}, False),
+    # fuzzel without args opens the launcher (a UI mutation), so only
+    # the inspection flags get the auto-allow.
+    "fuzzel": ({"--version", "-v", "--help", "-h"}, False),
     # systemctl: status/is-* commands and various list/show forms are
     # all read-only; start/stop/restart/enable/disable mutate.
+    # skip_flags=True so `systemctl --user status X` works (--user/
+    # --system/--no-pager are global flags before the operation).
     "systemctl": ({
         "status", "is-active", "is-enabled", "is-failed",
         "list-units", "list-unit-files", "list-jobs", "list-timers",
         "list-sockets", "list-dependencies", "list-machines",
         "show", "cat", "get-default", "show-environment",
         "--version", "-V", "--help", "-h",
-    }, False),
+    }, True),
     # gh has many top-level subcommands. We allow only `search` here
     # (always read). Other reads (`pr view`, `repo view`, etc.) need
     # second-level checks; add when actually needed.
     "gh": ({"search", "--version", "--help", "-h"}, False),
+    # bluetoothctl: inspection plus `scan` (which flips the adapter
+    # into discovery mode — not strictly read, but trusted enough to
+    # chain with `; bluetoothctl devices`). `pair`/`connect`/
+    # `disconnect`/`power`/`trust`/`untrust` change persistent state
+    # and stay out. `--timeout N scan on` can't be expressed here (the
+    # hook can't skip flag-values), so the bounded form lives in
+    # settings.allow.
+    "bluetoothctl": ({
+        "show", "devices", "info", "list", "scan",
+        "--version", "-v", "--help", "-h",
+    }, False),
+    # cargo: `build` writes to target/, so it's not read-only — but
+    # the user has blessed it as auto-runnable in settings.allow, and
+    # we want the same trust inside pipelines (e.g. `cargo build 2>&1
+    # | grep error`). Other subcommands (run, install, publish, etc.)
+    # are intentionally excluded — extend deliberately, not blanket.
+    "cargo": ({"build", "--version", "-V", "--help", "-h"}, True),
 }
 SUBCMD_READ_OPS["yay"] = (SUBCMD_READ_OPS["pacman"][0], False)
 
 # Disallow sed in-place edit and similar.
 SED_BAD_FLAGS = {"-i", "--in-place"}
+
+# journalctl is mostly read, but a handful of flags mutate the journal
+# (vacuum/rotate/flush) or write to disk (--update-catalog,
+# --setup-keys). Reject these; allow all other invocations.
+JOURNALCTL_BAD_FLAGS = {
+    "--rotate", "--flush", "--sync", "--relinquish-var",
+    "--smart-relinquish-var", "--update-catalog", "--setup-keys",
+    "--vacuum-size", "--vacuum-time", "--vacuum-files",
+}
 
 # Substrings that, if present in the unquoted portion of the command,
 # disqualify auto-allow. Covers subshells, command substitution, process
@@ -290,6 +334,16 @@ def segment_allowed(seg: str) -> bool:
         # Reject in-place edits.
         return not any(t in SED_BAD_FLAGS or t.startswith("-i")
                        for t in tokens[1:])
+
+    if cmd == "journalctl":
+        # Reject the mutating flags; everything else is read.
+        # Match exact tokens and `--vacuum-*=N` forms.
+        for t in tokens[1:]:
+            if t in JOURNALCTL_BAD_FLAGS:
+                return False
+            if t.startswith("--vacuum-") and "=" in t:
+                return False
+        return True
 
     if cmd in SUBCMD_READ_OPS:
         allowed, skip_flags = SUBCMD_READ_OPS[cmd]
