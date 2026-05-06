@@ -49,7 +49,7 @@ fi
 icon=$'\ue472'  # sun
 case "$condition" in
     Sunny|Clear)
-        if [ "$is_night" -eq 1 ]; then icon=$'\ue330'; else icon=$'\ue472'; fi
+        if [ "$is_night" -eq 1 ]; then icon=$'\ue58e'; else icon=$'\ue472'; fi
         ;;
     'Partly cloudy'|'Partly Cloudy')
         if [ "$is_night" -eq 1 ]; then icon=$'\ue53e'; else icon=$'\ue540'; fi
