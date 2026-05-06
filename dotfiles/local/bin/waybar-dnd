@@ -1,11 +1,30 @@
 #!/bin/sh
-# Waybar custom module backing the DND indicator. Reads current mako
-# modes; when "do-not-disturb" is in the list, emits a bell-off icon;
-# otherwise a regular bell. Click toggles via dnd-toggle.
+# Waybar custom module backing the DND indicator. Three states:
+#   - DND on        → bell-off icon, "active" class (bright)
+#   - just toggled off (within 30s) → bell icon, "linger" class (dim)
+#                    so the user gets visual confirmation that DND
+#                    actually turned off rather than the bar silently
+#                    going blank
+#   - DND off > 30s → empty (module hidden)
+#
+# dnd-toggle writes /tmp/dnd-toggle-time on every toggle so this script
+# knows when the linger window started. dnd-toggle also resignals
+# waybar after 30s so the linger expires without waiting for the
+# next poll.
 set -eu
+
+LINGER_SECONDS=30
+TOGGLE_TIME_FILE=/tmp/dnd-toggle-time
 
 if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
     printf '{"text":"󰂛","tooltip":"do not disturb (on)","class":"active"}\n'
+    exit 0
+fi
+
+now=$(date +%s)
+last_toggle=$(cat "$TOGGLE_TIME_FILE" 2>/dev/null || echo 0)
+if [ $((now - last_toggle)) -lt "$LINGER_SECONDS" ]; then
+    printf '{"text":"󰂚","tooltip":"do not disturb (off)","class":"linger"}\n'
 else
-    printf '{"text":"󰂚","tooltip":"do not disturb (off)","class":"inactive"}\n'
+    printf '{"text":"","tooltip":""}\n'
 fi

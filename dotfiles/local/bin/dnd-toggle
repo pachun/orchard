@@ -3,9 +3,21 @@
 # the waybar bell on-click). The mode is defined in mako's config; when
 # active it suppresses (drops) all notifications.
 #
-# Signals waybar so the bell icon flips immediately instead of waiting
-# for the next module poll.
+# Records the toggle timestamp so waybar-dnd can keep the bell visible
+# (in dim "linger" state) for 30s after DND turns off — gives the user
+# visual confirmation that the toggle actually happened. Sends an
+# immediate signal so the icon updates now, plus a delayed signal at
+# the end of the linger window so the bell disappears without waiting
+# for the next poll.
 set -eu
 
+LINGER_SECONDS=30
+TOGGLE_TIME_FILE=/tmp/dnd-toggle-time
+
 makoctl mode -t do-not-disturb >/dev/null
+date +%s > "$TOGGLE_TIME_FILE"
 pkill -RTMIN+7 waybar 2>/dev/null || true
+
+# Disowned background process — fires the linger-window-end refresh so
+# the bell hides on schedule even if the user doesn't touch anything.
+(sleep "$LINGER_SECONDS" && pkill -RTMIN+7 waybar 2>/dev/null) </dev/null >/dev/null 2>&1 &
