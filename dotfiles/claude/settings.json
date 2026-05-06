@@ -7,7 +7,6 @@
       "Read",
       "WebSearch",
       "WebFetch",
-      "WebFetch(domain:github.com)",
       "Bash(gh search *)",
       "Bash(systemctl is-active *)",
       "Bash(pacman -Q keyd)",
@@ -59,7 +58,12 @@
     ],
     "deny": [
       "WebFetch(domain:gitlab.com)",
-      "Bash(glab *)"
+      "Bash(glab *)",
+      "WebFetch(domain:teams.microsoft.com)",
+      "WebFetch(domain:teams.live.com)",
+      "WebFetch(domain:*.teams.microsoft.com)",
+      "WebFetch(domain:*.atlassian.net)",
+      "WebFetch(domain:*.jira.com)"
     ]
   },
   "hooks": {
