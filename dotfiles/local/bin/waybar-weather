@@ -67,5 +67,5 @@ esac
 # rest of the row. rise is in 1/10000 of em — negative pushes down.
 # -2500 ≈ 0.25em down, which centers the glyph against neighboring
 # icons. The custom module needs markup=pango (set in config.jsonc).
-output=$(printf '<span rise="-2500">%s</span> %s\n' "$icon" "$temp")
+output=$(printf '<span rise="-1200" letter_spacing="4000">%s</span> %s\n' "$icon" "$temp")
 printf '%s\n' "$output" | tee "$CACHE"

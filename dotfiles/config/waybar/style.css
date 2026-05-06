@@ -23,7 +23,7 @@ window#waybar {
 
 #custom-system              { padding: 0 10px 0 12px; color: #c6d0f5; }
 #workspaces                 { padding: 0 4px; }
-#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; color: #c6d0f5; border-radius: 3px; }
+#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; color: #b5bfe2; border-radius: 3px; }
 #workspaces button:hover    { background-color: rgba(198, 208, 245, 0.15); }   /* faint text-color tint, matches active corner radius */
 #workspaces button.active   { background-color: #c6d0f5; color: transparent; }
 
@@ -35,7 +35,7 @@ window#waybar {
  * us style the brief "just turned off" state distinctly from the
  * "actively suppressing notifications" state. */
 #custom-dnd          { padding: 0 8px; color: #c6d0f5; }
-#custom-dnd.linger   { color: #737994; }
+#custom-dnd.linger   { color: #737994; }   /* deeper grey on linger — it's mid-fade, should read as receding */
 
 /* Notch spacer width. M2 MBA logical-px geometry: screen ~832 wide,
  * notch ~32 wide centered around 416. The spacer needs to span the
@@ -48,12 +48,12 @@ window#waybar {
  * read as background context. Modules that go bright are the ones
  * actively demanding attention (recording running, DND on, etc.). */
 #custom-recording   { padding: 0 8px;        color: #c6d0f5; }   /* bright when visible — recording is active state */
-#custom-weather     { padding: 0 8px;        color: #737994; }
-#battery            { padding: 0 8px;        color: #737994; }
-#custom-nordvpn     { padding: 0 8px;        color: #737994; }
-#custom-wifi-status { padding: 0 8px;        color: #737994; }
-#network            { padding: 0 8px;        color: #737994; }
-#custom-clock       { padding: 0 14px 0 8px; color: #737994; }   /* 14 right = screen-edge breathing room */
+#custom-weather     { padding: 0 8px;        color: #b5bfe2; }
+#battery            { padding: 0 8px;        color: #b5bfe2; }
+#custom-nordvpn     { padding: 0 8px;        color: #b5bfe2; }
+#custom-wifi-status { padding: 0 8px;        color: #b5bfe2; }
+#network            { padding: 0 8px;        color: #b5bfe2; }
+#custom-clock       { padding: 0 14px 0 8px; color: #b5bfe2; }   /* 14 right = screen-edge breathing room */
 
 /* Per-module icon-weight overrides. Default font-family chain (set
  * on the global * rule) uses Phosphor regular (outlined) — kept for
