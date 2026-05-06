@@ -114,10 +114,14 @@ ttf-nerd-fonts-symbols-mono
 
 # Screenshot + recording stack (Cmd+Shift+3/4/5 in hyprland.conf).
 # grim grabs pixels, slurp picks regions, wf-recorder writes mp4.
+# hyprpicker freezes the screen during region-select (used by
+# ~/.local/bin/screenshot) so on-screen UI (fuzzel menus, mako toasts)
+# stays visible while you draw the box.
 # Each shot also goes to the clipboard via wl-copy (already installed).
 grim
 slurp
 wf-recorder
+hyprpicker
 
 # TUI file manager (Cmd+E in hyprland.conf). imagemagick + ffmpegthumbnailer
 # extend yazi's preview support to extra image formats and video thumbnails.

@@ -46,6 +46,21 @@ GIT_READ_SUBCMDS = {
 GIT_CONFIG_READ_FLAGS = {"--list", "-l", "--get", "--get-all",
                          "--get-regexp", "--get-urlmatch"}
 
+# pacman / yay can't go in the simple ALLOWLIST: their `-S <pkg>` form
+# installs (write). Allow only when the first arg is one of these
+# read-only operations. -Q* (query installed) and -S{i,s,l,g} (info /
+# search / list / groups) are all non-mutating; bare -S or -Sy* are
+# excluded because they install or sync the db.
+PACMAN_READ_OPS = {
+    # query installed
+    "-Q", "-Qi", "-Ql", "-Qm", "-Qe", "-Qd", "-Qn", "-Qq",
+    "-Qk", "-Qo", "-Qp", "-Qs", "-Qg", "-Qt", "-Qu",
+    # sync repo reads (info, search, list, groups)
+    "-Si", "-Ss", "-Sl", "-Sg",
+    # version / help
+    "-V", "--version", "-h", "--help",
+}
+
 # Disallow sed in-place edit and similar.
 SED_BAD_FLAGS = {"-i", "--in-place"}
 
@@ -212,6 +227,11 @@ def segment_allowed(seg: str) -> bool:
         # Reject in-place edits.
         return not any(t in SED_BAD_FLAGS or t.startswith("-i")
                        for t in tokens[1:])
+
+    if cmd in ("pacman", "yay"):
+        if len(tokens) < 2:
+            return False
+        return tokens[1] in PACMAN_READ_OPS
 
     return cmd in ALLOWLIST
 
