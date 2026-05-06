@@ -40,6 +40,11 @@ keymap:
       Super-f: C-f   # find in page
       Super-s: C-s   # save
       Super-r: C-r   # reload page
+      # DevTools, macOS-style: Cmd+Option+I opens last panel,
+      # Cmd+Option+J opens to Console. On chromium Linux these are
+      # Ctrl+Shift+I and Ctrl+Shift+J.
+      Super-Alt-i: C-Shift-i
+      Super-Alt-j: C-Shift-j
 
   - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
     remap:
