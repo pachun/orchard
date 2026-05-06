@@ -93,8 +93,8 @@
         // / full). Mapped to 11 buckets by repeating: 0%=empty, 10-30%=low,
         // 40-60%=medium, 70-80%=high, 90-100%=full. When charging, swap
         // for the bolt-overlay variant.
-        "format": "{capacity}% {icon}",
-        "format-charging": "{capacity}% ",
+        "format": "<span size=\"smaller\">{icon}</span> {capacity}%",
+        "format-charging": "<span size=\"smaller\"></span> {capacity}%",
         "format-icons": ["", "", "", "", "", "", "", "", "", "", ""],
         "interval": 2
     },

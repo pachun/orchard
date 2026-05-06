@@ -54,3 +54,17 @@ window#waybar {
 #custom-wifi-status { padding: 0 8px;        color: #737994; }
 #network            { padding: 0 8px;        color: #737994; }
 #custom-clock       { padding: 0 14px 0 8px; color: #737994; }   /* 14 right = screen-edge breathing room */
+
+/* Per-module icon-weight overrides. Default font-family chain (set
+ * on the global * rule) uses Phosphor regular (outlined) — kept for
+ * the wifi network module since outlined wifi reads better at small
+ * sizes. Battery / weather / nordvpn / dnd swap to Phosphor-Fill
+ * (solid silhouettes) for stronger visual presence. Text portions
+ * (battery %, weather temp) fall through to SF Pro since Phosphor
+ * has no digit/letter glyphs in either weight. */
+#battery,
+#custom-weather,
+#custom-nordvpn,
+#custom-dnd {
+    font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
+}
