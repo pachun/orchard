@@ -24,6 +24,18 @@ vim.keymap.set("n", "<leader>dd", function()
   print(_G.cmp_enabled and "dropdown suggestions enabled" or "dropdown suggestions disabled")
 end, { desc = "toggle dropdown suggestions" })
 
+-- toggle supermaven (inline AI ghost-text completions)
+vim.keymap.set("n", "<leader>sm", function()
+  local api = require("supermaven-nvim.api")
+  if api.is_running() then
+    api.stop()
+    print("Supermaven stopped")
+  else
+    api.start()
+    print("Supermaven started")
+  end
+end, { desc = "toggle supermaven" })
+
 -- comment toggle (Ctrl+/). <C-_> is what terminals emit for Ctrl+/.
 -- Pressed twice matches boo muscle memory; change to single <C-_> if
 -- preferred. In visual mode we drop out to normal first, otherwise the
