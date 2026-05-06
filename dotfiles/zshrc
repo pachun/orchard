@@ -6,6 +6,16 @@ function use_vim_mode_on_cli {
     bindkey -M viins $switch_to_vim_command_mode vi-cmd-mode
   }
   use_jj_instead_of_escape
+
+  # Default viins binds backspace to vi-backward-delete-char, which
+  # only deletes characters typed in the CURRENT insert session — try
+  # to backspace past where you re-entered insert mode and it does
+  # nothing. Rebind to the plain widget that deletes anything to the
+  # left. Also fix Ctrl+W (delete word backward) and Ctrl+U (delete
+  # to line start) which suffer the same limitation.
+  bindkey -M viins '^?' backward-delete-char     # ^? = backspace
+  bindkey -M viins '^W' backward-kill-word
+  bindkey -M viins '^U' backward-kill-line
 }
 
 function enable_colorized_output_for_commands_which_support_it_like_ls {
@@ -39,15 +49,27 @@ function use_custom_prompt {
   COLOR_BRIGHT_WHITE=15
 
   # Set prompt components
+  # In $HOME, output nothing — the prompt collapses to just the
+  # cursor, which is plenty of signal. Anywhere else, show the
+  # current directory's basename in bright white.
   function directory {
-    echo "%F{$COLOR_BRIGHT_WHITE}%1~%f"
+    if [[ $PWD == $HOME ]]; then
+      echo ""
+    else
+      echo "%F{$COLOR_BRIGHT_WHITE}%1~%f"
+    fi
   }
 
-  function vim_mode {
-    if [[ $VIMODE == 'vicmd' ]]; then
-      echo "%F{$COLOR_BRIGHT_MAGENTA}✘%f"
+  # The cursor itself is the mode indicator — see set_cursor_color_for_mode
+  # below. No prompt glyph, no symbol; just the cursor's color carries
+  # the signal. Insert = bright (ready to type), command = dim grey.
+  CURSOR_INSERT_COLOR='#c6d0f5'
+  CURSOR_COMMAND_COLOR='#737994'
+  function set_cursor_color_for_mode {
+    if [[ $KEYMAP == vicmd ]]; then
+      printf '\e]12;%s\e\\' "$CURSOR_COMMAND_COLOR"
     else
-      echo "%F{$COLOR_GREEN}✔%f"
+      printf '\e]12;%s\e\\' "$CURSOR_INSERT_COLOR"
     fi
   }
 
@@ -81,6 +103,7 @@ function use_custom_prompt {
   function keep_vim_mode_current {
     function zle-line-init zle-keymap-select {
       VIMODE=$KEYMAP
+      set_cursor_color_for_mode
       zle reset-prompt
     }
 
@@ -88,12 +111,24 @@ function use_custom_prompt {
     zle -N zle-keymap-select
   }
 
+  # Reset cursor color to whatever ghostty's default is when the shell
+  # exits — otherwise OSC 12 colors stick around in the terminal session
+  # for any subsequent program (vim, etc.).
+  function reset_cursor_color_on_exit {
+    trap 'printf "\e]112\e\\"' EXIT
+  }
+
   # Apply the settings
   allow_prompt_string_interpolation
   keep_vim_mode_current
+  reset_cursor_color_on_exit
 
-  # Combine the prompt components
-  PROMPT='$(directory) $(status_colored_git_branch)${$(status_colored_git_branch):+ }$(vim_mode) '
+  # Combine the prompt components — no trailing glyph; the cursor
+  # following the trailing space IS the mode indicator.
+  # Conditional spacing: include a leading space only if directory is
+  # non-empty (i.e., not in $HOME). Same trick for the trailing space
+  # after git branch — only included when git branch is non-empty.
+  PROMPT='${$(directory):+$(directory) }$(status_colored_git_branch)${$(status_colored_git_branch):+ }'
 }
 
 function set_neovim_as_default_editor {
