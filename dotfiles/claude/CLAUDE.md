@@ -49,14 +49,31 @@ edits land in the dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
+- **Don't try to run `sudo` via Bash — not even with a permission
+  request.** This machine blocks sudo entirely; every attempt fails,
+  and the permission prompt itself is wasted friction. Hand me the
+  command instead. Two shapes depending on length:
+    - **Single-line sudo**: give it to me inline as text. If you
+      want to see output, include the redirect inline (e.g. `sudo
+      foo 2>&1 | tee /tmp/<descriptive>.log`) and `Read` the log
+      after I confirm. A one-liner is fine to copy/paste.
+    - **Multi-line sudo**: `Write` it to `/tmp/<descriptive>.sh`,
+      `chmod +x` it, and tell me to run that path. Multi-line
+      content from your output forces me to clean it up in a vim
+      buffer (trailing newline, 2-space prefix on every line)
+      before it'll execute, so a script file is mandatory once
+      there's more than one line.
+  Either shape: if you want output, the script/command must capture
+  it to a file — don't ask me to copy/paste output back.
+
 - **Use files, not copy-paste, for both input and output of
   terminal commands.** Copy-paste is friction in either direction —
   same friction-class as screenshots for visual-only stuff.
     - **Output direction**: when you need me to run a command you
-      can't run via tools (sudo with prompt, interactive
-      bluetoothctl/gcloud sessions, anything askpass), have me
-      redirect output to a `/tmp/<descriptive>.log` file with `tee`
-      or `>`. Then `Read` the file yourself.
+      can't run via tools (interactive bluetoothctl/gcloud sessions,
+      anything askpass), have me redirect output to a
+      `/tmp/<descriptive>.log` file with `tee` or `>`. Then `Read`
+      the file yourself.
     - **Input direction**: when handing me a multi-line script,
       heredoc, or anything more than a one-line command, write it
       to `/tmp/<descriptive>.sh`, `chmod +x` it, and tell me to run
