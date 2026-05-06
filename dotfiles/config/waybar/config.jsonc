@@ -17,8 +17,29 @@
         "tooltip": false,
         "on-click": "$HOME/.local/bin/system-menu"
     },
-    "modules-center": [],
-    "modules-right": ["custom/dnd", "custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
+    // Center section is structured as two zones around an invisible
+    // notch-spacer. Items BEFORE the spacer appear left of the notch
+    // (grows toward screen-left as you prepend more); items AFTER
+    // appear right of the notch (grows toward screen-right as you
+    // append more). Note: modules-center centers the WHOLE group, so
+    // adding items to one side does shift the other side slightly.
+    // For small stable item counts this is fine; if either zone
+    // outgrows a few items, re-tune notch-spacer's min-width.
+    "modules-center": [
+        // ── left-of-notch zone (currently empty) ──
+        "custom/notch-spacer",
+        // ── right-of-notch zone ──
+        "custom/dnd"
+    ],
+
+    "custom/notch-spacer": {
+        // Invisible widget representing the notch + visual buffer.
+        // Width set in style.css; format must be non-empty so GTK
+        // doesn't collapse the widget.
+        "format": " ",
+        "tooltip": false
+    },
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
 
     "custom/dnd": {
         // Bell icon (bell-off when DND is on). Sits as the leftmost

@@ -22,7 +22,17 @@ window#waybar {
 #workspaces button:hover    { background-color: rgba(198, 208, 245, 0.15); }   /* faint text-color tint, matches active corner radius */
 #workspaces button.active   { background-color: #c6d0f5; color: transparent; }
 
-#custom-dnd     { padding: 0 8px;          color: #c6d0f5; }
+/* DND lives in the right-of-notch zone of modules-center (see
+ * config.jsonc). Inner padding only — the spacer to its left handles
+ * positioning relative to the notch. */
+#custom-dnd     { padding: 0 8px; color: #c6d0f5; }
+
+/* Notch spacer width. M2 MBA logical-px geometry: screen ~832 wide,
+ * notch ~32 wide centered around 416. The spacer needs to span the
+ * notch plus a bit of visual buffer on each side so left/right zones
+ * don't crowd it. Tune up to widen the gap; tune down to bring zones
+ * closer to the notch. */
+#custom-notch-spacer { min-width: 200px; }
 #custom-recording { padding: 0 8px;        color: #e78284; font-size: 14px; }   /* Frappé red — calls attention while live */
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
 #battery        { padding: 0 8px;          color: #c6d0f5; }
