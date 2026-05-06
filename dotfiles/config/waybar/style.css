@@ -3,7 +3,12 @@
    Per-module CSS below only adjusts padding. If anything ever needs to
    look different, override exactly one property — don't accumulate. */
 * {
-    font-family: "SF Pro", "Symbols Nerd Font Mono", sans-serif;
+    /* Phosphor (regular weight) sits in front of Symbols Nerd Font
+     * Mono so right-side status icons resolve through Phosphor's
+     * coherently-designed glyph set. Symbols Nerd Font Mono stays as
+     * the fallback so the Arch logo (only nerd-font glyph still in
+     * use) keeps rendering. SF Pro fronts the chain for text. */
+    font-family: "SF Pro", "Phosphor", "Symbols Nerd Font Mono", sans-serif;
     font-size: 14px;
     font-weight: 600;
     border: none;
@@ -41,13 +46,11 @@ window#waybar {
 
 /* Right-side modules are dim by default — ambient information should
  * read as background context. Modules that go bright are the ones
- * actively demanding attention (recording running, DND on, etc.).
- * Two-tone scheme = visual hierarchy without color hues competing
- * with each other. */
-#custom-recording   { padding: 0 8px;          color: #c6d0f5; }   /* always-bright when visible — recording is an active state */
-#custom-weather     { padding: 0 8px;          color: #737994; }
-#battery            { padding: 0 8px;          color: #737994; }
-#custom-nordvpn     { padding: 0 8px;          color: #737994; }
-#custom-wifi-status { padding: 0 8px;          color: #737994; }
-#network            { padding: 0 8px;          color: #737994; }
-#custom-clock       { padding: 0 14px 0 8px;   color: #737994; }   /* 14 right = screen-edge breathing room */
+ * actively demanding attention (recording running, DND on, etc.). */
+#custom-recording   { padding: 0 8px;        color: #c6d0f5; }   /* bright when visible — recording is active state */
+#custom-weather     { padding: 0 8px;        color: #737994; }
+#battery            { padding: 0 8px;        color: #737994; }
+#custom-nordvpn     { padding: 0 8px;        color: #737994; }
+#custom-wifi-status { padding: 0 8px;        color: #737994; }
+#network            { padding: 0 8px;        color: #737994; }
+#custom-clock       { padding: 0 14px 0 8px; color: #737994; }   /* 14 right = screen-edge breathing room */

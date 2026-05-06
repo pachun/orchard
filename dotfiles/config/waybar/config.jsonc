@@ -84,18 +84,18 @@
         "exec": "$HOME/.local/bin/waybar-weather",
         "interval": 600,
         "signal": 8,
+        "markup": "pango",
         "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Weather gnome-weather"
     },
 
     "battery": {
-        // 11 fill-level glyphs mapped to 10-percent buckets. When
-        // charging, swap the fill-level icon for a lightning bolt —
-        // distinct silhouette so the state reads at a glance even at
-        // small sizes. 2-second poll picks up plug/unplug nearly
-        // instantly; reading a sysfs file is free.
+        // Phosphor has 5 fill-level glyphs (empty / low / medium / high
+        // / full). Mapped to 11 buckets by repeating: 0%=empty, 10-30%=low,
+        // 40-60%=medium, 70-80%=high, 90-100%=full. When charging, swap
+        // for the bolt-overlay variant.
         "format": "{capacity}% {icon}",
-        "format-charging": "{capacity}% 󱐋",
-        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "format-charging": "{capacity}% ",
+        "format-icons": ["", "", "", "", "", "", "", "", "", "", ""],
         "interval": 2
     },
 
@@ -125,13 +125,14 @@
     },
 
     "network": {
-        // Five granular signal strength icons (mdi wifi-strength-0..4
-        // from Symbols Nerd Font), with separate glyphs for ethernet
-        // and disconnected. Hover for SSID + percent / IP.
+        // Phosphor wifi-{none,low,medium,high} for signal strength,
+        // wifi-x for disconnected, plug for ethernet. Five-bucket
+        // strength input mapped to four glyphs (top two buckets share
+        // wifi-high). Hover for SSID + percent / IP.
         "format-wifi": "{icon}",
-        "format-ethernet": "󰈀",
-        "format-disconnected": "󰤭",
-        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "format-ethernet": "",
+        "format-disconnected": "",
+        "format-icons": ["", "", "", "", ""],
         "tooltip-format-wifi": "{essid} ({signalStrength}%)",
         "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
         "tooltip-format-disconnected": "Disconnected",

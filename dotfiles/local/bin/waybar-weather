@@ -43,23 +43,29 @@ if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
     is_night=1
 fi
 
-# Outlined MDI weather glyphs from Symbols Nerd Font (U+F05xx range,
-# nf-md-weather_*). Same icon family as battery (nf-md-battery_*) and
-# wifi (nf-md-wifi_*) — outlined silhouette, state shown by fills inside.
-icon=$'\U000F0599'  # mdi-weather-sunny
+# Phosphor weather glyphs (matches the rest of the right-side icon
+# row's font for consistent stroke / baseline). Codepoints in the
+# Unicode PUA range; bash $'\uXXXX' literals embed them inline.
+icon=$'\ue472'  # sun
 case "$condition" in
     Sunny|Clear)
-        if [ "$is_night" -eq 1 ]; then icon=$'\U000F0594'; else icon=$'\U000F0599'; fi
+        if [ "$is_night" -eq 1 ]; then icon=$'\ue330'; else icon=$'\ue472'; fi
         ;;
     'Partly cloudy'|'Partly Cloudy')
-        if [ "$is_night" -eq 1 ]; then icon=$'\U000F0F31'; else icon=$'\U000F0595'; fi
+        if [ "$is_night" -eq 1 ]; then icon=$'\ue53e'; else icon=$'\ue540'; fi
         ;;
-    Cloudy|Overcast)              icon=$'\U000F0590' ;;
-    Mist|Fog|Haze)                icon=$'\U000F0591' ;;
-    *Rain*|Drizzle*|*Shower*)     icon=$'\U000F0596' ;;
-    *Snow*|Blizzard*|Sleet*)      icon=$'\U000F0598' ;;
-    *Thunder*|*Storm*)            icon=$'\U000F0593' ;;
+    Cloudy|Overcast)              icon=$'\ue1aa' ;;
+    Mist|Fog|Haze)                icon=$'\ue53c' ;;
+    *Rain*|Drizzle*|*Shower*)     icon=$'\ue1b4' ;;
+    *Snow*|Blizzard*|Sleet*)      icon=$'\ue1b8' ;;
+    *Thunder*|*Storm*)            icon=$'\ue1b2' ;;
 esac
 
-output=$(printf '%s %s\n' "$icon" "$temp")
+# Wrap the icon in Pango markup so we can shift it independently of
+# the temp text. Phosphor's weather glyphs (moon, sun, cloud-sun)
+# occupy the upper half of their em-square, sitting visibly above the
+# rest of the row. rise is in 1/10000 of em — negative pushes down.
+# -2500 ≈ 0.25em down, which centers the glyph against neighboring
+# icons. The custom module needs markup=pango (set in config.jsonc).
+output=$(printf '<span rise="-2500">%s</span> %s\n' "$icon" "$temp")
 printf '%s\n' "$output" | tee "$CACHE"

@@ -13,7 +13,7 @@ status=$(nordvpn status 2>/dev/null || true)
 if printf '%s' "$status" | grep -q '^Status: Connected'; then
     country=$(printf '%s' "$status" | awk -F': ' '/^Country:/ {print $2}')
     city=$(printf '%s' "$status" | awk -F': ' '/^City:/ {print $2}')
-    printf '{"text":"󰕥","tooltip":"NordVPN: %s, %s","class":"connected"}\n' "$city" "$country"
+    printf '{"text":"","tooltip":"NordVPN: %s, %s","class":"connected"}\n' "$city" "$country"
 else
     printf '{"text":"","tooltip":""}\n'
 fi

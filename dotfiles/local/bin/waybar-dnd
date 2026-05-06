@@ -17,14 +17,14 @@ LINGER_SECONDS=30
 TOGGLE_TIME_FILE=/tmp/dnd-toggle-time
 
 if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
-    printf '{"text":"󰂛","tooltip":"do not disturb (on)","class":"active"}\n'
+    printf '{"text":"","tooltip":"do not disturb (on)","class":"active"}\n'
     exit 0
 fi
 
 now=$(date +%s)
 last_toggle=$(cat "$TOGGLE_TIME_FILE" 2>/dev/null || echo 0)
 if [ $((now - last_toggle)) -lt "$LINGER_SECONDS" ]; then
-    printf '{"text":"󰂚","tooltip":"do not disturb (off)","class":"linger"}\n'
+    printf '{"text":"","tooltip":"do not disturb (off)","class":"linger"}\n'
 else
     printf '{"text":"","tooltip":""}\n'
 fi

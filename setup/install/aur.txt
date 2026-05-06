@@ -22,6 +22,12 @@ kvantum-theme-catppuccin-git
 # actively maintained.
 apple-fonts
 
+# Phosphor Icons — single-author icon font with consistent stroke
+# weights and baselines, used for waybar's right-side status icons
+# (battery, wifi, bell, shield, etc.). Replaces the previous mix of
+# nerd-font glyphs that had visibly inconsistent weights.
+ttf-phosphor-icons
+
 # BlueBubbles desktop client — pairs with BlueBubbles Server running on
 # an always-on Mac (the Mac handles iMessage; this is the Linux UI).
 bluebubbles-bin
