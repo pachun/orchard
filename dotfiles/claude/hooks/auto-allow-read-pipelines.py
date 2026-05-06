@@ -61,6 +61,22 @@ PACMAN_READ_OPS = {
     "-V", "--version", "-h", "--help",
 }
 
+# `hyprctl` mixes reads (clients, monitors, getoption, ...) and writes
+# (dispatch, reload, keyword, kill, ...). Allow only the read-only
+# subcommands.
+HYPRCTL_READ_OPS = {
+    "version", "monitors", "workspaces", "activeworkspace",
+    "workspacerules", "clients", "devices", "decorations", "binds",
+    "layers", "splash", "getoption", "cursorpos", "animations",
+    "instances", "layouts", "configerrors", "rollinglog",
+    "globalshortcuts", "systeminfo", "activewindow",
+}
+
+# `xdg-mime query default <type>` and `xdg-mime query filetype <file>`
+# read the MIME registry. `xdg-mime default ...` writes it (sets the
+# default handler). Only `query` is safe.
+XDG_MIME_READ_OPS = {"query", "--help", "-h"}
+
 # Disallow sed in-place edit and similar.
 SED_BAD_FLAGS = {"-i", "--in-place"}
 
@@ -232,6 +248,20 @@ def segment_allowed(seg: str) -> bool:
         if len(tokens) < 2:
             return False
         return tokens[1] in PACMAN_READ_OPS
+
+    if cmd == "hyprctl":
+        if len(tokens) < 2:
+            return False
+        # Skip optional global flags like -j (json) before the subcommand.
+        i = 1
+        while i < len(tokens) and tokens[i].startswith("-"):
+            i += 1
+        return i < len(tokens) and tokens[i] in HYPRCTL_READ_OPS
+
+    if cmd == "xdg-mime":
+        if len(tokens) < 2:
+            return False
+        return tokens[1] in XDG_MIME_READ_OPS
 
     return cmd in ALLOWLIST
 
