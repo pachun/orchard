@@ -1,24 +1,32 @@
 # Mako notification daemon. Symlinked from this repo by dotfiles/link.sh.
 # Reload after edits with `makoctl reload`.
 #
-# Palette: Catppuccin Frappé — same theme ghostty uses, so toasts and
-# terminal output share a look. Hex values are taken from the upstream
-# Catppuccin spec; the section headers below override per-urgency.
+# Palette: Catppuccin Frappé — matches fuzzel and waybar. SF Pro Text
+# (waybar's typeface) so notifications feel like the bar's overflow,
+# not a different surface. Title and body get a weight/color hierarchy
+# via Pango markup in the format string.
 
-font=MonoLisa Variable Medium 11
+font=SF Pro Text 11
 
-background-color=#303446
+# Title in weight 600 (matches waybar); body in subtext1 grey for the
+# secondary-content read. Pango markup is parsed by mako when markup=1
+# (the default); apps' raw text is escaped automatically.
+format=<span weight="600">%s</span>\n<span foreground="#b5bfe2">%b</span>
+
+# Slightly translucent base — same EE alpha as fuzzel, so toasts feel
+# part of the same layered surface family.
+background-color=#303446ee
 text-color=#c6d0f5
-border-color=#8caaee
-border-size=2
+border-color=#949cbb
+border-size=1
 border-radius=10
 
 # Top-right, with a small inset so toasts don't kiss the screen edge.
 anchor=top-right
 margin=12
-padding=12,16
+padding=14,16
 
-width=360
+width=340
 height=120
 max-icon-size=48
 
@@ -26,10 +34,10 @@ default-timeout=5000
 ignore-timeout=1
 
 [urgency=low]
-border-color=#a5adce
+border-color=#737994
 
 [urgency=normal]
-border-color=#8caaee
+border-color=#949cbb
 
 [urgency=critical]
 border-color=#e78284
