@@ -49,15 +49,11 @@ function use_custom_prompt {
   COLOR_BRIGHT_WHITE=15
 
   # Set prompt components
-  # In $HOME, output nothing — the prompt collapses to just the
-  # cursor, which is plenty of signal. Anywhere else, show the
-  # current directory's basename in bright white.
+  # %1~ shows the current directory's last segment, with $HOME rendered
+  # as ~ — so there's always something on the prompt line, never a
+  # naked cursor without context.
   function directory {
-    if [[ $PWD == $HOME ]]; then
-      echo ""
-    else
-      echo "%F{$COLOR_BRIGHT_WHITE}%1~%f"
-    fi
+    echo "%F{$COLOR_BRIGHT_WHITE}%1~%f"
   }
 
   # The cursor itself is the mode indicator — see set_cursor_color_for_mode
