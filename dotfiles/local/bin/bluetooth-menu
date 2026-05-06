@@ -1,0 +1,125 @@
+#!/bin/sh
+# Fuzzel-driven Bluetooth picker. Toggles power, scans for new devices,
+# and connects/disconnects paired devices. Mirrors wifi-menu and
+# nordvpn-menu (icon-led rows, ● dot for currently-active devices,
+# special actions get their own glyph).
+#
+# Phosphor codepoints used in the menu:
+#   bluetooth-connected  U+E0DC  — paired-device rows
+#   bluetooth            U+E0DA  — power toggle (when on)
+#   bluetooth-slash      U+E0DE  — power toggle (when off)
+#   arrows-clockwise     U+E094  — scan
+set -eu
+
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+
+if ! command -v bluetoothctl >/dev/null 2>&1; then
+    notify-send 'Bluetooth' 'bluetoothctl not installed (need bluez-utils).'
+    exit 0
+fi
+
+ICON_BT_ON=''
+ICON_BT_OFF=''
+ICON_DEVICE=''
+ICON_SCAN=''
+ACTIVE_DOT='●'
+
+POWER_ON_LABEL="$ICON_BT_OFF  Turn Bluetooth on"
+POWER_OFF_LABEL="$ICON_BT_ON  Turn Bluetooth off"
+SCAN_LABEL="$ICON_SCAN  Scan for new devices"
+
+powered=$(bluetoothctl show 2>/dev/null | awk -F': *' '/Powered:/ {print $2; exit}')
+
+# Bluetooth off — only show power-on as the action.
+if [ "$powered" != "yes" ]; then
+    choice=$(printf '%s\n' "$POWER_ON_LABEL" \
+        | fuzzel --dmenu --prompt 'bluetooth: ' --width 32 --lines 3) || exit 0
+    if [ "$choice" = "$POWER_ON_LABEL" ]; then
+        bluetoothctl power on >/dev/null 2>&1 || true
+        notify-send 'Bluetooth' 'Powered on'
+        pkill -RTMIN+11 waybar 2>/dev/null || true
+    fi
+    exit 0
+fi
+
+# Bluetooth on — power-toggle, scan, then a list of paired devices.
+paired=$(bluetoothctl devices 2>/dev/null)
+connected=$(bluetoothctl devices Connected 2>/dev/null)
+
+# Format paired devices: "<icon>  <name>  [<dot>]" — dot when connected.
+device_rows=$(printf '%s\n' "$paired" | awk -v icon="$ICON_DEVICE" \
+    -v dot="$ACTIVE_DOT" -v conn="$connected" '
+    BEGIN {
+        n = split(conn, lines, "\n")
+        for (i = 1; i <= n; i++) {
+            if (lines[i] ~ /^Device /) {
+                split(lines[i], a, " ")
+                connected_macs[a[2]] = 1
+            }
+        }
+    }
+    /^Device / {
+        mac = $2
+        # Strip "Device <mac> " prefix to get the name.
+        sub(/^Device [^ ]+ /, "")
+        name = $0
+        if (mac in connected_macs)
+            printf "%s  %s  %s\n", icon, name, dot
+        else
+            printf "%s  %s\n", icon, name
+    }
+')
+
+# Note: the empty-device-list case must use `if/fi`, not `[ … ] && …`.
+# Under `set -e`, the subshell's exit status is the last command's,
+# and `[ -z "$x" ] && …` evaluating to 1 would kill the parent script.
+# `if/fi` returns 0 whether the condition matched or not.
+list=$(
+    printf '%s\n' "$POWER_OFF_LABEL"
+    printf '%s\n' "$SCAN_LABEL"
+    if [ -n "$device_rows" ]; then printf '%s\n' "$device_rows"; fi
+)
+
+choice=$(printf '%s' "$list" \
+    | fuzzel --dmenu --prompt 'bluetooth: ' --width 38 --lines 12) || exit 0
+
+case "$choice" in
+    "$POWER_OFF_LABEL")
+        bluetoothctl power off >/dev/null 2>&1 || true
+        notify-send 'Bluetooth' 'Powered off'
+        pkill -RTMIN+11 waybar 2>/dev/null || true
+        ;;
+    "$SCAN_LABEL")
+        notify-send 'Bluetooth' 'Scanning for 10 seconds…'
+        # bluetoothctl scan blocks; spawn it, sleep, terminate.
+        bluetoothctl --timeout 10 scan on >/dev/null 2>&1 || true
+        # Re-open menu so newly-found devices appear in the list.
+        exec "$0"
+        ;;
+    *)
+        # Strip leading "<icon>  " and trailing "  <dot>" if present.
+        rest=${choice#*  }
+        case "$rest" in
+            *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
+        esac
+        # Resolve display name back to MAC by lookup in `paired`.
+        mac=$(printf '%s\n' "$paired" \
+            | awk -v n="$rest" '/^Device / {
+                m = $2; sub(/^Device [^ ]+ /, ""); if ($0 == n) { print m; exit }
+            }')
+        if [ -z "$mac" ]; then
+            notify-send 'Bluetooth' "Could not resolve device: $rest"
+            exit 1
+        fi
+        if printf '%s\n' "$connected" | awk '{print $2}' | grep -qx "$mac"; then
+            bluetoothctl disconnect "$mac" >/dev/null 2>&1 \
+                && notify-send 'Bluetooth' "Disconnected from $rest" \
+                || notify-send 'Bluetooth' "Disconnect failed: $rest"
+        else
+            bluetoothctl connect "$mac" >/dev/null 2>&1 \
+                && notify-send 'Bluetooth' "Connected to $rest" \
+                || notify-send 'Bluetooth' "Connect failed: $rest"
+        fi
+        pkill -RTMIN+11 waybar 2>/dev/null || true
+        ;;
+esac

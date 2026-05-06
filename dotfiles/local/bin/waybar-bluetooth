@@ -1,0 +1,54 @@
+#!/bin/sh
+# waybar custom/bluetooth status. Always emits something (stays visible
+# in the bar at all times per design — never blanks).
+#
+# State → output:
+#   service down / no adapter   → bluetooth-slash, "off" tooltip,    grey
+#   on, no devices connected    → bluetooth,       "no connections", grey (default)
+#   on, ≥1 device connected     → bluetooth-conn., device list,      class=connected (white)
+#
+# CSS handles the color: default #b5bfe2 (subtext1, grey), .connected
+# bumps to #c6d0f5 (text, white). One-class toggle, no per-state colors
+# in JS-on-bash.
+#
+# Phosphor codepoints:
+#   bluetooth            U+E0DA
+#   bluetooth-connected  U+E0DC
+#   bluetooth-slash      U+E0DE
+#
+# Refresh: bluetooth-menu sends SIGRTMIN+11 after any action that
+# changes connection state.
+
+ICON_OFF=''
+ICON_ON=''
+ICON_CONNECTED=''
+
+if ! command -v bluetoothctl >/dev/null 2>&1; then
+    printf '{"text":"%s","tooltip":"Bluetooth unavailable"}\n' "$ICON_OFF"
+    exit 0
+fi
+
+powered=$(bluetoothctl show 2>/dev/null | awk -F': *' '/Powered:/ {print $2; exit}')
+
+if [ -z "$powered" ]; then
+    # Adapter or service missing.
+    printf '{"text":"%s","tooltip":"Bluetooth service inactive"}\n' "$ICON_OFF"
+    exit 0
+fi
+
+if [ "$powered" != "yes" ]; then
+    printf '{"text":"%s","tooltip":"Bluetooth off"}\n' "$ICON_OFF"
+    exit 0
+fi
+
+# On — count + name connected devices for the tooltip.
+connected_lines=$(bluetoothctl devices Connected 2>/dev/null)
+count=$(printf '%s' "$connected_lines" | grep -c .)
+
+if [ "$count" -eq 0 ]; then
+    printf '{"text":"%s","tooltip":"Bluetooth on, nothing connected"}\n' "$ICON_ON"
+else
+    # Tooltip: "Connected: Name1, Name2"
+    names=$(printf '%s\n' "$connected_lines" | sed 's/^Device [^ ]* //' | paste -sd ", " -)
+    printf '{"text":"%s","class":"connected","tooltip":"Connected: %s"}\n' "$ICON_CONNECTED" "$names"
+fi

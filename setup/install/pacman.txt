@@ -163,6 +163,13 @@ tree-sitter-cli
 # AUR updates are picked up separately via `yay -Qua` which is built in.
 pacman-contrib
 
+# Bluetooth: `bluez` provides the daemon (bluetoothd, systemd unit
+# `bluetooth.service`); `bluez-utils` ships the `bluetoothctl` CLI that
+# bluetooth-menu and waybar-bluetooth shell out to. Service activation
+# is handled by configure-bluetooth.sh.
+bluez
+bluez-utils
+
 # mise — language version manager (Rust rewrite of asdf, asdf-vm isn't
 # packaged for aarch64 in extra/). Provides the `node`/`npm` shims
 # that Mason uses at install time to fetch npm-distributed language

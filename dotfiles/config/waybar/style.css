@@ -53,6 +53,8 @@ window#waybar {
 #custom-nordvpn     { padding: 0 8px;        color: #b5bfe2; }
 #custom-wifi-status { padding: 0 8px;        color: #b5bfe2; }
 #network            { padding: 0 8px;        color: #b5bfe2; }
+#custom-bluetooth          { padding: 0 8px; color: #b5bfe2; }   /* dim grey when nothing connected */
+#custom-bluetooth.connected { color: #c6d0f5; }                  /* bright text when ≥1 device connected */
 #custom-updates     { padding: 0 8px;        color: #b5bfe2; }
 #custom-clock       { padding: 0 14px 0 8px; color: #b5bfe2; }   /* 14 right = screen-edge breathing room */
 
@@ -67,6 +69,7 @@ window#waybar {
 #custom-weather,
 #custom-nordvpn,
 #custom-dnd,
-#custom-updates {
+#custom-updates,
+#custom-bluetooth {
     font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
 }
