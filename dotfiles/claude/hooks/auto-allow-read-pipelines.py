@@ -3,6 +3,29 @@
 # is a read-only command. Bails (silent exit) on any sign of writes, command
 # substitution, subshells, or unknown commands — letting the default permission
 # flow run.
+#
+# Evaluation order Claude Code uses for each tool call (verbatim from docs:
+# "Rules are evaluated in order: deny -> ask -> allow. The first matching
+# rule wins, so deny rules always take precedence."):
+#
+#   1. settings.json  permissions.deny   — hard block, can't be overridden
+#   2. settings.json  permissions.ask    — forces a prompt even if hook says allow
+#   3. THIS HOOK                         — can output {permissionDecision: allow}
+#                                           to skip the prompt for safe commands
+#   4. settings.json  permissions.allow  — pattern-match for whole-string allow
+#   5. Default                           — prompt the user
+#
+# Lifecycle: settings.json is read once at session start, so changes need a
+# session restart (or `claude --resume`) to take effect. This hook is a
+# subprocess spawned per tool call, so edits land immediately — no restart.
+#
+# Practical implications:
+# - A hook that outputs "allow" wins over settings.json's allow (step 4 isn't
+#   reached) but loses to deny/ask (steps 1–2 fire first regardless).
+# - Anything this hook auto-allows makes the equivalent settings.json allow
+#   pattern dead code. settings.json allow patterns only matter for commands
+#   the hook stays silent on.
+# - settings.json deny is the only true hard block. Hooks cannot circumvent it.
 
 import json
 import shlex
@@ -34,48 +57,68 @@ ALLOWLIST = {
     "tokei", "scc", "cloc",
 }
 
-# `git <subcmd>` allowed only when subcmd is in here.
+# `git <subcmd>` allowed only when subcmd is in here. `config` and
+# `stash` need further nested checks (see segment_allowed below).
 GIT_READ_SUBCMDS = {
     "log", "status", "show", "diff", "blame", "remote", "rev-parse",
     "ls-files", "ls-tree", "reflog", "describe", "tag", "branch",
     "shortlog", "for-each-ref", "name-rev", "show-ref", "cat-file",
-    "config",  # only --list/--get tolerated; we further restrict below
+    "config", "stash",
 }
 
 # `git config` requires one of these flags (read-only forms).
 GIT_CONFIG_READ_FLAGS = {"--list", "-l", "--get", "--get-all",
                          "--get-regexp", "--get-urlmatch"}
 
-# pacman / yay can't go in the simple ALLOWLIST: their `-S <pkg>` form
-# installs (write). Allow only when the first arg is one of these
-# read-only operations. -Q* (query installed) and -S{i,s,l,g} (info /
-# search / list / groups) are all non-mutating; bare -S or -Sy* are
-# excluded because they install or sync the db.
-PACMAN_READ_OPS = {
-    # query installed
-    "-Q", "-Qi", "-Ql", "-Qm", "-Qe", "-Qd", "-Qn", "-Qq",
-    "-Qk", "-Qo", "-Qp", "-Qs", "-Qg", "-Qt", "-Qu",
-    # sync repo reads (info, search, list, groups)
-    "-Si", "-Ss", "-Sl", "-Sg",
-    # version / help
-    "-V", "--version", "-h", "--help",
-}
+# `git stash` is mostly destructive (push, pop, drop, apply, clear,
+# bare `stash` saves a new entry). Only `list` and `show` read.
+GIT_STASH_READ_SUBCMDS = {"list", "show"}
 
-# `hyprctl` mixes reads (clients, monitors, getoption, ...) and writes
-# (dispatch, reload, keyword, kill, ...). Allow only the read-only
-# subcommands.
-HYPRCTL_READ_OPS = {
-    "version", "monitors", "workspaces", "activeworkspace",
-    "workspacerules", "clients", "devices", "decorations", "binds",
-    "layers", "splash", "getoption", "cursorpos", "animations",
-    "instances", "layouts", "configerrors", "rollinglog",
-    "globalshortcuts", "systeminfo", "activewindow",
+# Commands that mix read and write subcommands — they can't go in the
+# simple ALLOWLIST because, e.g., `pacman -S <pkg>` installs (write).
+# Each entry maps command → (set of read-only first-args after any
+# leading flags, skip_leading_flags).
+#
+# skip_leading_flags=True walks past tokens that start with "-" before
+# checking the subcommand position. Used by tools like `hyprctl -j
+# clients` where -j is a global flag and `clients` is the actual
+# subcommand. Set False for pacman-style tools where the operation
+# itself starts with "-" (`pacman -Q`).
+SUBCMD_READ_OPS = {
+    "pacman": ({
+        # query installed
+        "-Q", "-Qi", "-Ql", "-Qm", "-Qe", "-Qd", "-Qn", "-Qq",
+        "-Qk", "-Qo", "-Qp", "-Qs", "-Qg", "-Qt", "-Qu",
+        # sync repo reads (info, search, list, groups)
+        "-Si", "-Ss", "-Sl", "-Sg",
+        # version / help
+        "-V", "--version", "-h", "--help",
+    }, False),
+    # yay shares pacman's flag set for its read ops.
+    "yay": (None, False),  # filled in below to alias pacman
+    "hyprctl": ({
+        "version", "monitors", "workspaces", "activeworkspace",
+        "workspacerules", "clients", "devices", "decorations", "binds",
+        "layers", "splash", "getoption", "cursorpos", "animations",
+        "instances", "layouts", "configerrors", "rollinglog",
+        "globalshortcuts", "systeminfo", "activewindow",
+    }, True),
+    "xdg-mime": ({"query", "--help", "-h"}, False),
+    # systemctl: status/is-* commands and various list/show forms are
+    # all read-only; start/stop/restart/enable/disable mutate.
+    "systemctl": ({
+        "status", "is-active", "is-enabled", "is-failed",
+        "list-units", "list-unit-files", "list-jobs", "list-timers",
+        "list-sockets", "list-dependencies", "list-machines",
+        "show", "cat", "get-default", "show-environment",
+        "--version", "-V", "--help", "-h",
+    }, False),
+    # gh has many top-level subcommands. We allow only `search` here
+    # (always read). Other reads (`pr view`, `repo view`, etc.) need
+    # second-level checks; add when actually needed.
+    "gh": ({"search", "--version", "--help", "-h"}, False),
 }
-
-# `xdg-mime query default <type>` and `xdg-mime query filetype <file>`
-# read the MIME registry. `xdg-mime default ...` writes it (sets the
-# default handler). Only `query` is safe.
-XDG_MIME_READ_OPS = {"query", "--help", "-h"}
+SUBCMD_READ_OPS["yay"] = (SUBCMD_READ_OPS["pacman"][0], False)
 
 # Disallow sed in-place edit and similar.
 SED_BAD_FLAGS = {"-i", "--in-place"}
@@ -237,6 +280,10 @@ def segment_allowed(seg: str) -> bool:
         if sub == "config":
             # Require at least one read-only flag.
             return any(t in GIT_CONFIG_READ_FLAGS for t in tokens[2:])
+        if sub == "stash":
+            # `git stash` (no further args) saves a new stash — write.
+            # Only allow when an explicit read-only subsubcmd follows.
+            return len(tokens) >= 3 and tokens[2] in GIT_STASH_READ_SUBCMDS
         return True
 
     if cmd == "sed":
@@ -244,24 +291,13 @@ def segment_allowed(seg: str) -> bool:
         return not any(t in SED_BAD_FLAGS or t.startswith("-i")
                        for t in tokens[1:])
 
-    if cmd in ("pacman", "yay"):
-        if len(tokens) < 2:
-            return False
-        return tokens[1] in PACMAN_READ_OPS
-
-    if cmd == "hyprctl":
-        if len(tokens) < 2:
-            return False
-        # Skip optional global flags like -j (json) before the subcommand.
+    if cmd in SUBCMD_READ_OPS:
+        allowed, skip_flags = SUBCMD_READ_OPS[cmd]
         i = 1
-        while i < len(tokens) and tokens[i].startswith("-"):
-            i += 1
-        return i < len(tokens) and tokens[i] in HYPRCTL_READ_OPS
-
-    if cmd == "xdg-mime":
-        if len(tokens) < 2:
-            return False
-        return tokens[1] in XDG_MIME_READ_OPS
+        if skip_flags:
+            while i < len(tokens) and tokens[i].startswith("-"):
+                i += 1
+        return i < len(tokens) and tokens[i] in allowed
 
     return cmd in ALLOWLIST
 
