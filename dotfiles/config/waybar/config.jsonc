@@ -108,12 +108,16 @@
     "custom/weather": {
         // Wraps wttr.in via dotfiles/local/bin/waybar-weather. Polls
         // every 10 minutes — weather doesn't move fast and this keeps
-        // network chatter low. SIGRTMIN+8 forces an immediate refresh;
+        // network chatter low. SIGRTMIN+9 forces an immediate refresh;
         // a NetworkManager dispatcher fires it on interface-up so we
         // don't wait 10 min for the next poll after wifi reconnects.
+        // (Was 8 originally, but that collided with wifi-status's
+        // spinner signal — every wifi-menu state change re-fired the
+        // weather curl, blanking the temp slot for ~1s while the new
+        // request was in flight. 9 is dedicated to weather.)
         "exec": "$HOME/.local/bin/waybar-weather",
         "interval": 600,
-        "signal": 8,
+        "signal": 9,
         "markup": "pango",
         "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Weather gnome-weather"
     },

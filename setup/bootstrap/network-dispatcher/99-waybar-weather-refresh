@@ -4,10 +4,12 @@
 # its weather module. Without this, waybar would happily sit on
 # cached/stale weather for up to 10 minutes after wifi recovers.
 #
-# `signal: 8` in the waybar custom/weather module config maps to
-# SIGRTMIN+8. pkill -RTMIN+8 finds and signals the running waybar.
+# `signal: 9` in the waybar custom/weather module config maps to
+# SIGRTMIN+9. pkill -RTMIN+9 finds and signals the running waybar.
+# (Originally 8, moved to 9 to avoid colliding with wifi-status's
+# spinner signal — see custom/weather config comment for context.)
 case "$2" in
     up|connectivity-change)
-        pkill -RTMIN+8 -x waybar
+        pkill -RTMIN+9 -x waybar
         ;;
 esac

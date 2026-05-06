@@ -10,7 +10,7 @@
 # failure we emit the cached value instead of "--", so the bar stays
 # populated through brief outages and post-sleep wifi reconnects.
 # A NetworkManager dispatcher (configure-network-dispatcher.sh) sends
-# SIGRTMIN+8 to waybar on interface up so the next refresh happens
+# SIGRTMIN+9 to waybar on interface up so the next refresh happens
 # within seconds of reconnect rather than up to 10 minutes later.
 set -eu
 
