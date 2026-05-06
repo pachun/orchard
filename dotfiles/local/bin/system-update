@@ -18,7 +18,21 @@ CLASS=system-update
 # so the user can read the output before the window closes. After yay,
 # we wipe the waybar update cache and signal waybar so the count badge
 # clears immediately instead of waiting for the next refresh window.
-CMD="tmux new-session -A -s system-update 'yay -Syu; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null; echo; echo --- Done. Press any key to close. ---; read -n 1'"
+#
+# Flag rationale:
+#   --answerupgrade=N  predetermined "no exclusions" answer to yay's
+#                      "Packages to exclude" prompt — skips the menu
+#                      (yay 12+ has no --noupgrademenu)
+#   --noconfirm        skips pacman's "Proceed with installation? [Y/n]"
+#
+# The sudo password prompt remains as the single gate on whether the
+# update actually runs — clicking the badge plus entering the password
+# is clear authorization, no need for a redundant Y/n step. Caveat:
+# --noconfirm also auto-answers any conflict / replacement prompts
+# (defaults to "no" for most), so an unusual upgrade with package
+# replacements may abort rather than ask. Rerun yay manually without
+# the flags if that ever happens.
+CMD="tmux new-session -A -s system-update 'yay -Syu --answerupgrade=N --noconfirm; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null; echo; echo --- Done. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \
     ghostty --class="$CLASS" -e sh -c "$CMD"

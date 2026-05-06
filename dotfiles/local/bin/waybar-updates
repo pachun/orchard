@@ -1,9 +1,8 @@
 #!/bin/sh
 # waybar-updates: count pending pacman + AUR updates and emit a JSON
-# blob for waybar's custom module. Returns empty (waybar hides the
-# module) when there's nothing to do OR when we're offline — yay -Syu
-# can't run without network, so a count badge with no actionable path
-# is just noise.
+# blob for waybar's custom module. Renders the module empty (effectively
+# hidden) when there's nothing to do, when offline, or while the very
+# first refresh is still running.
 #
 # Architecture: stale-while-revalidate.
 #   - Waybar polls every minute; the script reads /tmp/waybar-updates.cache
@@ -17,8 +16,14 @@
 #     SIGKILL before its trap could fire) — we ignore the stale lock
 #     and start a new refresh.
 #
+# Why we always emit JSON: waybar treats *no output* on a custom
+# module as "no change, keep the previous value" — so a successful
+# system-update that wipes the cache would still leave the badge
+# rendered until the next 60s poll. Emitting {"text":""} for the
+# hidden state forces waybar to re-render an empty module immediately.
+#
 # system-update wipes the cache + signals waybar after a successful
-# upgrade so the badge clears immediately rather than waiting on the
+# upgrade so the badge clears instantly rather than waiting on the
 # next refresh window.
 #
 # Phosphor download-simple (U+E20C) is the entire visible text — the
@@ -29,13 +34,15 @@ CACHE=/tmp/waybar-updates.cache
 LOCK=/tmp/waybar-updates.refreshing
 MAX_AGE=900   # 15 min cache TTL
 LOCK_TTL=60   # any lock older than this is presumed orphaned
+EMPTY='{"text":""}'
 
 # Bail when offline. nmcli's STATE is 'connected' when any active
-# connection is up (wifi or wired); 'disconnected' / 'connecting' /
-# 'asleep' all mean "no actionable network yet". Reads NM's cached
-# state, no network probing — fast.
+# connection is up (wifi or wired). Reads NM's cached state, no probe.
 nm_state=$(nmcli -t -f STATE general 2>/dev/null)
-[ "$nm_state" = "connected" ] || exit 0
+if [ "$nm_state" != "connected" ]; then
+    printf '%s\n' "$EMPTY"
+    exit 0
+fi
 
 lock_alive=0
 if [ -f "$LOCK" ]; then
@@ -68,6 +75,12 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
     ) >/dev/null 2>&1 &
 fi
 
-# Output current cache (may be slightly stale; empty file → hidden).
-[ -s "$CACHE" ] && cat "$CACHE"
+# Output JSON in all branches: cache content if non-empty, else
+# explicit empty so waybar re-renders blank instead of holding on
+# to the previous badge.
+if [ -s "$CACHE" ]; then
+    cat "$CACHE"
+else
+    printf '%s\n' "$EMPTY"
+fi
 exit 0
