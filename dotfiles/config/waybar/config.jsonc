@@ -32,6 +32,23 @@
         "custom/dnd"
     ],
 
+    "custom/updates": {
+        // Pending pacman + AUR update count. Sits between the wifi
+        // icon and the clock — only relevant when we're actually
+        // online (otherwise yay -Syu would fail anyway), so the
+        // script gates display on NM connectivity. Hidden when no
+        // updates or offline. Click runs system-update directly.
+        // The script caches the count for 15 min and signals
+        // SIGRTMIN+10 when a background refresh completes;
+        // system-update wipes the cache and re-signals after a
+        // successful upgrade so the badge clears immediately.
+        "exec": "$HOME/.local/bin/waybar-updates",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 10,
+        "on-click": "$HOME/.local/bin/system-update"
+    },
+
     "custom/notch-spacer": {
         // Invisible widget representing the notch + visual buffer.
         // Width set in style.css; format must be non-empty so GTK
@@ -39,7 +56,7 @@
         "format": " ",
         "tooltip": false
     },
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/updates", "custom/clock"],
 
     "custom/dnd": {
         // Bell icon (bell-off when DND is on). Sits as the leftmost

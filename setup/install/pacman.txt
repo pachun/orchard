@@ -157,6 +157,12 @@ git-delta
 # `ENOENT (cmd): 'tree-sitter'` and no syntax highlighting works.
 tree-sitter-cli
 
+# `checkupdates` — non-locking pending-update count from official repos
+# (sets up a tmp pacman DB so it doesn't hold any system locks). Used by
+# waybar-updates to populate the count badge in the bar's center zone.
+# AUR updates are picked up separately via `yay -Qua` which is built in.
+pacman-contrib
+
 # mise — language version manager (Rust rewrite of asdf, asdf-vm isn't
 # packaged for aarch64 in extra/). Provides the `node`/`npm` shims
 # that Mason uses at install time to fetch npm-distributed language

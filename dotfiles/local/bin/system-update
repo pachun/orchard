@@ -15,8 +15,10 @@ set -eu
 CLASS=system-update
 
 # Outer tmux command keeps the session alive after the upgrade finishes
-# so the user can read the output before the window closes.
-CMD="tmux new-session -A -s system-update 'yay -Syu; echo; echo --- Done. Press any key to close. ---; read -n 1'"
+# so the user can read the output before the window closes. After yay,
+# we wipe the waybar update cache and signal waybar so the count badge
+# clears immediately instead of waiting for the next refresh window.
+CMD="tmux new-session -A -s system-update 'yay -Syu; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null; echo; echo --- Done. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \
     ghostty --class="$CLASS" -e sh -c "$CMD"

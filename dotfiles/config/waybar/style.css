@@ -53,6 +53,7 @@ window#waybar {
 #custom-nordvpn     { padding: 0 8px;        color: #b5bfe2; }
 #custom-wifi-status { padding: 0 8px;        color: #b5bfe2; }
 #network            { padding: 0 8px;        color: #b5bfe2; }
+#custom-updates     { padding: 0 8px;        color: #b5bfe2; }
 #custom-clock       { padding: 0 14px 0 8px; color: #b5bfe2; }   /* 14 right = screen-edge breathing room */
 
 /* Per-module icon-weight overrides. Default font-family chain (set
@@ -65,6 +66,7 @@ window#waybar {
 #battery,
 #custom-weather,
 #custom-nordvpn,
-#custom-dnd {
+#custom-dnd,
+#custom-updates {
     font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
 }
