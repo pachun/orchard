@@ -54,7 +54,13 @@
       "Bash(git ls-files *)",
       "Bash(git stash list)",
       "Bash(git reflog *)",
-      "Bash(git describe *)"
+      "Bash(git describe *)",
+      "Bash(yay -Ss*)",
+      "Bash(yay -Si*)",
+      "Bash(yay -Q*)",
+      "Bash(pacman -Si*)",
+      "Bash(pacman -Q*)",
+      "Bash(pacman -Ss*)"
     ],
     "deny": [
       "WebFetch(domain:gitlab.com)",
