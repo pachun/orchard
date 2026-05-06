@@ -16,6 +16,14 @@ swaybar color /styling feels off... maybe colors for foreground fonts need to be
 
 f3 bind to mission control thing
 
+cmd+tab application switcher with the macOS hold-modifier UX. Every off-the-shelf launcher (fuzzel, rofi, walker, anyrun) is a discrete picker — open, navigate, press Enter, close. None implement "hold Cmd, tab through, release commits". Need to build a small Wayland app (Rust + iced or gtk4-rs):
+- Grabs Wayland input while open
+- Renders a horizontal icon strip overlay
+- Tab advances forward, ` (backtick) advances backward
+- Watches libinput for Super (Cmd) key release → commits selection via hyprctl focuswindow
+- Esc cancels
+~400-600 LOC, lives in dotfiles/local/bin/ or as its own setup/install script if it needs cargo build
+
 ---
 
 icloud files integration
