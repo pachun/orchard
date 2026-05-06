@@ -3,7 +3,7 @@
 # levels: top picker offers Disconnect (when connected), Dedicated IP,
 # Quickest, then a sorted country list; selecting a country opens a
 # second picker with "Any city" + that country's cities. The city
-# picker's first entry is "[Back]", which re-opens the country picker
+# picker's first entry is "Back", which re-opens the country picker
 # without quitting the menu.
 #
 # NordVPN's CLI uses underscores for multi-word names (United_States,
@@ -12,16 +12,40 @@
 # Dedicated IP is offered unconditionally — there's no reliable way to
 # query subscription state from the CLI. If the account doesn't have
 # one, nordvpn errors out and we surface that via notify-send.
+#
+# Row format mirrors wifi-menu: every row leads with a Phosphor icon,
+# active country/city carries a trailing ● dot. Phosphor codepoints:
+#   link-break             U+E2E4   — disconnect
+#   push-pin               U+E3E2   — Dedicated IP (pinned location)
+#   lightning              U+E2DE   — Quickest (fastest)
+#   globe-hemisphere-west  U+E28C   — country rows + "any city"
+#   map-pin                U+E316   — specific city rows
+#   arrow-left             U+E058   — Back
 set -eu
 
-pkill -x fuzzel 2>/dev/null && exit 0
+# Toggle protocol shared with wifi-menu / system-menu.
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
 
-# If not logged in, the picker is useless — kick off the OAuth flow.
-# `nordvpn login` prints a URL and exits; the daemon handles the
-# callback from the browser. We pull the URL from its output and hand
-# it to xdg-open so the user lands in chromium ready to log in. Bound
-# the call with `timeout` in case a future CLI version blocks instead.
-if ! nordvpn account >/dev/null 2>&1; then
+ICON_DISCONNECT=''
+ICON_DEDICATED=''
+ICON_QUICKEST=''
+ICON_COUNTRY=''
+ICON_CITY=''
+ICON_BACK=''
+ACTIVE_DOT='●'
+
+DISCONNECT_LABEL="$ICON_DISCONNECT  Disconnect"
+DEDICATED_LABEL="$ICON_DEDICATED  Dedicated IP"
+QUICKEST_LABEL="$ICON_QUICKEST  Quickest"
+BACK_LABEL="$ICON_BACK  Back"
+
+# Login + status detection in a single CLI call. `nordvpn status` is fast
+# (~40ms); `nordvpn account` is ~1s+ because it hits the API. Logged-out
+# state shows up in status as "You are not logged in.", so we read it
+# from there and skip the slower call entirely.
+status=$(nordvpn status 2>&1 || true)
+
+if printf '%s' "$status" | grep -qi 'not logged in'; then
     out=$(timeout 5 nordvpn login 2>&1 || true)
     url=$(printf '%s\n' "$out" | grep -oE 'https?://[^[:space:]]+' | head -1)
     if [ -n "$url" ]; then
@@ -33,9 +57,14 @@ if ! nordvpn account >/dev/null 2>&1; then
     exit 0
 fi
 
-status=$(nordvpn status 2>/dev/null || true)
 connected=0
-printf '%s' "$status" | grep -q '^Status: Connected' && connected=1
+active_country=
+active_city=
+if printf '%s' "$status" | grep -q '^Status: Connected'; then
+    connected=1
+    active_country=$(printf '%s' "$status" | awk -F': *' '/^Country:/ {print $2; exit}')
+    active_city=$(printf '%s'    "$status" | awk -F': *' '/^City:/    {print $2; exit}')
+fi
 
 countries=$(nordvpn countries 2>/dev/null \
             | tr -s '[:space:]' '\n' \
@@ -49,13 +78,25 @@ run() {
     pkill -RTMIN+9 waybar 2>/dev/null || true
 }
 
+# Format a list of names with a leading icon, marking the row matching
+# $active with a trailing dot. Single awk pass so we don't fork a subshell
+# per row — important for nordvpn-menu where the country list is ~60 long
+# and was visibly slowing menu open.
+format_rows() {
+    icon=$1; active=$2
+    awk -v icon="$icon" -v active="$active" -v dot="$ACTIVE_DOT" '
+        $0 == active { printf "%s  %s  %s\n", icon, $0, dot; next }
+                     { printf "%s  %s\n",     icon, $0 }
+    '
+}
+
 pick_country() {
     {
-        [ "$connected" -eq 1 ] && echo '[Disconnect]'
-        echo 'Dedicated IP'
-        echo 'Quickest'
-        printf '%s\n' "$countries"
-    } | fuzzel --dmenu --prompt 'nordvpn: ' --width 30 --lines 15
+        [ "$connected" -eq 1 ] && printf '%s\n' "$DISCONNECT_LABEL"
+        printf '%s\n' "$DEDICATED_LABEL"
+        printf '%s\n' "$QUICKEST_LABEL"
+        printf '%s\n' "$countries" | format_rows "$ICON_COUNTRY" "$active_country"
+    } | fuzzel --dmenu --prompt 'nordvpn: ' --width 38 --lines 15
 }
 
 pick_city() {
@@ -67,35 +108,47 @@ pick_city() {
              | sed 's/_/ /g' \
              | sort)
     {
-        echo '[Back]'
-        echo "[Any city in $country_display]"
-        printf '%s\n' "$cities"
-    } | fuzzel --dmenu --prompt "$country_display: " --width 30 --lines 15
+        printf '%s\n' "$BACK_LABEL"
+        printf '%s  Any city in %s\n' "$ICON_COUNTRY" "$country_display"
+        printf '%s\n' "$cities" | format_rows "$ICON_CITY" "$active_city"
+    } | fuzzel --dmenu --prompt "$country_display: " --width 38 --lines 15
+}
+
+# Strip leading "<icon>  " and trailing "  <dot>" if present.
+strip_decoration() {
+    s=${1#*  }
+    case "$s" in
+        *"  $ACTIVE_DOT") s=${s%"  $ACTIVE_DOT"} ;;
+    esac
+    printf '%s' "$s"
 }
 
 while :; do
     choice=$(pick_country) || exit 0
     case "$choice" in
-        '[Disconnect]')   run nordvpn disconnect; exit 0 ;;
-        'Dedicated IP')   run nordvpn connect --group Dedicated_IP; exit 0 ;;
-        'Quickest')       run nordvpn connect; exit 0 ;;
+        "$DISCONNECT_LABEL")  run nordvpn disconnect;                       exit 0 ;;
+        "$DEDICATED_LABEL")   run nordvpn connect --group Dedicated_IP;     exit 0 ;;
+        "$QUICKEST_LABEL")    run nordvpn connect;                          exit 0 ;;
     esac
 
-    # Country path — loop city picker so [Back] returns here.
+    country=$(strip_decoration "$choice")
+
+    # Country path — loop city picker so Back returns here.
     while :; do
-        city_choice=$(pick_city "$choice") || exit 0
+        city_choice=$(pick_city "$country") || exit 0
         case "$city_choice" in
-            '[Back]')
+            "$BACK_LABEL")
                 break  # back to outer loop → country picker
                 ;;
-            "[Any city in $choice]")
-                country_arg=$(printf '%s' "$choice" | tr ' ' '_')
+            *"Any city in $country")
+                country_arg=$(printf '%s' "$country" | tr ' ' '_')
                 run nordvpn connect "$country_arg"
                 exit 0
                 ;;
             *)
-                country_arg=$(printf '%s' "$choice" | tr ' ' '_')
-                city_arg=$(printf '%s' "$city_choice" | tr ' ' '_')
+                city=$(strip_decoration "$city_choice")
+                country_arg=$(printf '%s' "$country" | tr ' ' '_')
+                city_arg=$(printf '%s' "$city" | tr ' ' '_')
                 run nordvpn connect "$country_arg" "$city_arg"
                 exit 0
                 ;;

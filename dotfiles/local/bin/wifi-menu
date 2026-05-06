@@ -4,28 +4,36 @@
 # for secured networks. Open networks skip the password prompt entirely.
 # Triggered from waybar's network module on-click.
 #
-# Each row has a 4-char prefix encoding two pieces of state:
-#   "● " / "  "   — currently connected to this SSID (or not)
-#   "󰌾 " / "  "   — secured (any non-empty SECURITY) or open
-# So:
-#   "● 󰌾 SSID"  — connected + secured
-#   "●   SSID"  — connected + open
-#   "  󰌾 SSID"  — secured, available
-#   "    SSID"  — open, available
+# Row format (proportional font — no fixed columns, just consistent shape):
+#   <signal-icon>  <SSID>  <lock-if-secured>  <dot-if-active>
+# Special actions get their own icon so they read as actions, not networks:
+#   <arrows-clockwise>  Refresh
+#   <link-break>        Disconnect
 #
-# Top of the list:
-#   [Disconnect] — drops the active wifi connection (only when one exists)
-#   [Rescan]     — forces an SSID rescan and re-opens the picker without
-#                  exiting; useful when a network you expected didn't
-#                  show up on first scan
+# Phosphor codepoints:
+#   wifi-high     U+E4EA   wifi-medium    U+E4EE
+#   wifi-low      U+E4EC   wifi-none      U+E4F0
+#   lock-simple   U+E308   arrows-clockwise U+E094
+#   link-break    U+E2E4
+# Active marker uses U+25CF (●) — small and reads clearly at end of row.
+#
+# Toggle behavior is shared with the other fuzzel menus — see
+# _fuzzel-menu-toggle for the protocol.
 set -eu
 
-DISCONNECT='[Disconnect]'
-RESCAN='[Rescan]'
-ACTIVE='● '
-INACTIVE='  '
-LOCK='󰌾 '
-OPEN='  '
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+
+SIG_HIGH=''
+SIG_MED=''
+SIG_LOW=''
+SIG_NONE=''
+LOCK=''
+ACTIVE_DOT='●'
+ICON_RESCAN=''
+ICON_DISCONNECT=''
+
+DISCONNECT_LABEL="$ICON_DISCONNECT  Disconnect"
+RESCAN_LABEL="$ICON_RESCAN  Refresh"
 
 # waybar-wifi-status renders a spinner while this file exists. The trap
 # guarantees it's cleared even if the script is killed mid-connect, so
@@ -46,51 +54,64 @@ while :; do
 
     nmcli device wifi rescan 2>/dev/null || true
 
-    # SSID + security pair per visible network. Empty SECURITY field means
-    # open. Prefix each row with the active/inactive + lock/open state so
-    # the prompt signals at a glance both which network you're already on
-    # and which networks will ask for a password.
-    networks=$(nmcli -t -f SSID,SECURITY device wifi list \
-        | awk -F: -v lock="$LOCK" -v open="$OPEN" \
-                  -v active="$ACTIVE" -v inactive="$INACTIVE" \
-                  -v active_ssid="$active_wifi" '
-            $1 != "" {
-                status = ($1 == active_ssid) ? active : inactive
-                sec    = ($2 == "" || $2 == "--") ? open : lock
-                print status sec $1
+    # IN-USE,SSID,SECURITY,SIGNAL — sort key prefix encodes (active first,
+    # then strongest signal first); awk emits "<rank>\t<row>", we sort,
+    # then strip the rank with cut -f2-.
+    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list \
+        | awk -F: -v sig_high="$SIG_HIGH" -v sig_med="$SIG_MED" \
+                  -v sig_low="$SIG_LOW"   -v sig_none="$SIG_NONE" \
+                  -v lock="$LOCK"         -v dot="$ACTIVE_DOT" '
+            $2 == "" { next }
+            {
+                ssid    = $2
+                secured = ($3 != "" && $3 != "--")
+                signal  = $4 + 0
+                in_use  = ($1 == "*")
+
+                if      (signal >= 70) icon = sig_high
+                else if (signal >= 50) icon = sig_med
+                else if (signal >= 30) icon = sig_low
+                else                   icon = sig_none
+
+                row = icon "  " ssid
+                if (secured) row = row "  " lock
+                if (in_use)  row = row "  " dot
+
+                rank = in_use ? 0 : (100 - signal)
+                printf "%03d\t%s\n", rank, row
             }' \
-        | sort -u)
+        | sort -u \
+        | cut -f2-)
 
     list=$(
-        [ -n "$active_wifi" ] && printf '%s\n' "$DISCONNECT"
-        printf '%s\n' "$RESCAN"
+        [ -n "$active_wifi" ] && printf '%s\n' "$DISCONNECT_LABEL"
+        printf '%s\n' "$RESCAN_LABEL"
         printf '%s\n' "$networks"
     )
 
-    choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt 'wifi: ' --width 40) || exit 0
+    choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt 'wifi: ' --width 48) || exit 0
 
     case "$choice" in
-        "$RESCAN")
+        "$RESCAN_LABEL")
             continue
             ;;
-        "$DISCONNECT")
+        "$DISCONNECT_LABEL")
             nmcli connection down "$active_wifi" >/dev/null
             notify-send 'WiFi' "Disconnected from $active_wifi"
             exit 0
             ;;
     esac
 
-    # Strip the prefix in two stages: first the active/inactive marker,
-    # then the lock/open marker. What's left is the raw SSID.
-    case "$choice" in
-        "$ACTIVE"*)   rest=${choice#"$ACTIVE"} ;;
-        "$INACTIVE"*) rest=${choice#"$INACTIVE"} ;;
-        *)            rest=$choice ;;
+    # Recover SSID from a network row. Format is:
+    #   <icon>  <SSID>  [<lock>]  [<dot>]
+    # Strip the leading icon + 2 spaces, then trailing tags.
+    rest=${choice#*  }
+    case "$rest" in
+        *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
     esac
     case "$rest" in
-        "$LOCK"*) ssid=${rest#"$LOCK"}; secured=1 ;;
-        "$OPEN"*) ssid=${rest#"$OPEN"}; secured=0 ;;
-        *)        ssid=$rest;           secured=0 ;;
+        *"  $LOCK") ssid=${rest%"  $LOCK"}; secured=1 ;;
+        *)          ssid=$rest;              secured=0 ;;
     esac
 
     # Saved-connection path — works for both open and secured networks

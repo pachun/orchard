@@ -1,0 +1,36 @@
+#!/bin/sh
+# Toggle protocol for fuzzel-driven menus. Sourced (not executed) by
+# wifi-menu, nordvpn-menu, system-menu near the top of each script.
+#
+# Behavior:
+#   - Same menu invoked again       → close it (toggle off)
+#   - Different fuzzel menu open    → that one closes, this one opens
+#   - No menu open                  → opens
+#
+# Each menu holds a /tmp/<scriptname>.lock with its shell PID so the
+# toggle decision is per-menu rather than "any fuzzel is open" — without
+# this, pressing Cmd+P while wifi-menu is open would just close wifi
+# instead of swapping to nordvpn.
+#
+# The lockfile is removed on EXIT/INT/TERM. SIGKILL leaves it stale,
+# which the next invocation cleans up via the kill -0 liveness check.
+
+__menu_lock="/tmp/$(basename "$0").lock"
+__menu_pid=$(cat "$__menu_lock" 2>/dev/null || true)
+
+if [ -n "$__menu_pid" ] && kill -0 "$__menu_pid" 2>/dev/null; then
+    # This menu is already open — toggle off.
+    kill "$__menu_pid" 2>/dev/null
+    pkill -x fuzzel 2>/dev/null   # backstop in case the shell dies before fuzzel
+    exit 0
+fi
+
+# Stale lockfile (or no lockfile) — clear and proceed.
+rm -f "$__menu_lock"
+
+# A different menu may be open — close its fuzzel popup. That menu's shell
+# will exit via its own `choice=$(...) || exit 0`, releasing its lockfile.
+pkill -x fuzzel 2>/dev/null || true
+
+echo $$ > "$__menu_lock"
+trap 'rm -f "$__menu_lock"' EXIT INT TERM

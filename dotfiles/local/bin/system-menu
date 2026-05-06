@@ -2,14 +2,32 @@
 # fuzzel dmenu wired to waybar's arch logo (custom/system on-click).
 # Three actions: full system update, reboot, shut down. Update opens
 # a dedicated ghostty window — see ./system-update for details.
+#
+# Phosphor icons (require Phosphor in fuzzel's font fallback chain):
+#   download-simple   U+E20C   — pulling system updates
+#   arrow-clockwise   U+E036   — single rotation, "restart"
+#   power             U+E3DA   — shut down
+#
 set -eu
 
-choice=$(printf 'Update\nReboot\nShut down\n' \
-    | fuzzel --dmenu --width=20 --lines=3 --prompt='')
+# Toggle protocol shared with wifi-menu / nordvpn-menu.
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+
+ICON_UPDATE=''
+ICON_REBOOT=''
+ICON_SHUTDOWN=''
+
+UPDATE_LABEL="$ICON_UPDATE  Update"
+REBOOT_LABEL="$ICON_REBOOT  Reboot"
+SHUTDOWN_LABEL="$ICON_SHUTDOWN  Shut down"
+
+choice=$(printf '%s\n%s\n%s\n' \
+            "$UPDATE_LABEL" "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
+         | fuzzel --dmenu --width=24 --lines=3 --prompt='')
 
 case "$choice" in
-    Update)        exec "$HOME/.local/bin/system-update" ;;
-    Reboot)        exec systemctl reboot ;;
-    "Shut down")   exec systemctl poweroff ;;
-    *)             exit 0 ;;  # user pressed Esc
+    "$UPDATE_LABEL")    exec "$HOME/.local/bin/system-update" ;;
+    "$REBOOT_LABEL")    exec systemctl reboot ;;
+    "$SHUTDOWN_LABEL")  exec systemctl poweroff ;;
+    *)                  exit 0 ;;  # user pressed Esc
 esac
