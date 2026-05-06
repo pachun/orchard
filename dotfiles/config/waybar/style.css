@@ -22,9 +22,11 @@ window#waybar {
 #workspaces button:hover    { background-color: rgba(198, 208, 245, 0.15); }   /* faint text-color tint, matches active corner radius */
 #workspaces button.active   { background-color: #c6d0f5; color: transparent; }
 
+#custom-dnd     { padding: 0 8px;          color: #c6d0f5; }
 #custom-recording { padding: 0 8px;        color: #e78284; font-size: 14px; }   /* Frappé red — calls attention while live */
 #custom-weather { padding: 0 8px;          color: #c6d0f5; }
 #battery        { padding: 0 8px;          color: #c6d0f5; }
 #custom-nordvpn { padding: 0 8px;          color: #c6d0f5; }
+#custom-wifi-status { padding: 0 8px;      color: #c6d0f5; }
 #network        { padding: 0 8px;          color: #c6d0f5; }
 #custom-clock   { padding: 0 14px 0 8px;   color: #c6d0f5; }   /* 14 right = screen-edge breathing room */

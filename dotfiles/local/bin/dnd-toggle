@@ -1,0 +1,11 @@
+#!/bin/sh
+# Toggle mako's do-not-disturb mode (bound to F6 in hyprland.conf and
+# the waybar bell on-click). The mode is defined in mako's config; when
+# active it suppresses (drops) all notifications.
+#
+# Signals waybar so the bell icon flips immediately instead of waiting
+# for the next module poll.
+set -eu
+
+makoctl mode -t do-not-disturb >/dev/null
+pkill -RTMIN+7 waybar 2>/dev/null || true

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Waybar custom module backing the DND indicator. Reads current mako
+# modes; when "do-not-disturb" is in the list, emits a bell-off icon;
+# otherwise a regular bell. Click toggles via dnd-toggle.
+set -eu
+
+if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
+    printf '{"text":"󰂛","tooltip":"do not disturb (on)","class":"active"}\n'
+else
+    printf '{"text":"󰂚","tooltip":"do not disturb (off)","class":"inactive"}\n'
+fi

@@ -18,7 +18,20 @@
         "on-click": "$HOME/.local/bin/system-menu"
     },
     "modules-center": [],
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
+    "modules-right": ["custom/dnd", "custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/clock"],
+
+    "custom/dnd": {
+        // Bell icon (bell-off when DND is on). Sits as the leftmost
+        // right-side module so it's adjacent to the notch — the most
+        // visible spot on the bar. Polled every 30s as a safety net,
+        // but dnd-toggle sends SIGRTMIN+7 to flip the icon immediately.
+        // Click toggles the mode; F6 in hyprland.conf does the same.
+        "exec": "$HOME/.local/bin/waybar-dnd",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 7,
+        "on-click": "$HOME/.local/bin/dnd-toggle"
+    },
 
     "custom/recording": {
         // Visible only while wf-recorder is running. Click stops the
