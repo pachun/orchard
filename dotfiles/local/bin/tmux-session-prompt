@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pop tmux's command-prompt with the current session list shown
+# inline as the label, plus tab-completion on session names. On
+# Enter, hand the typed name off to tmux-session-switch (switch if
+# exists, create + switch if not, GC the leaving session if idle).
+#
+# Bound from tmux.conf to `prefix + t` via run-shell.
+set -eu
+
+# Separator must NOT be a comma — tmux's `command-prompt -p` uses
+# comma as a multi-prompt separator and would split this label into
+# several sequential prompts (you'd see "session [foo" then a second
+# prompt for " bar" etc). Spaces are unambiguous because tmux
+# session names can't contain spaces.
+sessions=$(tmux list-sessions -F '#S' 2>/dev/null | paste -sd ' ' -)
+label="session"
+[ -n "$sessions" ] && label="session [$sessions]"
+
+# -T target enables tab-completion against existing session/window/
+# pane names — close enough to "tab-complete sessions" in practice.
+tmux command-prompt -T target -p "${label}:" \
+    "run-shell '$HOME/.local/bin/tmux-session-switch \"%%\"'"

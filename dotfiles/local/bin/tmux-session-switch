@@ -1,0 +1,49 @@
+#!/bin/sh
+# Switch to a tmux session by name; create it (and switch) if it
+# doesn't exist. Mirrors the `t` zsh function from dotfiles/zshrc so
+# the same semantics work whether you call it from a shell or from
+# a tmux key-binding.
+#
+# Usage: tmux-session-switch <session-name>
+#
+# Garbage-collects the session we're leaving if every pane in it has
+# a plain shell as its foreground command — same heuristic as `t`.
+set -eu
+
+target=${1:-}
+if [ -z "$target" ]; then
+    echo "Usage: $(basename "$0") SESSION_NAME" >&2
+    exit 1
+fi
+
+current=$(tmux display-message -p '#S' 2>/dev/null || true)
+
+# Already there.
+if [ -n "$current" ] && [ "$current" = "$target" ]; then
+    exit 0
+fi
+
+# Count panes in the current session whose foreground command is
+# something other than a plain shell. If 0, the session is idle and
+# safe to kill after we switch out.
+non_idle=0
+if [ -n "$current" ]; then
+    non_idle=$(tmux list-panes -s -t "$current" \
+        -F '#{pane_current_command}' 2>/dev/null \
+        | grep -cvxE 'zsh|bash|sh|fish|dash' || true)
+fi
+
+if ! tmux has-session -t "$target" 2>/dev/null; then
+    tmux new-session -d -s "$target"
+fi
+
+if [ -n "$current" ]; then
+    tmux switch-client -t "$target"
+else
+    # Called from outside tmux — attach instead of switch-client.
+    tmux attach-session -t "$target"
+fi
+
+if [ -n "$current" ] && [ "$non_idle" -eq 0 ]; then
+    tmux kill-session -t "$current"
+fi
