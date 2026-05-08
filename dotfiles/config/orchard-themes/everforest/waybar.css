@@ -4,12 +4,12 @@
  * everything color-related lives here so set-theme can swap palettes
  * by repointing the active symlink. */
 
-/* Bar background — wallpaper top-strip hue, halved in luminance so
- * the bar reads as a distinct, recessed surface rather than blending
- * into the wallpaper. Foreground is everforest fg — the warm beige
- * that contrasts cleanly against the dark blue-grey. */
+/* Bar background — everforest bg_dim hard (#1e2326), the palette's
+ * darkest neutral. Sits below the editor's bg0 hard (#272e33) so the
+ * bar reads as a distinct, recessed surface. Foreground is the warm
+ * everforest fg, which contrasts cleanly against it. */
 window#waybar {
-    background-color: #212b30;
+    background-color: #1e2326;
     color: #d3c6aa;
 }
 
