@@ -1,173 +1,130 @@
--- Single source of truth for keymaps. Plugin-specific keymaps live here
--- too (rather than in lazy spec `keys = {}` blocks) so this file answers
--- "what does <leader>X do?" without grepping the plugin tree.
+-- Single source of truth for keymaps. The `keymaps` table below is
+-- both data (consulted by plugin specs that need a buffer-local
+-- override of an existing chord — e.g. nvim-tree's rename) and the
+-- input to the registration walk at the bottom of this file.
+--
+-- Structure: nested namespaces group related keymaps. Leaves carry
+-- `mode` + `trigger`. The walk below distinguishes leaves from
+-- namespaces by checking for those two fields. Adding a keymap:
+--   1. Add a leaf at the right place in `keymaps`.
+--   2. Export an action under the same path in keymap_actions.lua.
+-- If you do (1) without (2), the iterator notifies (red toast via
+-- noice) once per nvim open and skips the missing entry — bad
+-- state nags but doesn't block startup.
+--
+-- The `desc` shown in :map / which-key listings is auto-derived
+-- from the path: ["window"]["split_vertically"] becomes "Window
+-- Split Vertically". Underscores and namespace boundaries both
+-- become spaces; each word gets capitalised.
+--
+-- External lookup (e.g. nvim-tree referencing the rename chord):
+--   require("keymaps").rename.trigger        — top-level leaf
+--   require("keymaps")["goto"].definition.trigger  — nested
+-- (`goto` needs bracket notation because it's a Lua reserved word.)
 
--- exit insert mode
-vim.keymap.set("i", "jj", "<Esc>")
+local keymap_actions = require("keymap_actions")
 
--- Paste from system clipboard in cmdline mode. ghostty's `super+v`
--- sends clipboard text wrapped in bracketed-paste escapes, which
--- nvim's cmdline (popup or default) doesn't process — so the paste
--- inserts garbage instead of the clipboard contents. <C-r>+ inserts
--- the `+` register directly without going through bracketed paste,
--- so we map cmdline <C-v> to that. Cmdline-mode-only — insert and
--- normal mode <C-v> retain their default meanings.
-vim.keymap.set("c", "<C-v>", "<C-r>+", { desc = "paste from system clipboard (cmdline)" })
+local keymaps = {
+  exit_insert_mode      = { mode = "i", trigger = "jj"         },
+  paste                 = { mode = "c", trigger = "<C-v>"      },
+  save                  = { mode = "n", trigger = "<leader>w"  },
+  quit                  = { mode = "n", trigger = "<leader>q"  },
+  rename                = { mode = "n", trigger = "<leader>rn" },
+  clear_highlights      = { mode = "n", trigger = "<leader>nh" },
+  toggle_comment        = { mode = "n", trigger = "<C-_><C-_>" },
+  reload_nvim_config    = { mode = "n", trigger = "<leader>R"  },
+  show_line_diagnostics = { mode = "n", trigger = "<leader>d"  },
 
--- save / quit
-local splits = require("splits")
-vim.keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "save buffer" })
-vim.keymap.set("n", "<leader>q", splits.close_split, { desc = "quit window (unzooms first if zoomed)" })
+  ["goto"] = {
+    previous_diagnostic = { mode = "n", trigger = "[d" },
+    next_diagnostic     = { mode = "n", trigger = "]d" },
+    previous_git_hunk   = { mode = "n", trigger = "[c" },
+    next_git_hunk       = { mode = "n", trigger = "]c" },
+    definition          = { mode = "n", trigger = "gd" },
+    references          = { mode = "n", trigger = "gr" },
+  },
 
--- split management
-vim.keymap.set("n", "<leader>d|", splits.vsplit, { desc = "vsplit" })
-vim.keymap.set("n", "<leader>d_", splits.split, { desc = "split" })
-vim.keymap.set("n", "<leader>d+", splits.toggle_zoom, { desc = "toggle zoom" })
-vim.keymap.set("n", "<leader>de", "<C-w>=", { desc = "equalize splits" })
-vim.keymap.set("n", "<leader>d{", "<C-w>r", { desc = "rotate splits forward" })
-vim.keymap.set("n", "<leader>d}", "<C-w>R", { desc = "rotate splits backward" })
+  find = {
+    files        = { mode = "n", trigger = "<leader>ff" },
+    recent_files = { mode = "n", trigger = "<leader>fr" },
+    strings      = { mode = "n", trigger = "<leader>fs" },
+  },
 
--- toggle nvim-cmp dropdown completions (the popup menu, not LSP itself)
-vim.keymap.set("n", "<leader>dd", function()
-  _G.cmp_enabled = not _G.cmp_enabled
-  print(_G.cmp_enabled and "dropdown suggestions enabled" or "dropdown suggestions disabled")
-end, { desc = "toggle dropdown suggestions" })
+  window = {
+    split_vertically   = { mode = "n", trigger = "<leader>d|" },
+    split_horizontally = { mode = "n", trigger = "<leader>d_" },
+    equalize           = { mode = "n", trigger = "<leader>de" },
+    rotate_forward     = { mode = "n", trigger = "<leader>d{" },
+    rotate_backward    = { mode = "n", trigger = "<leader>d}" },
+    toggle_zoom        = { mode = "n", trigger = "<leader>d+" },
+  },
 
--- toggle supermaven (inline AI ghost-text completions)
-vim.keymap.set("n", "<leader>sm", function()
-  local api = require("supermaven-nvim.api")
-  if api.is_running() then
-    api.stop()
-    print("Supermaven stopped")
-  else
-    api.start()
-    print("Supermaven started")
-  end
-end, { desc = "toggle supermaven" })
+  toggle_editor = {
+    dropdown_suggestions = { mode = "n", trigger = "<leader>dd" },
+    ghost_edits          = { mode = "n", trigger = "<leader>sm" },
+  },
 
--- comment toggle (Ctrl+/). <C-_> is what terminals emit for Ctrl+/.
--- Pressed twice matches boo muscle memory; change to single <C-_> if
--- preferred. In visual mode we drop out to normal first, otherwise the
--- API call stays scoped to the current line.
-vim.keymap.set("n", "<C-_><C-_>", function()
-  require("Comment.api").toggle.linewise.current()
-end, { desc = "toggle comment line" })
-vim.keymap.set("v", "<C-_><C-_>", function()
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", false)
-  require("Comment.api").toggle.linewise(vim.fn.visualmode())
-end, { desc = "toggle comment block" })
+  toggle = {
+    files                 = { mode = "n", trigger = "<leader>ee" },
+    files_at_current_file = { mode = "n", trigger = "<leader>ef" },
+    git_blame             = { mode = "n", trigger = "<leader>gb" },
+  },
 
--- diagnostics / LSP
-vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "show line diagnostics" })
-vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "rename symbol (LSP)" })
--- [d / ]d — previous / next diagnostic. nvim 0.11+ deprecated
--- goto_prev / goto_next in favor of `jump({count = ±N})`.
-vim.keymap.set("n", "[d", function()
-  vim.diagnostic.jump({ count = -1 })
-end, { desc = "previous diagnostic" })
-vim.keymap.set("n", "]d", function()
-  vim.diagnostic.jump({ count = 1 })
-end, { desc = "next diagnostic" })
+  run = {
+    test_under_cursor = { mode = "n", trigger = "<leader>s" },
+    tests_in_file     = { mode = "n", trigger = "<leader>t" },
+    all_tests         = { mode = "n", trigger = "<leader>a" },
+  },
+}
 
--- gd / gr — definition + references, both via Telescope so single-
--- result and many-result cases share the same UX (preview pane,
--- filter, navigation). Direct vim.lsp.buf.definition jumps in place
--- which is fewer keystrokes when there's exactly one definition,
--- but it loses the preview affordance and asymmetry with `gr`.
-vim.keymap.set("n", "gd", function()
-  require("telescope.builtin").lsp_definitions({ position_encoding = "utf-8" })
-end, { desc = "goto definition (LSP, via telescope)" })
-vim.keymap.set("n", "gr", function()
-  require("telescope.builtin").lsp_references({ position_encoding = "utf-8" })
-end, { desc = "goto references (LSP, via telescope)" })
-
--- search
-vim.keymap.set("n", "<leader>nh", "<cmd>nohlsearch<CR>", { desc = "clear search highlights" })
-
--- telescope
-vim.keymap.set("n", "<leader>ff", function()
-  require("telescope.builtin").find_files({ cwd_only = true, hidden = true })
-end, { desc = "find files" })
-
-vim.keymap.set("n", "<leader>fs", function()
-  require("telescope.builtin").live_grep({ cwd_only = true, hidden = true })
-end, { desc = "find string (live grep)" })
-
-vim.keymap.set("n", "<leader>fr", function()
-  require("telescope.builtin").oldfiles({ cwd_only = true, hidden = true })
-end, { desc = "find recent files" })
-
--- git
--- Toggle full-file blame side window. Gitsigns has no built-in toggle;
--- we walk visible windows and close the blame buffer if found, open
--- otherwise. Filetype check covers both common gitsigns naming variants.
-vim.keymap.set("n", "<leader>gb", function()
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
-    if ft == "gitsigns.blame" or ft == "gitsigns-blame" then
-      vim.api.nvim_win_close(win, false)
-      return
+-- Path → "Title Cased Description". {"window","split_vertically"}
+-- becomes "Window Split Vertically".
+local function describe(path)
+  local words = {}
+  for _, segment in ipairs(path) do
+    for word in segment:gmatch("[^_]+") do
+      table.insert(words, word:sub(1, 1):upper() .. word:sub(2))
     end
   end
-  vim.cmd("Gitsigns blame")
-end, { desc = "toggle full-file git blame" })
+  return table.concat(words, " ")
+end
 
--- [c / ]c — previous / next git hunk (uncommitted change). Wraps
--- around: if we're past the last hunk in the requested direction,
--- gitsigns.nav_hunk pcalls fails; fall back to gg/G then retry so
--- the cycle is continuous instead of dead-ending.
-vim.keymap.set("n", "[c", function()
-  local gs = require("gitsigns")
-  local ok = pcall(gs.nav_hunk, "prev")
-  if not ok then
-    vim.cmd("normal! G")
-    gs.nav_hunk("prev")
+-- Walk the same nested path through keymap_actions.
+local function lookup_action(path)
+  local node = keymap_actions
+  for _, segment in ipairs(path) do
+    if type(node) ~= "table" then return nil end
+    node = node[segment]
   end
-end, { desc = "previous git hunk" })
-vim.keymap.set("n", "]c", function()
-  local gs = require("gitsigns")
-  local ok = pcall(gs.nav_hunk, "next")
-  if not ok then
-    vim.cmd("normal! gg")
-    gs.nav_hunk("next")
+  return node
+end
+
+-- A leaf is any table with a `trigger` field. Anything else with
+-- table-typed values is a namespace and gets recursed into.
+local function register(node, path)
+  for name, value in pairs(node) do
+    if type(value) == "table" then
+      local current_path = vim.list_extend({}, path)
+      table.insert(current_path, name)
+      if value.trigger then
+        local action = lookup_action(current_path)
+        if action == nil then
+          vim.notify(
+            ("keymaps: no keymap_action exported for '%s' — keymap skipped"):format(
+              table.concat(current_path, ".")
+            ),
+            vim.log.levels.ERROR
+          )
+        else
+          vim.keymap.set(value.mode, value.trigger, action, { desc = describe(current_path) })
+        end
+      else
+        register(value, current_path)
+      end
+    end
   end
-end, { desc = "next git hunk" })
+end
 
--- vim-test (sends to an idle tmux pane in the same cwd; see
--- plugins/vim-test.lua for the strategy)
-vim.keymap.set("n", "<leader>s", "<cmd>TestNearest<CR>", { desc = "run test under cursor" })
-vim.keymap.set("n", "<leader>t", "<cmd>TestFile<CR>", { desc = "run tests in file" })
-vim.keymap.set("n", "<leader>a", "<cmd>TestSuite<CR>", { desc = "run all tests" })
+register(keymaps, {})
 
--- file explorer
-vim.keymap.set("n", "<leader>ee", function()
-  local api = require("nvim-tree.api")
-  api.tree.collapse_all()
-  api.tree.toggle()
-end, { desc = "toggle file explorer" })
-
-vim.keymap.set("n", "<leader>ef", function()
-  local api = require("nvim-tree.api")
-  api.tree.collapse_all()
-  api.tree.toggle({ find_file = true, focus = true })
-end, { desc = "file explorer on current file" })
-
--- <leader>R — reload our personal Lua modules without restarting nvim.
--- Clears each from `package.loaded` and re-requires it, so edits to
--- keymaps/autocmds/splits take effect against the live session.
---
--- Plugins are intentionally not touched: re-entering `lazy.setup()` or
--- `lazy.reload()` against the running instance leaves lazy in a
--- half-torn-down state (Config.options.git nil, deactivate failures).
--- Restart nvim if you need plugin specs reloaded.
-vim.keymap.set("n", "<leader>R", function()
-  local modules = { "keymaps", "autocmds", "splits" }
-  for _, name in ipairs(modules) do
-    package.loaded[name] = nil
-    require(name)
-  end
-  vim.notify(
-    ("reloaded %d personal module(s)"):format(#modules),
-    vim.log.levels.INFO
-  )
-end, { desc = "reload personal nvim modules" })
+return keymaps

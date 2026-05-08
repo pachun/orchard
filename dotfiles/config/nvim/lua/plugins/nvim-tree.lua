@@ -22,18 +22,22 @@ return {
       --     leader-prefixed sequence ending in 'e' (like <leader>ef)
       --     times out faster than the user finishes the sequence.
       --     The result was accidental rename prompts. Drop bare `e`
-      --     and rebind file-rename to `<leader>rn`, matching the
-      --     LSP rename binding in keymaps.lua — same muscle memory,
-      --     same intent, different context.
+      --     and rebind file-rename to whatever chord keymaps.lua
+      --     assigns to "rename" (the LSP rename) — same muscle
+      --     memory, same intent ("rename"), different action per
+      --     context. Reading the chord from keymaps means changing
+      --     it in one place keeps both bindings in sync.
       on_attach = function(bufnr)
         local api = require("nvim-tree.api")
         api.config.mappings.default_on_attach(bufnr)
         vim.keymap.del("n", "<C-k>", { buffer = bufnr })
         vim.keymap.del("n", "e", { buffer = bufnr })
-        vim.keymap.set("n", "<leader>rn", api.fs.rename, {
-          buffer = bufnr,
-          desc = "rename file (nvim-tree)",
-        })
+
+        local keymaps = require("keymaps")
+        local rename_keymap_name = "rename"
+        vim.keymap.set("n", keymaps[rename_keymap_name].trigger, function()
+          require("nvim-tree.api").fs.rename()
+        end, { buffer = bufnr, desc = rename_keymap_name })
       end,
       sort = { sorter = "case_sensitive" },
       view = { width = 30 },
