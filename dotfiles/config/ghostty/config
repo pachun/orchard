@@ -26,7 +26,10 @@ clipboard-paste-protection = false
 # MonoLisa Variable ships named instances (Light, Regular, Medium,
 # SemiBold, Bold, ExtraBold, ...). On Linux, ghostty has no font-thicken
 # equivalent — pick a heavier named instance via font-style instead.
-theme = "Catppuccin Frappe"
+# Theme is sourced from ~/.config/orchard-themes/active/ghostty.conf,
+# which is a symlink the `set-theme` script repoints when switching.
+# Open windows reload via SIGUSR2 (sent by set-theme).
+config-file = ~/.config/orchard-themes/active/ghostty.conf
 
 font-family = "MonoLisa Variable"
 # Fallback font for nerd-font codepoints (diagnostic icons in nvim,

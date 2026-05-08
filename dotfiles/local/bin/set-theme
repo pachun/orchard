@@ -1,0 +1,70 @@
+#!/bin/sh
+# Switch the active orchard-themes theme. Repoints the
+# ~/.config/orchard-themes/active symlink to the named theme dir
+# and signals every app that supports runtime reload to pick up the
+# change. Open ghostty windows update in place.
+#
+# Usage:
+#   set-theme                  list available themes + show current
+#   set-theme <name>           switch to <name>
+#
+# Adding a new app to the theme system: drop a partial named
+# <app>.<ext> under each theme dir, point the app's main config at
+# ~/.config/orchard-themes/active/<app>.<ext>, and add the app's
+# reload command at the bottom of this script (or no-op if the app
+# auto-watches its config file).
+set -eu
+
+themes_dir=$HOME/.config/orchard-themes
+target=${1:-}
+
+if [ -z "$target" ]; then
+    echo "Available themes:"
+    for d in "$themes_dir"/*/; do
+        [ -d "$d" ] || continue
+        name=$(basename "$d")
+        echo "  $name"
+    done
+    echo
+    if [ -L "$themes_dir/active" ]; then
+        echo "Current: $(readlink "$themes_dir/active")"
+    else
+        echo "Current: (no active theme set)"
+    fi
+    exit 0
+fi
+
+if [ ! -d "$themes_dir/$target" ]; then
+    echo "set-theme: '$target' not found under $themes_dir" >&2
+    echo "Available:" >&2
+    for d in "$themes_dir"/*/; do
+        [ -d "$d" ] || continue
+        echo "  $(basename "$d")" >&2
+    done
+    exit 1
+fi
+
+# Atomic-ish swap. `ln -sfn` replaces the symlink in place; the
+# rename window is small enough that no consumer of the path sees a
+# half-state.
+ln -sfn "$target" "$themes_dir/active"
+
+# Ghostty reloads on SIGUSR2 specifically. Sending any other signal
+# crashes it, so the explicit -SIGUSR2 + -x are both load-bearing.
+pkill -SIGUSR2 -x ghostty 2>/dev/null || true
+
+# Tell every running nvim instance to re-source the active theme
+# partial. Each nvim listens on a socket at $XDG_RUNTIME_DIR/nvim.<pid>.0
+# by default; we use --remote-send to dispatch a luafile command to
+# each one. <C-\><C-N> exits any current mode (insert, terminal,
+# cmdline) before the colon command, so the source runs cleanly
+# regardless of what the user was doing.
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+for sock in "$runtime_dir"/nvim.*.0; do
+    [ -S "$sock" ] || continue
+    nvim --server "$sock" --remote-send \
+        '<C-\><C-N>:luafile ~/.config/orchard-themes/active/nvim.lua<CR>' \
+        2>/dev/null || true
+done
+
+notify-send "Theme" "Switched to $target"

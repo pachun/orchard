@@ -1,19 +1,11 @@
-- clicking waybar things should close them
-- clicking a different waybar icon should replace the menu
-- whenever the wifi menu is closed, the weather disappears for a second.
+- [ ] tui login
+- [ ] f3 bind to mission control thing
+- [ ] external monitor connection
+- [ ] chrome feels too zoomed in - keep configed to 90% zoom somehow?
+- [ ] color picker tool
+- [ ] root's login probably shouldn't be left as "root/root"
 
-tui login
-
-hyprexpo plugin for mission-control-style workspace overview (must be built against pinned hyprland 0.54.3 — vendor the .so the same way as the hypr .pkgs) (map to f3 like mission control)
-f3 bind to mission control thing
-
-external monitor connection
-
-everything looks a little too zoomed in; the whole UI/desktop
-
-color picker tool
-
-root's login probably shouldn't be left as "root/root"
+---
 
 cmd+tab application switcher with the macOS hold-modifier UX. Every off-the-shelf launcher (fuzzel, rofi, walker, anyrun) is a discrete picker — open, navigate, press Enter, close. None implement "hold Cmd, tab through, release commits". Need to build a small Wayland app (Rust + iced or gtk4-rs):
 

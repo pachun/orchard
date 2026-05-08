@@ -35,6 +35,22 @@ return {
         inc_rename = false,          -- only useful with smjonas/inc-rename.nvim installed
         lsp_doc_border = false,      -- flip to true if you want a rounded border around hover/signature popups
       },
+      -- Suppress nvim's "5 fewer lines" / "12 more lines" status messages.
+      -- These fire on every multi-line delete/paste; nvim-notify renders
+      -- them as a big floating popup, which is way too much UI for "I
+      -- already know what I just typed."
+      routes = {
+        {
+          filter = {
+            event = "msg_show",
+            any = {
+              { find = "%d+ fewer lines" },
+              { find = "%d+ more lines" },
+            },
+          },
+          opts = { skip = true },
+        },
+      },
     })
   end,
 }

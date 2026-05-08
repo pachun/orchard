@@ -4,11 +4,13 @@
 # leaves a visible glow. macOS turns the backlight power off entirely at
 # minimum; we replicate that via Hyprland's DPMS dispatch.
 #
-# Usage: screen-brightness up|down [STEP%]   (STEP defaults to 10%)
+# Usage: screen-brightness up|down [STEP%]   (STEP defaults to 5%)
+# 5% pairs well with Hyprland's `binde` at the default 25 Hz repeat rate:
+# a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
 set -euo pipefail
 
 DEVICE=apple-panel-bl
-STEP="${2:-10%}"
+STEP="${2:-5%}"
 
 show_osd() {
   local val max fraction

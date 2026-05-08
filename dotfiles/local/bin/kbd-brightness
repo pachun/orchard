@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Keyboard backlight with the swayosd progress pill, mirroring
+# screen-brightness. Unlike the screen panel, the kbd backlight has no
+# bl_power flip to handle, so 0 just means off here.
+#
+# Usage: kbd-brightness up|down [STEP%]   (STEP defaults to 5%)
+# 5% pairs well with Hyprland's `binde` at the default 25 Hz repeat rate:
+# a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
+set -euo pipefail
+
+DEVICE=kbd_backlight
+STEP="${2:-5%}"
+
+show_osd() {
+  local val max fraction
+  val=$(brightnessctl --device "$DEVICE" get)
+  max=$(brightnessctl --device "$DEVICE" max)
+  # swayosd's --custom-progress wants 0.0-1.0, not a percent.
+  fraction=$(awk -v v="$val" -v m="$max" 'BEGIN { printf "%.3f", v/m }')
+  swayosd-client --custom-progress "$fraction" --custom-icon keyboard-brightness-symbolic 2>/dev/null || true
+}
+
+case "${1:-}" in
+  down)
+    brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}-" >/dev/null
+    show_osd
+    ;;
+  up)
+    brightnessctl --device "$DEVICE" set "${STEP}+" >/dev/null
+    show_osd
+    ;;
+  *)
+    echo "usage: $(basename "$0") up|down [STEP%]" >&2
+    exit 2
+    ;;
+esac
