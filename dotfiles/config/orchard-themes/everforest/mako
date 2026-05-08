@@ -1,0 +1,16 @@
+# Everforest Medium colors for mako. Loaded by config/mako/config
+# through ~/.config/orchard-themes/active/mako.
+
+format=<span weight="600">%s</span>\n<span foreground="#859289">%b</span>
+background-color=#2d353bee
+text-color=#d3c6aa
+border-color=#859289
+
+[urgency=low]
+border-color=#5c6a72
+
+[urgency=normal]
+border-color=#859289
+
+[urgency=critical]
+border-color=#e67e80

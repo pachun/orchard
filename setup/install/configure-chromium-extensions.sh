@@ -15,6 +15,11 @@
 #   - Privacy.com (hmgpakheknboplhmlicfkkgjipfabmhp)
 #       Generates one-time / merchant-locked virtual cards at checkout
 #       so the real card number never leaves the Privacy.com vault.
+#   - Vimium C (dbepggeogbaibhgnhhndojpepiihcmeb)
+#       Vim-style keybindings for the browser. Owns `j`/`k` for smooth
+#       per-frame scroll (uniform from press to release — vs. system
+#       key-repeat which has the inherent delay-then-rapid shape).
+#       Also brings link hints, find-as-you-type, etc.; defaults work.
 #
 # To add another extension: get its ID from the Chrome Web Store URL
 # (the long string at the end), then append a "<id>;<update_url>"
@@ -35,13 +40,15 @@ UPDATE_URL="https://clients2.google.com/service/update2/crx"
 # and reference them in the JSON below.
 ADGUARD_ADBLOCKER="bgnkhhnnamicmpeenaelnjfhikgbkllg"
 PRIVACY_DOT_COM="hmgpakheknboplhmlicfkkgjipfabmhp"
+VIMIUM_C="dbepggeogbaibhgnhhndojpepiihcmeb"
 
 sudo mkdir -p "$POLICY_DIR"
 sudo tee "$POLICY_FILE" >/dev/null <<EOF
 {
   "ExtensionInstallForcelist": [
     "$ADGUARD_ADBLOCKER;$UPDATE_URL",
-    "$PRIVACY_DOT_COM;$UPDATE_URL"
+    "$PRIVACY_DOT_COM;$UPDATE_URL",
+    "$VIMIUM_C;$UPDATE_URL"
   ]
 }
 EOF

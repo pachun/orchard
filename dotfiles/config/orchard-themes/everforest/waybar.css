@@ -1,0 +1,36 @@
+/* Everforest Medium colors for waybar. Imported by config/waybar/
+ * style.css through ~/.config/orchard-themes/active/waybar.css.
+ * Structural rules (padding, fonts, animations) live in style.css;
+ * everything color-related lives here so set-theme can swap palettes
+ * by repointing the active symlink. */
+
+/* Bar background — wallpaper top-strip hue, halved in luminance so
+ * the bar reads as a distinct, recessed surface rather than blending
+ * into the wallpaper. Foreground is everforest fg — the warm beige
+ * that contrasts cleanly against the dark blue-grey. */
+window#waybar {
+    background-color: #212b30;
+    color: #d3c6aa;
+}
+
+#custom-system            { color: #d3c6aa; }
+#workspaces button        { color: #9da9a0; }                       /* grey2 — ambient */
+#workspaces button:hover  { background-color: rgba(211, 198, 170, 0.15); } /* fg@15% */
+#workspaces button.active { background-color: #d3c6aa; color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #d3c6aa; }
+#custom-dnd.linger   { color: #859289; }                            /* grey1 — even more receded */
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #d3c6aa; }
+#custom-weather             { color: #9da9a0; }
+#battery                    { color: #9da9a0; }
+#custom-nordvpn             { color: #9da9a0; }
+#custom-wifi-status         { color: #9da9a0; }
+#network                    { color: #9da9a0; }
+#custom-bluetooth           { color: #9da9a0; }
+#custom-bluetooth.connected { color: #d3c6aa; }
+#custom-updates             { color: #9da9a0; }
+#custom-clock               { color: #9da9a0; }

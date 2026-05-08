@@ -53,6 +53,18 @@ keymap:
       # Cmd+Shift+] → Ctrl+Tab (next tab)
       Super-Shift-RightBrace: C-Tab
 
+  - name: page navigation (Cmd+Left/Right) — applied everywhere
+    # Linux chromium uses Alt+Left/Right for back/forward in history;
+    # macOS uses Cmd+Left/Right. Rewriting at the input layer means
+    # chromium (and any other app that respects Alt+Left/Right
+    # navigation) gets the macOS muscle memory. exact_match=true
+    # keeps Cmd+Shift+Left etc. (text selection) from being eaten
+    # by this rule.
+    exact_match: true
+    remap:
+      Super-Left: Alt-Left
+      Super-Right: Alt-Right
+
   # More specific (Super+Ctrl+N) MUST come before Super+N. xremap evaluates
   # rules top-down and stops at the first match; if Super+N came first,
   # Cmd+Ctrl+N would trigger a workspace switch instead of moving the

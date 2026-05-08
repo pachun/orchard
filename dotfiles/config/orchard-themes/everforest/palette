@@ -1,9 +1,9 @@
 # Everforest Dark, Medium variant. Ghostty ships "Hard" as a built-in
-# but not the medium/soft variants, so this file inlines the full
-# palette to match neanias/everforest-nvim's default (medium). ANSI
-# colors are shared across all dark variants (taken from ghostty's
-# bundled "Everforest Dark Hard"); only `background` shifts to the
-# medium bg0 (#2d353b).
+# but not the medium/soft variants, so we inline the full palette to
+# match neanias/everforest-nvim's default (medium). ANSI colors are
+# shared across all dark variants (taken from ghostty's bundled
+# "Everforest Dark Hard"); only `background` shifts to the medium
+# bg0 (#2d353b vs hard's #1e2326).
 palette = 0=#7a8478
 palette = 1=#e67e80
 palette = 2=#a7c080
@@ -26,4 +26,3 @@ cursor-color = #e69875
 cursor-text = #4c3743
 selection-background = #4c3743
 selection-foreground = #d3c6aa
-background-opacity = 1

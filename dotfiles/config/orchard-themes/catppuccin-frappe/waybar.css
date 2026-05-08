@@ -1,0 +1,34 @@
+/* Catppuccin Frappé colors for waybar. Imported by config/waybar/
+ * style.css through ~/.config/orchard-themes/active/waybar.css.
+ * Structural rules (padding, fonts, animations) live in style.css;
+ * everything color-related lives here so set-theme can swap palettes
+ * by repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is text white. */
+window#waybar {
+    background-color: #1f2331;
+    color: #c6d0f5;
+}
+
+#custom-system            { color: #c6d0f5; }
+#workspaces button        { color: #b5bfe2; }
+#workspaces button:hover  { background-color: rgba(198, 208, 245, 0.15); } /* text@15% */
+#workspaces button.active { background-color: #c6d0f5; color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #c6d0f5; }
+#custom-dnd.linger   { color: #737994; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #c6d0f5; }
+#custom-weather             { color: #b5bfe2; }
+#battery                    { color: #b5bfe2; }
+#custom-nordvpn             { color: #b5bfe2; }
+#custom-wifi-status         { color: #b5bfe2; }
+#network                    { color: #b5bfe2; }
+#custom-bluetooth           { color: #b5bfe2; }
+#custom-bluetooth.connected { color: #c6d0f5; }
+#custom-updates             { color: #b5bfe2; }
+#custom-clock               { color: #b5bfe2; }

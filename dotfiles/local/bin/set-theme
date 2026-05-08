@@ -53,6 +53,32 @@ ln -sfn "$target" "$themes_dir/active"
 # crashes it, so the explicit -SIGUSR2 + -x are both load-bearing.
 pkill -SIGUSR2 -x ghostty 2>/dev/null || true
 
+# Waybar reloads its CSS on SIGUSR2 too. The main style.css imports
+# ~/.config/orchard-themes/active/waybar.css; once we've repointed
+# `active`, the reload picks up the new theme's colors.
+pkill -SIGUSR2 -x waybar 2>/dev/null || true
+
+# Mako pulls colors from ~/.config/orchard-themes/active/mako via
+# its main config's `include` directive. `makoctl reload` re-reads
+# (and runs the include again), so the next notification gets the
+# new theme. Existing displayed toasts don't repaint, but those
+# expire on their own.
+makoctl reload 2>/dev/null || true
+
+# Wallpaper. swaybg renders the desktop background as a wlr-layer-
+# shell surface; it has no IPC to swap images, so we kill the
+# running instance and start a fresh one pointed at the active
+# theme's wallpaper. The glob handles whatever extension a theme
+# happened to use (.png / .jpg / .webp). If a theme has no
+# wallpaper.<ext>, we leave whatever's currently displayed alone.
+# `setsid` detaches swaybg from this script's session so it
+# survives the script exit.
+wallpaper=$(ls "$themes_dir/active/wallpaper".* 2>/dev/null | head -n1)
+if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
+    pkill -x swaybg 2>/dev/null || true
+    setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
+fi
+
 # Tell every running nvim instance to re-source the active theme
 # partial. Each nvim listens on a socket at $XDG_RUNTIME_DIR/nvim.<pid>.0
 # by default. We use --remote-expr (not --remote-send) for two reasons:

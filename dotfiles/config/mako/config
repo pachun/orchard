@@ -1,23 +1,19 @@
 # Mako notification daemon. Symlinked from this repo by dotfiles/link.sh.
-# Reload after edits with `makoctl reload`.
+# Reload after edits with `makoctl reload`. SF Pro Text (waybar's
+# typeface) so notifications feel like the bar's overflow, not a
+# different surface.
 #
-# Palette: Catppuccin Frappé — matches fuzzel and waybar. SF Pro Text
-# (waybar's typeface) so notifications feel like the bar's overflow,
-# not a different surface. Title and body get a weight/color hierarchy
-# via Pango markup in the format string.
+# Colors, the format string (whose body-text color is embedded), and
+# per-urgency border colors all live in the active orchard-theme
+# partial pulled in via the include directive below. Main config
+# owns layout (font, anchor, padding, timeouts). set-theme calls
+# `makoctl reload` after swapping the active symlink so live mako
+# picks up the new palette.
+
+include=~/.config/orchard-themes/active/mako
 
 font=SF Pro Text 11
 
-# Title in weight 600 (matches waybar); body in subtext1 grey for the
-# secondary-content read. Pango markup is parsed by mako when markup=1
-# (the default); apps' raw text is escaped automatically.
-format=<span weight="600">%s</span>\n<span foreground="#b5bfe2">%b</span>
-
-# Slightly translucent base — same EE alpha as fuzzel, so toasts feel
-# part of the same layered surface family.
-background-color=#303446ee
-text-color=#c6d0f5
-border-color=#949cbb
 border-size=1
 border-radius=10
 
@@ -33,12 +29,12 @@ max-icon-size=48
 default-timeout=5000
 ignore-timeout=1
 
-[urgency=low]
-border-color=#737994
-
-[urgency=normal]
-border-color=#949cbb
-
 [urgency=critical]
-border-color=#e78284
 default-timeout=0
+
+# Do-not-disturb mode (toggled by ~/.local/bin/dnd-toggle via
+# `makoctl mode -t do-not-disturb`). `invisible=1` makes mako drop
+# every notification while the mode is active — without this the
+# mode is purely decorative and toasts still show.
+[mode=do-not-disturb]
+invisible=1

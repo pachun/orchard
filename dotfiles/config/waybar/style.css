@@ -1,7 +1,13 @@
+/* Theme colors live in the active orchard-theme's waybar.css —
+ * imported here so set-theme can swap palettes by repointing the
+ * active symlink and reloading waybar. This file owns *only*
+ * structural rules (layout, padding, fonts, animations) — anything
+ * color-related belongs in the theme partial, not here. */
+@import url("../orchard-themes/active/waybar.css");
+
 /* Single shared text style. Every module inherits font-family, size,
-   weight, and color from here so baselines and visual weight match.
-   Per-module CSS below only adjusts padding. If anything ever needs to
-   look different, override exactly one property — don't accumulate. */
+   weight, and (color via the theme) from here so baselines and visual
+   weight match. Per-module CSS below only adjusts padding. */
 * {
     /* Phosphor (regular weight) sits in front of Symbols Nerd Font
      * Mono so right-side status icons resolve through Phosphor's
@@ -16,16 +22,9 @@
     min-height: 0;
 }
 
-window#waybar {
-    background-color: #1f2331;            /* sampled from wallpaper top edge so the bar blends in */
-    color: #c6d0f5;                        /* text */
-}
-
-#custom-system              { padding: 0 10px 0 12px; color: #c6d0f5; }
+#custom-system              { padding: 0 10px 0 12px; }
 #workspaces                 { padding: 0 4px; }
-#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; color: #b5bfe2; border-radius: 3px; }
-#workspaces button:hover    { background-color: rgba(198, 208, 245, 0.15); }   /* faint text-color tint, matches active corner radius */
-#workspaces button.active   { background-color: #c6d0f5; color: transparent; }
+#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; border-radius: 3px; }
 
 /* DND has three states — see waybar-dnd:
  *   .active = DND on, bright (something to notice)
@@ -34,8 +33,7 @@ window#waybar {
  * Module hides itself by emitting empty text; the .linger class lets
  * us style the brief "just turned off" state distinctly from the
  * "actively suppressing notifications" state. */
-#custom-dnd          { padding: 0 8px; color: #c6d0f5; }
-#custom-dnd.linger   { color: #737994; }   /* deeper grey on linger — it's mid-fade, should read as receding */
+#custom-dnd          { padding: 0 8px; }
 
 /* Notch spacer width. M2 MBA logical-px geometry: screen ~832 wide,
  * notch ~32 wide centered around 416. The spacer needs to span the
@@ -44,17 +42,14 @@ window#waybar {
  * closer to the notch. */
 #custom-notch-spacer { min-width: 200px; }
 
-/* Right-side modules are dim by default — ambient information should
- * read as background context. Modules that go bright are the ones
- * actively demanding attention (recording running, DND on, etc.). */
-#custom-recording   { padding: 0 8px;        color: #c6d0f5; }   /* bright when visible — recording is active state */
-#custom-weather     { padding: 0 8px;        color: #b5bfe2; }
-#battery            { padding: 0 8px;        color: #b5bfe2; }
-#custom-nordvpn     { padding: 0 8px;        color: #b5bfe2; }
-#custom-wifi-status { padding: 0 8px;        color: #b5bfe2; }
-#network            { padding: 0 8px;        color: #b5bfe2; }
-#custom-bluetooth          { padding: 0 8px; color: #b5bfe2; }   /* dim grey when nothing connected */
-#custom-bluetooth.connected { color: #c6d0f5; }                  /* bright text when ≥1 device connected */
+/* Right-side modules. Padding only — colors come from the theme. */
+#custom-recording   { padding: 0 8px; }
+#custom-weather     { padding: 0 8px; }
+#battery            { padding: 0 8px; }
+#custom-nordvpn     { padding: 0 8px; }
+#custom-wifi-status { padding: 0 8px; }
+#network            { padding: 0 8px; }
+#custom-bluetooth   { padding: 0 8px; }
 /* Active scan: the bluetooth glyph itself pulses. No separate
  * indicator slot — the user's eye already knows where bluetooth
  * lives, and modifying the existing icon avoids the layout shift
@@ -65,8 +60,8 @@ window#waybar {
     from { opacity: 0.40; }
     to   { opacity: 1.00; }
 }
-#custom-updates     { padding: 0 8px;        color: #b5bfe2; }
-#custom-clock       { padding: 0 14px 0 8px; color: #b5bfe2; }   /* 14 right = screen-edge breathing room */
+#custom-updates     { padding: 0 8px; }
+#custom-clock       { padding: 0 14px 0 8px; }   /* 14 right = screen-edge breathing room */
 
 /* Per-module icon-weight overrides. Default font-family chain (set
  * on the global * rule) uses Phosphor regular (outlined) — kept for
