@@ -1,14 +1,10 @@
--- Everforest colorscheme (lua port). Setup runs eagerly; the active
--- theme partial under ~/.config/orchard-themes/<theme>/nvim.lua does
--- the `:colorscheme` call. background = "hard" matches ghostty's
--- "Everforest Dark Hard" so terminal + nvim stay visually aligned.
+-- Everforest colorscheme (lua port by neanias) — bare plugin
+-- declaration. Per-theme setup() and the `:colorscheme` call live
+-- in ~/.config/orchard-themes/<theme>/nvim.lua. priority=1000 so
+-- the plugin's highlight groups exist before any other plugin
+-- paints over them.
 return {
   "neanias/everforest-nvim",
   name = "everforest",
   priority = 1000,
-  config = function()
-    require("everforest").setup({
-      background = "hard",
-    })
-  end,
 }
