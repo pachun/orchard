@@ -65,6 +65,16 @@ pkill -SIGUSR2 -x waybar 2>/dev/null || true
 # expire on their own.
 makoctl reload 2>/dev/null || true
 
+# Chromium picks up theme via /etc/chromium/policies/managed/
+# orchard-theme.json, a symlink (set up by configure-chromium-theme.sh)
+# pointing at this theme dir's chromium.json. Re-reading policy is
+# triggered by --refresh-platform-policy on a no-window chromium
+# launch — it pushes the change to existing windows live without
+# spawning a new one.
+if pgrep -x chromium >/dev/null 2>&1; then
+    chromium --refresh-platform-policy --no-startup-window </dev/null >/dev/null 2>&1 &
+fi
+
 # Wallpaper. swaybg renders the desktop background as a wlr-layer-
 # shell surface; it has no IPC to swap images, so we kill the
 # running instance and start a fresh one pointed at the active
