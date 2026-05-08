@@ -75,6 +75,16 @@ if pgrep -x chromium >/dev/null 2>&1; then
     chromium --refresh-platform-policy --no-startup-window </dev/null >/dev/null 2>&1 &
 fi
 
+# GTK theme — drives chromium's file-picker (via xdg-desktop-portal-
+# gtk) and the GNOME apps (Maps, Weather, Calendar, gitg, Characters).
+# gsettings writes to dconf; running GTK apps repaint on the next
+# settings-changed signal, no restart needed.
+gtk_theme_file="$themes_dir/active/gtk-theme-name"
+if [ -f "$gtk_theme_file" ]; then
+    gtk_theme=$(head -n1 "$gtk_theme_file")
+    gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
+fi
+
 # Wallpaper. swaybg renders the desktop background as a wlr-layer-
 # shell surface; it has no IPC to swap images, so we kill the
 # running instance and start a fresh one pointed at the active

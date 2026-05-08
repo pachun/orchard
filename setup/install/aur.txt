@@ -6,6 +6,14 @@
 # settings.ini under dotfiles/config/.
 catppuccin-gtk-theme-frappe
 
+# Everforest GTK theme: see setup/install/install-everforest-gtk.sh
+# instead. The AUR package (everforest-gtk-theme-git) depends on
+# gtk-engine-murrine, whose autotools `configure` can't auto-detect
+# aarch64 and fails to build on Asahi. murrine is a GTK2-only runtime
+# engine; chromium's file picker uses GTK3 so we don't need it. We
+# install Fausto's theme directly from upstream instead, which only
+# needs sassc.
+
 # Backend for fuzzel-polkit-agent (vendored at dotfiles/local/bin/).
 # Provides `cmd-polkit-agent`, which registers with polkit and pipes
 # JSON to/from a chosen UI command — in our case, fuzzel.
