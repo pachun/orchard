@@ -1,2 +1,6 @@
 # Keep mise's per-project version pin out of repos.
 mise.toml
+
+# Per-repo Claude Code state (settings.local.json, history, etc.).
+# Never belongs in a shared repo.
+.claude/
