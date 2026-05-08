@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Prompt for git name + email on first run and write them to ~/.gitconfig.local,
-# which dotfiles/gitconfig pulls in via its [include] directive. Idempotent —
-# skipped if the file already exists.
+# Prompt for git name + email on first run and write them to
+# ~/.gitconfig.local, which dotfiles/config/git/config (linked to
+# ~/.config/git/config) pulls in via its [include] directive.
+# Idempotent — skipped if the file already exists.
 set -euo pipefail
 
 LOCAL="$HOME/.gitconfig.local"
