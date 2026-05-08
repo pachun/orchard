@@ -1,0 +1,13 @@
+#!/bin/sh
+# Eyedropper for any pixel on screen. hyprpicker freezes the display,
+# shows a magnifier under the cursor; click picks the color, Esc
+# bails. Hex value is copied to the clipboard and surfaced in a
+# notification so it's visible without paste.
+#
+# Bound to Cmd+Shift+C in hyprland.conf. Caveat: that chord steals
+# chromium devtools' "inspect element" — F12 still opens devtools
+# for that, and the inspect mode is reachable inside devtools.
+set -eu
+
+color=$(hyprpicker -a -f hex 2>/dev/null) || exit 0
+[ -n "$color" ] && notify-send 'Color picked' "$color"

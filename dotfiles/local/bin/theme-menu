@@ -1,0 +1,51 @@
+#!/bin/sh
+# Pick an orchard-theme. Wired into the system-menu "Theme" entry,
+# but launchable directly too. Lists every subdirectory of
+# ~/.config/orchard-themes/ that has a ghostty.conf (the marker for
+# "this is a valid theme"), tags the currently-active one with a
+# dot, and runs set-theme on selection.
+#
+# Phosphor icons used:
+#   palette  U+E6C8  — per-theme rows
+set -eu
+
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+
+themes_dir="$HOME/.config/orchard-themes"
+ICON_THEME=$(printf '\356\233\210')   # U+E6C8 palette
+ACTIVE_DOT='●'
+
+active=$(readlink "$themes_dir/active" 2>/dev/null || echo "")
+
+# Active first, then alphabetical for everything else — keeps the
+# pre-selected row at the top of the picker. ghostty.conf existence
+# is the "is this a real theme dir" marker; the active symlink and
+# any stray dirs are filtered out.
+list=$(
+    for d in "$themes_dir"/*/; do
+        [ -d "$d" ] || continue
+        name=$(basename "$d")
+        [ "$name" = "active" ] && continue
+        [ -f "$d/ghostty.conf" ] || continue
+        if [ "$name" = "$active" ]; then
+            printf '0\t%s  %s  %s\n' "$ICON_THEME" "$name" "$ACTIVE_DOT"
+        else
+            printf '1\t%s  %s\n' "$ICON_THEME" "$name"
+        fi
+    done | sort -u | cut -f2-
+)
+
+choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt='theme: ' --width=32 --lines=8) || exit 0
+
+# Strip leading "<icon>  " and trailing "  <dot>" if present.
+rest=${choice#*  }
+case "$rest" in
+    *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
+esac
+
+# Apply the theme, then re-exec ourselves so the picker reopens
+# with the dot now next to the freshly-picked entry. Lets you
+# iterate through themes without re-navigating from system-menu
+# each time. Esc on the reopened picker closes the loop normally.
+"$HOME/.local/bin/set-theme" "$rest"
+exec "$HOME/.local/bin/theme-menu"

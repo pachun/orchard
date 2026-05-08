@@ -1,9 +1,12 @@
 #!/bin/sh
 # fuzzel dmenu wired to waybar's arch logo (custom/system on-click).
-# Three actions: full system update, reboot, shut down. Update opens
-# a dedicated ghostty window — see ./system-update for details.
+# Four actions: pick an orchard-theme, full system update, reboot,
+# shut down. Update opens a dedicated ghostty window — see
+# ./system-update for details. Theme exec's theme-menu, which is a
+# nested fuzzel picker for the available themes.
 #
 # Phosphor icons (require Phosphor in fuzzel's font fallback chain):
+#   palette           U+E6C8   — switch theme
 #   download-simple   U+E20C   — pulling system updates
 #   arrow-clockwise   U+E036   — single rotation, "restart"
 #   power             U+E3DA   — shut down
@@ -17,15 +20,19 @@ ICON_UPDATE=''
 ICON_REBOOT=''
 ICON_SHUTDOWN=''
 
+ICON_THEME=$(printf '\356\233\210')   # U+E6C8 palette
+
+THEME_LABEL="$ICON_THEME  Theme"
 UPDATE_LABEL="$ICON_UPDATE  Update"
 REBOOT_LABEL="$ICON_REBOOT  Reboot"
 SHUTDOWN_LABEL="$ICON_SHUTDOWN  Shut down"
 
-choice=$(printf '%s\n%s\n%s\n' \
-            "$UPDATE_LABEL" "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
-         | fuzzel --dmenu --width=24 --lines=3 --prompt='')
+choice=$(printf '%s\n%s\n%s\n%s\n' \
+            "$THEME_LABEL" "$UPDATE_LABEL" "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
+         | fuzzel --dmenu --width=24 --lines=4 --prompt='')
 
 case "$choice" in
+    "$THEME_LABEL")     exec "$HOME/.local/bin/theme-menu" ;;
     "$UPDATE_LABEL")    exec "$HOME/.local/bin/system-update" ;;
     "$REBOOT_LABEL")    exec systemctl reboot ;;
     "$SHUTDOWN_LABEL")  exec systemctl poweroff ;;

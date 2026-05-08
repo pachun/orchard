@@ -1,9 +1,13 @@
-# Everforest Dark, Medium variant. Ghostty ships "Hard" as a built-in
-# but not the medium/soft variants, so we inline the full palette to
-# match neanias/everforest-nvim's default (medium). ANSI colors are
-# shared across all dark variants (taken from ghostty's bundled
-# "Everforest Dark Hard"); only `background` shifts to the medium
-# bg0 (#2d353b vs hard's #1e2326).
+# Everforest Dark, Hard variant. Matches neanias/everforest-nvim's
+# `background = "hard"` so terminal and editor are visually aligned.
+# ANSI colors are shared across all dark variants (taken from
+# ghostty's bundled "Everforest Dark Hard"); only `background`
+# shifts per variant.
+#
+# Note: ghostty's bundled "Everforest Dark Hard" picks `bg_dim`
+# (#1e2326) as the background, which reads as darker than nvim's
+# editor surface. Using `bg0` (#272e33) instead so terminal and
+# nvim editor render at the same brightness.
 palette = 0=#7a8478
 palette = 1=#e67e80
 palette = 2=#a7c080
@@ -20,7 +24,7 @@ palette = 12=#3a94c5
 palette = 13=#df69ba
 palette = 14=#35a77c
 palette = 15=#fffbef
-background = #2d353b
+background = #272e33
 foreground = #d3c6aa
 cursor-color = #e69875
 cursor-text = #4c3743
