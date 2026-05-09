@@ -29,6 +29,13 @@ max-icon-size=48
 default-timeout=5000
 ignore-timeout=1
 
+# One toast at a time. Default is 5; we cap at 1 because
+# notification bursts (iMessage flurries especially) tower down
+# the right edge otherwise. Newer toasts replace the visible one;
+# nothing is lost — overflow queues and rotates in as the visible
+# slot frees up.
+max-visible=1
+
 [urgency=critical]
 default-timeout=0
 
