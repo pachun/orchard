@@ -1,5 +1,4 @@
 - [ ] tui login
-- [ ] root's login probably shouldn't be left as "root/root"
 
 ---
 
