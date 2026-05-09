@@ -43,9 +43,4 @@ case "$rest" in
     *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
 esac
 
-# Apply the theme, then re-exec ourselves so the picker reopens
-# with the dot now next to the freshly-picked entry. Lets you
-# iterate through themes without re-navigating from system-menu
-# each time. Esc on the reopened picker closes the loop normally.
-"$HOME/.local/bin/set-theme" "$rest"
-exec "$HOME/.local/bin/theme-menu"
+exec "$HOME/.local/bin/set-theme" "$rest"
