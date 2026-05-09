@@ -1,0 +1,36 @@
+# Rosé Pine Dawn — the light variant of the Rosé Pine palette.
+# Paper-cream base (#faf4ed) with a deep iris-toned text color
+# (#575279). ANSI colors mirror Ghostty's bundled "Rose Pine Dawn"
+# theme exactly so terminal and editor render identical highlight
+# colors.
+#
+# Palette reference (from rosepinetheme.com):
+#   base    #faf4ed   surface  #fffaf3   overlay  #f2e9e1
+#   muted   #9893a5   subtle   #797593   text     #575279
+#   love    #b4637a   gold     #ea9d34   rose     #d7827e
+#   pine    #286983   foam     #56949f   iris     #907aa9
+#   highlight low   #f4ede8
+#   highlight med   #dfdad9
+#   highlight high  #cecacd
+palette = 0=#f2e9e1
+palette = 1=#b4637a
+palette = 2=#286983
+palette = 3=#ea9d34
+palette = 4=#56949f
+palette = 5=#907aa9
+palette = 6=#d7827e
+palette = 7=#575279
+palette = 8=#9893a5
+palette = 9=#b4637a
+palette = 10=#286983
+palette = 11=#ea9d34
+palette = 12=#56949f
+palette = 13=#907aa9
+palette = 14=#d7827e
+palette = 15=#575279
+background = #faf4ed
+foreground = #575279
+cursor-color = #575279
+cursor-text = #faf4ed
+selection-background = #dfdad9
+selection-foreground = #575279

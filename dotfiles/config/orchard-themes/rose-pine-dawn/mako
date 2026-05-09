@@ -1,0 +1,20 @@
+# Rosé Pine Dawn colors for mako. Loaded by config/mako/config
+# through ~/.config/orchard-themes/active/mako. Background is
+# `surface` (#fffaf3) — slightly above the editor base — so toasts
+# read as raised paper. Border is rose for normal urgency, with
+# gold for low and love for critical to keep the urgency rank
+# legible against the warm base.
+
+format=<span weight="600">%s</span>\n<span foreground="#797593">%b</span>
+background-color=#fffaf3ee
+text-color=#575279
+border-color=#d7827e
+
+[urgency=low]
+border-color=#ea9d34
+
+[urgency=normal]
+border-color=#d7827e
+
+[urgency=critical]
+border-color=#b4637a

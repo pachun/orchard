@@ -99,6 +99,24 @@ if [ -f "$gtk_theme_file" ]; then
     gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
 fi
 
+# Color scheme — drives `prefers-color-scheme` for chromium (via
+# its "device" BrowserColorScheme policy + the freedesktop portal),
+# plus GNOME apps that auto-toggle dark/light. Single source of
+# truth is each theme's nvim.lua line `vim.opt.background = "..."`,
+# so adding a new theme doesn't require remembering a separate
+# metadata file. Without this sync, switching from a dark theme
+# to a light one (or vice versa) leaves websites stuck in the
+# previous mode because gsettings hadn't been updated.
+nvim_lua="$themes_dir/active/nvim.lua"
+if [ -f "$nvim_lua" ]; then
+    bg=$(grep -oE 'vim\.opt\.background[[:space:]]*=[[:space:]]*"(dark|light)"' "$nvim_lua" \
+        | grep -oE '"(dark|light)"' | tr -d '"')
+    case "$bg" in
+        dark)  gsettings set org.gnome.desktop.interface color-scheme prefer-dark  2>/dev/null || true ;;
+        light) gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true ;;
+    esac
+fi
+
 # Wallpaper. swaybg renders the desktop background as a wlr-layer-
 # shell surface; it has no IPC to swap images, so we start a fresh
 # instance pointed at the new theme's wallpaper, *then* kill the

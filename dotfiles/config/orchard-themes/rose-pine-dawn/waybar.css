@@ -1,0 +1,38 @@
+/* simpledesktops "mountain" wallpaper palette for waybar — pure
+ * white field, black mountain silhouette, vivid orange sun
+ * (#ff5501 inner / #ff9a0f outer). Imported by config/waybar/
+ * style.css through ~/.config/orchard-themes/active/waybar.css.
+ *
+ * Bar background is one step darker than the wallpaper white
+ * (#f5f5f5) so it reads as a quiet recessed strip rather than
+ * blending into the wallpaper. Foreground is the mountain's
+ * pure black so the bar's color story stays inside the
+ * wallpaper's three-color vocabulary. The sun's orange is
+ * reserved for `recording` — the one module that *should*
+ * demand attention — keeping the accent rare and meaningful. */
+window#waybar {
+    background-color: #f5f5f5;
+    color: #000000;
+}
+
+#custom-system            { color: #000000; }
+#workspaces button        { color: #888888; }                       /* mid grey — ambient */
+#workspaces button:hover  { background-color: rgba(0, 0, 0, 0.10); }
+#workspaces button.active { background-color: #000000; color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #000000; }
+#custom-dnd.linger   { color: #aaaaaa; }
+
+/* Right-side ambient modules are dim by default; the ones that
+ * go bright are actively demanding attention. */
+#custom-recording           { color: #ff5501; }                     /* sun-inner orange — recording is loud */
+#custom-weather             { color: #888888; }
+#battery                    { color: #888888; }
+#custom-nordvpn             { color: #888888; }
+#custom-wifi-status         { color: #888888; }
+#network                    { color: #888888; }
+#custom-bluetooth           { color: #888888; }
+#custom-bluetooth.connected { color: #000000; }
+#custom-updates             { color: #888888; }
+#custom-clock               { color: #888888; }

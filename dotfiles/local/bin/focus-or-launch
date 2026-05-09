@@ -1,7 +1,29 @@
 #!/bin/sh
-# Focus an existing Hyprland window matching a class, or spawn the
-# command if none exists. Used by waybar on-click handlers and any
-# other "click app icon → bring it forward" flow.
+# Four-state app toggle, generalized from the original
+# bluebubbles-toggle. Use as the on-click / keybind handler for any
+# app you treat as a window you bring forward, hide, and bring back
+# — rather than launching a fresh instance every time.
+#
+#   1. Not running                  → launch ($@ exec'd verbatim)
+#   2. Running, currently focused   → minimize: stash to a special
+#                                     workspace named special:<class>
+#                                     (Hyprland's scratchpad — the
+#                                     equivalent of macOS minimize)
+#   3. Running, on special:<class>  → restore: move back to the
+#                                     current workspace if it's empty,
+#                                     otherwise the lowest-numbered
+#                                     empty workspace (matches the
+#                                     global `match:class .*, workspace
+#                                     empty` rule in hyprland.conf so
+#                                     restored windows land where new
+#                                     launches would)
+#   4. Running, on a regular ws     → focus + raise
+#
+# Multi-window apps: minimize hides only the focused window of the
+# class; restore brings back the most-recently-stashed window. So
+# repeated invocations on a multi-window app (e.g. ghostty) hide
+# them one at a time and then unhide them, matching the macOS
+# Cmd+H per-window feel.
 #
 # Usage: focus-or-launch <window-class> <command...>
 set -eu
@@ -13,9 +35,61 @@ fi
 
 class="$1"
 shift
+special="special:$class"
 
-if hyprctl clients -j | jq -e ".[] | select(.class == \"$class\")" >/dev/null 2>&1; then
-    hyprctl dispatch focuswindow "class:$class" >/dev/null
-else
+clients="$(hyprctl clients -j)"
+
+# State 3 check first — does this app have a window stashed in its
+# scratchpad? If so, we're restoring regardless of focus state.
+stashed_addr="$(printf '%s' "$clients" \
+    | jq -r --arg ws "$special" '.[] | select(.workspace.name == $ws) | .address' \
+    | head -1)"
+
+if [ -n "$stashed_addr" ]; then
+    current_ws="$(hyprctl activeworkspace -j | jq -r '.id')"
+    current_count="$(hyprctl activeworkspace -j | jq -r '.windows')"
+    if [ "$current_count" = "0" ]; then
+        target="$current_ws"
+    else
+        # Lowest non-special workspace not currently in use. Mirrors
+        # the global "new windows land on empty workspace" rule.
+        used="$(hyprctl workspaces -j | jq '[.[].id | select(. > 0)]')"
+        target=1
+        while printf '%s' "$used" | jq -e --argjson n "$target" 'index($n)' >/dev/null; do
+            target=$((target + 1))
+        done
+    fi
+    hyprctl dispatch movetoworkspace "$target,address:$stashed_addr"
+    exit 0
+fi
+
+# Any visible (non-special) window of this class? We filter out
+# special workspaces explicitly so a future stashed-window-but-also-
+# visible-window scenario (multi-window app, partial minimize) still
+# dispatches sanely.
+visible_addr="$(printf '%s' "$clients" \
+    | jq -r --arg cls "$class" \
+        '.[] | select(.class == $cls) | select(.workspace.name | startswith("special:") | not) | .address' \
+    | head -1)"
+
+if [ -z "$visible_addr" ]; then
+    # State 1: not running anywhere — launch.
     exec "$@"
+fi
+
+focused_addr="$(hyprctl activewindow -j | jq -r '.address // ""')"
+focused_class="$(hyprctl activewindow -j | jq -r '.class // ""')"
+
+if [ "$focused_class" = "$class" ]; then
+    # State 2: focused — stash the *focused* window. If there are
+    # multiple windows of this class, this only minimizes the one
+    # the user is looking at, leaving the others alone.
+    # `movetoworkspacesilent` keeps the user's view on the current
+    # workspace instead of following the window into the scratchpad.
+    hyprctl dispatch movetoworkspacesilent "$special,address:$focused_addr"
+else
+    # State 4: visible elsewhere — focus + raise. `class:` selector
+    # picks the most-recently-focused window of the class, which is
+    # the right "bring it back" semantic for multi-window apps.
+    hyprctl dispatch focuswindow "class:$class"
 fi
