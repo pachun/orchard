@@ -4,12 +4,16 @@
  * everything color-related lives here so set-theme can swap palettes
  * by repointing the active symlink. */
 
-/* Bar background — everforest bg_dim hard (#1e2326), the palette's
- * darkest neutral. Sits below the editor's bg0 hard (#272e33) so the
- * bar reads as a distinct, recessed surface. Foreground is the warm
- * everforest fg, which contrasts cleanly against it. */
+/* Bar background sampled from the Dark Knight wallpaper's batman
+ * silhouette (#152a33 — a deep dark teal/navy). Unlike the other
+ * orchard themes, the bar deliberately does NOT match the
+ * wallpaper field (the lighter teal sky); instead it picks up
+ * the silhouette color so the bar reads as Batman's cape extending
+ * across the top of the screen. Foreground is the warm everforest
+ * fg — high luminance gap against the deep navy keeps every
+ * module readable. */
 window#waybar {
-    background-color: #1e2326;
+    background-color: #152a33;
     color: #d3c6aa;
 }
 
