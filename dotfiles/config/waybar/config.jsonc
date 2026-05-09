@@ -126,7 +126,7 @@
         "interval": 600,
         "signal": 9,
         "markup": "pango",
-        "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Weather gnome-weather"
+        "on-click": "$HOME/.local/bin/focus-or-launch weather ghostty --class=weather -e sh -c 'curl wttr.in; read'"
     },
 
     "battery": {

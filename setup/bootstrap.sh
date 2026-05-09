@@ -14,6 +14,7 @@ read -rp "username: " USERNAME </dev/tty
 
 bash "$HERE/bootstrap/update-system.sh"
 bash "$HERE/bootstrap/install-base.sh"
+bash "$HERE/bootstrap/configure-prune-firmware.sh"
 bash "$HERE/bootstrap/configure-locale.sh"
 bash "$HERE/bootstrap/create-user.sh"      "$USERNAME"
 bash "$HERE/bootstrap/configure-root-password.sh" "$USERNAME"

@@ -14,18 +14,9 @@ tmux
 # browser
 chromium
 
-# git GUI (Cmd+G in hyprland.conf)
-gitg
-
-# maps — OSM-backed, GNOME's default
-gnome-maps
-
 # gnome-keyring is the Secret Service backend used by chromium and
 # other apps for password storage.
 gnome-keyring
-
-# weather — clickable from waybar's weather icon
-gnome-weather
 
 # audio: PipeWire stack (server in /usr/bin/pipewire from the hyprland deps;
 # wireplumber is the session manager, pipewire-pulse/alsa are API shims for

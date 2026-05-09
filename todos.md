@@ -1,4 +1,5 @@
 - [ ] tui login
+- [ ] smart home control
 
 ---
 
