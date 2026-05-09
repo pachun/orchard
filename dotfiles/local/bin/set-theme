@@ -53,10 +53,24 @@ ln -sfn "$target" "$themes_dir/active"
 # crashes it, so the explicit -SIGUSR2 + -x are both load-bearing.
 pkill -SIGUSR2 -x ghostty 2>/dev/null || true
 
-# Waybar reloads its CSS on SIGUSR2 too. The main style.css imports
-# ~/.config/orchard-themes/active/waybar.css; once we've repointed
-# `active`, the reload picks up the new theme's colors.
-pkill -SIGUSR2 -x waybar 2>/dev/null || true
+# Waybar hot-reloads CSS via its `reload_style_on_change` watcher
+# (set in config.jsonc). Modules keep state on this path, so the
+# weather module doesn't blank to refetch and the bar doesn't
+# disappear/reappear like it does on SIGUSR2 (which is a full
+# reload).
+#
+# `touch` doesn't work here: it only updates mtime/atime, which
+# generates an IN_ATTRIB inotify event — waybar's GFileMonitor
+# only fires on IN_MODIFY (real content change). So we rewrite
+# the first byte in place with `dd conv=notrunc` — no actual
+# content change, but it's a write() call, which generates the
+# IN_MODIFY waybar listens for. On reparse, waybar follows the
+# `@import` through the freshly-repointed orchard-themes/active
+# symlink and picks up the new theme's colors.
+style="$HOME/.config/waybar/style.css"
+if [ -f "$style" ]; then
+    dd if="$style" of="$style" bs=1 count=1 conv=notrunc status=none 2>/dev/null || true
+fi
 
 # Mako pulls colors from ~/.config/orchard-themes/active/mako via
 # its main config's `include` directive. `makoctl reload` re-reads
@@ -86,17 +100,25 @@ if [ -f "$gtk_theme_file" ]; then
 fi
 
 # Wallpaper. swaybg renders the desktop background as a wlr-layer-
-# shell surface; it has no IPC to swap images, so we kill the
-# running instance and start a fresh one pointed at the active
-# theme's wallpaper. The glob handles whatever extension a theme
-# happened to use (.png / .jpg / .webp). If a theme has no
-# wallpaper.<ext>, we leave whatever's currently displayed alone.
-# `setsid` detaches swaybg from this script's session so it
-# survives the script exit.
+# shell surface; it has no IPC to swap images, so we start a fresh
+# instance pointed at the new theme's wallpaper, *then* kill the
+# previous one. Order matters: killing first leaves a frame where
+# the default Hyprland background shows through. Pair with the
+# `layerrule = no_anim, match:namespace wallpaper` in hyprland.conf
+# so the new surface doesn't slide-in via the global layersIn
+# animation. Glob handles whatever extension a theme uses (.png /
+# .jpg / .webp); if a theme has no wallpaper.<ext>, we leave the
+# current one in place. `setsid` detaches swaybg from this script's
+# session so it survives the script exit.
 wallpaper=$(ls "$themes_dir/active/wallpaper".* 2>/dev/null | head -n1)
 if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
-    pkill -x swaybg 2>/dev/null || true
+    old_swaybg_pids=$(pgrep -x swaybg 2>/dev/null || true)
     setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
+    # Brief pause to let the new layer surface render its first
+    # frame before we tear down the old one. 0.3s is enough on this
+    # hardware; below ~0.15s the gap becomes visible.
+    sleep 0.3
+    [ -n "$old_swaybg_pids" ] && kill $old_swaybg_pids 2>/dev/null || true
 fi
 
 # Tell every running nvim instance to re-source the active theme

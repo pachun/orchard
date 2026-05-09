@@ -1,6 +1,13 @@
 {
     "layer": "top",
     "position": "top",
+    // Hot-reload CSS without tearing the bar down. set-theme touches
+    // ~/.config/waybar/style.css after repointing the active theme
+    // symlink; waybar's inotify watcher reparses the stylesheet in
+    // place and modules keep their state — so the weather module
+    // doesn't blank during its 600s interval gap, and the bar
+    // doesn't disappear-and-reappear like it does on SIGUSR2.
+    "reload_style_on_change": true,
     // Sized to match the M2 MacBook Air notch strip: 1664 - 1600 = 64
     // physical px = 32 logical px at scale 2.0. The bar fills that strip
     // exactly, with the camera cutout hiding the center. Modules need
