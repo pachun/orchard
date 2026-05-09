@@ -2,7 +2,6 @@
 - [ ] f3 bind to mission control thing
 - [ ] external monitor connection
 - [ ] chrome feels too zoomed in - keep configed to 90% zoom somehow?
-- [ ] color picker tool
 - [ ] root's login probably shouldn't be left as "root/root"
 
 ---
