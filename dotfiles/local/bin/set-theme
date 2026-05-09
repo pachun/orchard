@@ -101,19 +101,58 @@ fi
 
 # Color scheme — drives `prefers-color-scheme` for chromium (via
 # its "device" BrowserColorScheme policy + the freedesktop portal),
-# plus GNOME apps that auto-toggle dark/light. Single source of
-# truth is each theme's nvim.lua line `vim.opt.background = "..."`,
-# so adding a new theme doesn't require remembering a separate
-# metadata file. Without this sync, switching from a dark theme
-# to a light one (or vice versa) leaves websites stuck in the
-# previous mode because gsettings hadn't been updated.
+# plus GNOME apps that auto-toggle dark/light, plus Claude Code's
+# own theme setting (next block). Single source of truth is each
+# theme's nvim.lua line `vim.opt.background = "..."`, so adding a
+# new theme doesn't require remembering a separate metadata file.
+# Without this sync, switching from a dark theme to a light one
+# (or vice versa) leaves websites stuck in the previous mode
+# because gsettings hadn't been updated.
 nvim_lua="$themes_dir/active/nvim.lua"
+bg=""
 if [ -f "$nvim_lua" ]; then
     bg=$(grep -oE 'vim\.opt\.background[[:space:]]*=[[:space:]]*"(dark|light)"' "$nvim_lua" \
         | grep -oE '"(dark|light)"' | tr -d '"')
     case "$bg" in
         dark)  gsettings set org.gnome.desktop.interface color-scheme prefer-dark  2>/dev/null || true ;;
         light) gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true ;;
+    esac
+fi
+
+# Claude Code's theme lives in ~/.claude/settings.json under the
+# top-level "theme" key. Valid values: "dark" / "light" (1:1 with
+# the nvim.opt.background we just parsed). New Claude Code
+# sessions pick this up immediately; a *running* session needs
+# `/config` (or a restart) to re-read settings.json — there's no
+# IPC to push a live theme change. We use jq with a temp file +
+# rename for an atomic write, so a partially-written file can
+# never end up in place. If Claude Code is mid-write to its own
+# settings (rare — only on /config edits), our overwrite could
+# clobber that change; we accept that risk for the convenience of
+# a single-source-of-truth orchard swap.
+#
+# `readlink -f` resolves through the dotfiles symlink so the
+# atomic mv lands on the real file in the orchard repo. Without
+# this, mv would replace the symlink itself with the temp file —
+# breaking the dotfiles wiring and leaving the canonical settings
+# unchanged.
+claude_settings="$HOME/.claude/settings.json"
+if [ -n "$bg" ] && [ -f "$claude_settings" ]; then
+    case "$bg" in
+        dark|light)
+            # Note: distinct var name from the script-level `target`
+            # (the theme name picked at the top), which is also used
+            # in the notify-send at the end. Earlier this block
+            # accidentally shadowed it and the toast said
+            # "Switched to /home/.../settings.json".
+            settings_target=$(readlink -f "$claude_settings")
+            tmp=$(mktemp "$settings_target.XXXXXX")
+            if jq --arg t "$bg" '.theme = $t' "$settings_target" > "$tmp" 2>/dev/null; then
+                mv "$tmp" "$settings_target"
+            else
+                rm -f "$tmp"
+            fi
+            ;;
     esac
 fi
 
@@ -159,5 +198,15 @@ for sock in "$runtime_dir"/nvim.*.0; do
         "execute('luafile ~/.config/orchard-themes/active/nvim.lua')" \
         </dev/null >/dev/null 2>&1 || true
 done
+
+# Tmux: re-source the active theme partial in the running server.
+# Status bar / pane borders / window tabs all live in that file —
+# a `source-file` re-reads it without disturbing sessions, panes,
+# or running commands. `tmux info` is a quick "is the server up?"
+# check; without it `source-file` would noisily start a server
+# just to source one file when no tmux was actually running.
+if tmux info >/dev/null 2>&1; then
+    tmux source-file ~/.config/orchard-themes/active/tmux.conf 2>/dev/null || true
+fi
 
 notify-send "Theme" "Switched to $target"

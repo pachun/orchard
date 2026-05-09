@@ -1,38 +1,58 @@
-/* simpledesktops "mountain" wallpaper palette for waybar — pure
- * white field, black mountain silhouette, vivid orange sun
- * (#ff5501 inner / #ff9a0f outer). Imported by config/waybar/
- * style.css through ~/.config/orchard-themes/active/waybar.css.
+/* simpledesktops "chain" wallpaper palette for waybar — pure
+ * white field, dark chain links, mid-grey gears. Imported by
+ * config/waybar/style.css through ~/.config/orchard-themes/active/
+ * waybar.css.
  *
- * Bar background is one step darker than the wallpaper white
- * (#f5f5f5) so it reads as a quiet recessed strip rather than
- * blending into the wallpaper. Foreground is the mountain's
- * pure black so the bar's color story stays inside the
- * wallpaper's three-color vocabulary. The sun's orange is
- * reserved for `recording` — the one module that *should*
- * demand attention — keeping the accent rare and meaningful. */
+ * Why dark text instead of mid-grey: the dark themes use a bright
+ * foreground for "active" and a dimmer light grey for "ambient" —
+ * both readable against the dark bar. Inverting that pattern to
+ * light mode (bright = pure black, ambient = mid-grey) failed in
+ * practice because mid-grey on white reads as washed-out at small
+ * font sizes. So we step inside the dark range instead: pure
+ * black for active, an off-black for ambient. Both fully readable;
+ * the ambient still recedes thanks to the small luminance gap. */
+
+/* Bar background — pure wallpaper white. The bar dissolves into
+ * the wallpaper rather than reading as a separate strip; the
+ * active-workspace black pill becomes the bar's only visual
+ * anchor. Matches the simpledesktops chain wallpaper's extreme-
+ * minimal vocabulary. */
 window#waybar {
-    background-color: #f5f5f5;
+    background-color: #ffffff;
     color: #000000;
 }
 
+/* Arch logo: bright fg. The system module is a launcher, semantically
+ * equivalent to "system menu" — not a brand statement. Reads at the
+ * bar's normal "live" tier (same as active workspace and bluetooth-
+ * connected) so saturated color stays reserved for actual alerts
+ * (recording orange). */
 #custom-system            { color: #000000; }
-#workspaces button        { color: #888888; }                       /* mid grey — ambient */
+
+/* Workspace active state = soft fill, digit hidden. The soft fill
+ * (~18% black on white) sits clearly above hover (10%) but well
+ * below the old full-fg slab — visible without overwhelming the
+ * bar's color story. The active workspace's number is hidden via
+ * `color: transparent` so the active cell reads as a quiet "you
+ * are here" pill, while the surrounding workspace digits stay
+ * legible. */
+#workspaces button        { color: #333333; font-weight: 600; }     /* off-black — ambient */
 #workspaces button:hover  { background-color: rgba(0, 0, 0, 0.10); }
-#workspaces button.active { background-color: #000000; color: transparent; }
+#workspaces button.active { background-color: rgba(0, 0, 0, 0.18); color: transparent; }
 
 /* DND tri-state: bright = on, deeper grey = linger, hidden = off */
 #custom-dnd          { color: #000000; }
-#custom-dnd.linger   { color: #aaaaaa; }
+#custom-dnd.linger   { color: #6a6a6a; }                            /* one step dimmer than ambient */
 
-/* Right-side ambient modules are dim by default; the ones that
- * go bright are actively demanding attention. */
-#custom-recording           { color: #ff5501; }                     /* sun-inner orange — recording is loud */
-#custom-weather             { color: #888888; }
-#battery                    { color: #888888; }
-#custom-nordvpn             { color: #888888; }
-#custom-wifi-status         { color: #888888; }
-#network                    { color: #888888; }
-#custom-bluetooth           { color: #888888; }
+/* Right-side ambient modules are off-black by default; the ones
+ * that go bright are actively demanding attention. */
+#custom-recording           { color: #ff5501; }                     /* deliberately off-palette — recording is the rare loud signal */
+#custom-weather             { color: #333333; }
+#battery                    { color: #333333; }
+#custom-nordvpn             { color: #333333; }
+#custom-wifi-status         { color: #333333; }
+#network                    { color: #333333; }
+#custom-bluetooth           { color: #333333; }
 #custom-bluetooth.connected { color: #000000; }
-#custom-updates             { color: #888888; }
-#custom-clock               { color: #888888; }
+#custom-updates             { color: #333333; }
+#custom-clock               { color: #333333; }

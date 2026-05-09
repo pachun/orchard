@@ -11,10 +11,23 @@ window#waybar {
     color: #c6d0f5;
 }
 
+/* Arch logo: bright fg. The system module is a launcher, semantically
+ * equivalent to "system menu" — not a brand statement. Reads at the
+ * bar's normal "live" tier (same as active workspace and bluetooth-
+ * connected) so saturated color stays reserved for actual alerts
+ * (recording). */
 #custom-system            { color: #c6d0f5; }
-#workspaces button        { color: #b5bfe2; }
+
+/* Workspace active state = soft fill, digit hidden. The soft fill
+ * (~25% text, one step above the 15% hover) gives a clear cell
+ * highlight without the original full-text slab's overwhelming
+ * presence. The active workspace's number is hidden via
+ * `color: transparent` so the active cell reads as a quiet "you
+ * are here" pill, while the surrounding workspace digits stay
+ * legible. */
+#workspaces button        { color: #b5bfe2; font-weight: 600; }
 #workspaces button:hover  { background-color: rgba(198, 208, 245, 0.15); } /* text@15% */
-#workspaces button.active { background-color: #c6d0f5; color: transparent; }
+#workspaces button.active { background-color: rgba(198, 208, 245, 0.25); color: transparent; }
 
 /* DND tri-state: bright = on, deeper grey = linger, hidden = off */
 #custom-dnd          { color: #c6d0f5; }
