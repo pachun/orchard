@@ -40,7 +40,13 @@ return {
         end, { buffer = bufnr, desc = rename_keymap_name })
       end,
       sort = { sorter = "case_sensitive" },
-      view = { width = 30 },
+      -- `signcolumn = "no"` reclaims the column nvim reserves on the
+      -- left of every window for sign markers. The tree has no signs
+      -- (git icons are off above; no LSP/diagnostics surface in the
+      -- tree), so the column was always blank — it just shifted the
+      -- whole tree right and ate horizontal room that nested or
+      -- long filenames want back.
+      view = { width = 30, signcolumn = "no" },
       renderer = {
         group_empty = true,
         -- Show just the directory's basename as the tree title rather
