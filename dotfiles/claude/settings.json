@@ -1,7 +1,4 @@
 {
-  "_doc": "Symlinked from orchard/dotfiles/claude/settings.json. Read once at session start — changes need a `claude --resume` to apply.",
-  "_when_to_add_to_permissions_allow": "DO NOT add read-only Bash commands here. The PreToolUse hook at hooks/auto-allow-read-pipelines.py is the home for those — extend its ALLOWLIST set or SUBCMD_READ_OPS dict. This array should contain: (1) tool-level grants like Read / WebSearch / WebFetch that the hook can't express because it only fires for the Bash tool; (2) trusted-but-not-strictly-read-only Bash patterns like `cargo build *` that don't fit the hook's read-only contract. Note: trusted patterns from (2) should ALSO be added to the hook's SUBCMD_READ_OPS so they're chainable inside pipelines/sequences — settings.allow only matches whole commands. Standalone forms whose flag-values the hook can't express (e.g. `bluetoothctl --timeout * scan on`) rely on settings.allow alone.",
-  "_evaluation_order": "deny -> ask -> hook -> allow -> prompt. permissions.deny is the only true hard block — hooks cannot override it. See hooks/auto-allow-read-pipelines.py header for the full breakdown.",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
@@ -23,7 +20,8 @@
       "WebFetch(domain:*.teams.microsoft.com)",
       "WebFetch(domain:*.atlassian.net)",
       "WebFetch(domain:*.jira.com)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
     "PreToolUse": [
@@ -38,9 +36,13 @@
       }
     ]
   },
-  "theme": "dark",
-  "editorMode": "vim",
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
-  }
+  },
+  "theme": "dark",
+  "editorMode": "vim",
+  "_doc": "Symlinked from orchard/dotfiles/claude/settings.json. Read once at session start — changes need a `claude --resume` to apply.",
+  "_when_to_add_to_permissions_allow": "DO NOT add read-only Bash commands here. The PreToolUse hook at hooks/auto-allow-read-pipelines.py is the home for those — extend its ALLOWLIST set or SUBCMD_READ_OPS dict. This array should contain: (1) tool-level grants like Read / WebSearch / WebFetch that the hook can't express because it only fires for the Bash tool; (2) trusted-but-not-strictly-read-only Bash patterns like `cargo build *` that don't fit the hook's read-only contract. Note: trusted patterns from (2) should ALSO be added to the hook's SUBCMD_READ_OPS so they're chainable inside pipelines/sequences — settings.allow only matches whole commands. Standalone forms whose flag-values the hook can't express (e.g. `bluetoothctl --timeout * scan on`) rely on settings.allow alone.",
+  "_evaluation_order": "deny -> ask -> hook -> allow -> prompt. permissions.deny is the only true hard block — hooks cannot override it. See hooks/auto-allow-read-pipelines.py header for the full breakdown.",
+  "skipAutoPermissionPrompt": true
 }
