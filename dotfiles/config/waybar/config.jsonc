@@ -1,5 +1,9 @@
 {
-    "layer": "top",
+    // `overlay` puts the bar above all windows including true-fullscreen
+    // ones — required for `hypr-fullscreen-autohide` to be able to peek
+    // the bar over a fullscreen video. With `top`, fullscreen windows
+    // render above and the peek would be invisible.
+    "layer": "overlay",
     "position": "top",
     // Hot-reload CSS without tearing the bar down. set-theme touches
     // ~/.config/waybar/style.css after repointing the active theme

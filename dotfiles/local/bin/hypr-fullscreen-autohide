@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""macOS-style waybar auto-hide for Hyprland fullscreen video.
+
+Hides the bar only when the *currently focused* window is in true
+fullscreen (Hyprland fullscreen state 2 — F11 in chromium, etc.). On
+workspaces with normal tiled windows the bar stays visible, even
+though those windows fill the screen (gaps_in/out are 0). This is
+the macOS pattern: bar always there, except when you're watching a
+fullscreen video and want every pixel.
+
+While fullscreen is active, cursor at the top edge (≤5px) reveals
+the bar; cursor below ~35px hides it again. Cursor polling only
+runs during fullscreen, so steady-state overhead is just sitting
+blocked on the Hyprland event socket.
+
+Talks to waybar via SIGUSR1 — its "toggle visibility" signal. We
+track the bar's visibility state ourselves and only fire SIGUSR1
+when the desired state differs from current. If anything else
+toggles waybar (manual signal, etc.) our state goes briefly out of
+sync until the next Hyprland event resyncs it.
+"""
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+REVEAL_Y = 5
+HIDE_Y = 35
+POLL_INTERVAL = 0.05  # 50ms — responsive enough to feel instant
+
+# Hyprland reports the focused window's fullscreen mode here:
+#   0 = tiled / floating (not fullscreen)
+#   1 = maximized
+#   2 = fullscreen (true fullscreen, what F11 / dispatcher fires)
+#   3 = both (rare combined state)
+# We match >= 2 so true-fullscreen and the "both" combo trigger,
+# but normal tiled / maximized doesn't.
+FULLSCREEN_THRESHOLD = 2
+
+# Re-check the active window's fullscreen state on any of these
+# events. `fullscreen>>` covers explicit toggles; the workspace /
+# active-window / monitor events catch the case where a fullscreen
+# window stays fullscreen on its workspace but the user switches
+# focus elsewhere — Hyprland doesn't fire a fullscreen event then,
+# so without these we'd stay locked in hide-mode after focus moves.
+RECHECK_PREFIXES = (
+    "fullscreen>>",
+    "workspace>>",
+    "activewindow>>",
+    "focusedmon>>",
+)
+
+instance = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+if not instance:
+    sys.exit("HYPRLAND_INSTANCE_SIGNATURE not set; not inside a Hyprland session?")
+sock_path = f"{xdg_runtime}/hypr/{instance}/.socket2.sock"
+
+
+# State protected by a lock — the event-loop thread and the cursor-
+# poll thread both call set_bar().
+_lock = threading.Lock()
+bar_visible = True
+fullscreen_active = False
+
+
+def waybar_pids():
+    out = subprocess.run(["pgrep", "-x", "waybar"], capture_output=True, text=True)
+    return [int(p) for p in out.stdout.split()]
+
+
+def set_bar(visible):
+    """Send SIGUSR1 to waybar only when current state != desired state."""
+    global bar_visible
+    with _lock:
+        if visible == bar_visible:
+            return
+        for pid in waybar_pids():
+            try:
+                os.kill(pid, signal.SIGUSR1)
+            except OSError:
+                pass
+        bar_visible = visible
+
+
+def active_window_is_fullscreen():
+    out = subprocess.run(
+        ["hyprctl", "activewindow", "-j"], capture_output=True, text=True
+    )
+    if not out.stdout.strip():
+        return False
+    try:
+        data = json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return False
+    return data.get("fullscreen", 0) >= FULLSCREEN_THRESHOLD
+
+
+def cursor_y():
+    out = subprocess.run(["hyprctl", "cursorpos"], capture_output=True, text=True)
+    parts = out.stdout.strip().split(",")
+    if len(parts) >= 2:
+        try:
+            return int(parts[1].strip())
+        except ValueError:
+            return None
+    return None
+
+
+def poll_cursor_loop():
+    while fullscreen_active:
+        y = cursor_y()
+        if y is not None:
+            if y < REVEAL_Y:
+                set_bar(True)
+            elif y > HIDE_Y:
+                set_bar(False)
+        time.sleep(POLL_INTERVAL)
+
+
+def update_fullscreen_state():
+    global fullscreen_active
+    new_state = active_window_is_fullscreen()
+    if new_state == fullscreen_active:
+        return
+    fullscreen_active = new_state
+    if new_state:
+        set_bar(False)
+        threading.Thread(target=poll_cursor_loop, daemon=True).start()
+    else:
+        set_bar(True)
+
+
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect(sock_path)
+
+# Sync state at startup so a fullscreen window that already exists when
+# the daemon starts (e.g., after a hyprctl reload that re-fires
+# exec-once) is reflected immediately, not on the next event.
+update_fullscreen_state()
+
+buf = b""
+while True:
+    chunk = s.recv(4096)
+    if not chunk:
+        break
+    buf += chunk
+    while b"\n" in buf:
+        line, buf = buf.split(b"\n", 1)
+        event = line.decode(errors="replace")
+        if any(event.startswith(p) for p in RECHECK_PREFIXES):
+            update_fullscreen_state()
