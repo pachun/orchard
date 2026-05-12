@@ -131,7 +131,7 @@ if [ -f "$gtk_theme_file" ]; then
 fi
 
 # Color scheme — drives `prefers-color-scheme` for chromium (via
-# its "device" BrowserColorScheme policy + the freedesktop portal),
+# its BrowserColorScheme=0 ("follow device") policy + the freedesktop portal),
 # plus GNOME apps that auto-toggle dark/light, plus Claude Code's
 # own theme setting (next block). Single source of truth is each
 # theme's nvim.lua line `vim.opt.background = "..."`, so adding a
