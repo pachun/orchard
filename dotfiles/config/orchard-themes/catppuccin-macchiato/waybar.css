@@ -1,0 +1,47 @@
+/* Catppuccin Macchiato colors for waybar. Imported by config/waybar/
+ * style.css through ~/.config/orchard-themes/active/waybar.css.
+ * Structural rules (padding, fonts, animations) live in style.css;
+ * everything color-related lives here so set-theme can swap palettes
+ * by repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is text white. */
+window#waybar {
+    background-color: #1f2331;
+    color: #cad3f5;
+}
+
+/* Arch logo: bright fg. The system module is a launcher, semantically
+ * equivalent to "system menu" — not a brand statement. Reads at the
+ * bar's normal "live" tier (same as active workspace and bluetooth-
+ * connected) so saturated color stays reserved for actual alerts
+ * (recording). */
+#custom-system            { color: #cad3f5; }
+
+/* Workspace active state = soft fill, digit hidden. The soft fill
+ * (~25% text, one step above the 15% hover) gives a clear cell
+ * highlight without the original full-text slab's overwhelming
+ * presence. The active workspace's number is hidden via
+ * `color: transparent` so the active cell reads as a quiet "you
+ * are here" pill, while the surrounding workspace digits stay
+ * legible. */
+#workspaces button        { color: #b8c0e0; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(202, 211, 245, 0.15); } /* text@15% */
+#workspaces button.active { background-color: rgba(202, 211, 245, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #cad3f5; }
+#custom-dnd.linger   { color: #6e738d; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #cad3f5; }
+#custom-weather             { color: #b8c0e0; }
+#battery                    { color: #b8c0e0; }
+#custom-nordvpn             { color: #b8c0e0; }
+#custom-wifi-status         { color: #b8c0e0; }
+#network                    { color: #b8c0e0; }
+#custom-bluetooth           { color: #b8c0e0; }
+#custom-bluetooth.connected { color: #cad3f5; }
+#custom-updates             { color: #b8c0e0; }
+#custom-clock               { color: #b8c0e0; }

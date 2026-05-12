@@ -1,0 +1,19 @@
+# Catppuccin Macchiato colors for mako. Loaded by config/mako/config
+# through ~/.config/orchard-themes/active/mako — main config owns
+# layout (font, anchor, padding, timeouts), this owns palette.
+# `format` lives here too because the body-text color is embedded
+# in its Pango markup.
+
+format=<span weight="600">%s</span>\n<span foreground="#b8c0e0">%b</span>
+background-color=#24273aee
+text-color=#cad3f5
+border-color=#939ab7
+
+[urgency=low]
+border-color=#6e738d
+
+[urgency=normal]
+border-color=#939ab7
+
+[urgency=critical]
+border-color=#ed8796

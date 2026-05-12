@@ -1,10 +1,12 @@
 # AUR packages installed via yay (one per line; '#' comments allowed).
 
-# Catppuccin Frappé GTK theme. Drives the appearance of GTK apps —
+# Catppuccin GTK themes. Drive the appearance of GTK apps —
 # chromium file picker (via xdg-desktop-portal-gtk) is the main user.
-# Accent variant is chosen via gtk-theme-name in the gtk-3.0 / gtk-4.0
-# settings.ini under dotfiles/config/.
+# Accent variant is chosen via the `gtk-theme-name` file in each
+# orchard-theme dir and applied by set-theme on swap. Install one
+# package per Catppuccin flavor that has an orchard-themes entry.
 catppuccin-gtk-theme-frappe
+catppuccin-gtk-theme-macchiato
 
 # Everforest GTK theme: see setup/install/install-everforest-gtk.sh
 # instead. The AUR package (everforest-gtk-theme-git) depends on
