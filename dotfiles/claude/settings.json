@@ -21,7 +21,7 @@
       "WebFetch(domain:*.atlassian.net)",
       "WebFetch(domain:*.jira.com)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "default"
   },
   "hooks": {
     "PreToolUse": [

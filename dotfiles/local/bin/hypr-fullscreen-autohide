@@ -14,10 +14,11 @@ runs during fullscreen, so steady-state overhead is just sitting
 blocked on the Hyprland event socket.
 
 Talks to waybar via SIGUSR1 — its "toggle visibility" signal. We
-track the bar's visibility state ourselves and only fire SIGUSR1
-when the desired state differs from current. If anything else
-toggles waybar (manual signal, etc.) our state goes briefly out of
-sync until the next Hyprland event resyncs it.
+check waybar's actual visibility on every call by looking for its
+namespace in `hyprctl layers -j`: the layer surface appears when
+mapped, vanishes when SIGUSR1 has hidden it. Comparing desired
+against actual lets us self-heal from external toggles, waybar
+restarts, and lost signals — no tracked state to drift out of sync.
 """
 import json
 import os
@@ -61,10 +62,10 @@ if not instance:
 sock_path = f"{xdg_runtime}/hypr/{instance}/.socket2.sock"
 
 
-# State protected by a lock — the event-loop thread and the cursor-
-# poll thread both call set_bar().
+# Lock serializes set_bar() so the actual-state check and the
+# toggle signal can't interleave between the event-loop thread and
+# the cursor-poll thread.
 _lock = threading.Lock()
-bar_visible = True
 fullscreen_active = False
 
 
@@ -73,18 +74,39 @@ def waybar_pids():
     return [int(p) for p in out.stdout.split()]
 
 
+def waybar_visible():
+    """Ground truth from `hyprctl layers -j`: waybar's namespace
+    appears in the layer list while its surface is mapped, and
+    vanishes once SIGUSR1 has hidden it. Returns None on parse
+    failure so set_bar() can skip rather than guess."""
+    out = subprocess.run(["hyprctl", "layers", "-j"], capture_output=True, text=True)
+    try:
+        data = json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return None
+    for monitor in data.values():
+        for level in monitor.get("levels", {}).values():
+            for layer in level:
+                if layer.get("namespace") == "waybar":
+                    return True
+    return False
+
+
 def set_bar(visible):
-    """Send SIGUSR1 to waybar only when current state != desired state."""
-    global bar_visible
+    """Make waybar's visibility match `visible`. SIGUSR1 is a toggle,
+    so we query the actual state from Hyprland and only fire when
+    they differ — that way an out-of-band toggle (waybar restart,
+    manual signal) self-heals on the next call instead of leaving a
+    tracked-state global permanently drifted from reality."""
     with _lock:
-        if visible == bar_visible:
+        actual = waybar_visible()
+        if actual is None or actual == visible:
             return
         for pid in waybar_pids():
             try:
                 os.kill(pid, signal.SIGUSR1)
             except OSError:
                 pass
-        bar_visible = visible
 
 
 def active_window_is_fullscreen():
