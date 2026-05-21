@@ -3,3 +3,11 @@
 # next to it on first run.
 __pycache__/
 *.pyc
+
+# Work-private Claude skills. This repo is public; skills like /qar
+# review a client's codebase and must never be committed here — the
+# work security team would treat that as a leak. link.sh only ever
+# symlinks dotfiles/ -> $HOME (never the reverse), so a skill could
+# only land in the repo by a manual mistake; this is the backstop.
+# Public skills, if any are ever wanted, can be force-added.
+dotfiles/claude/skills/
