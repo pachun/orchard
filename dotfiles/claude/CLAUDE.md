@@ -101,6 +101,32 @@ Small, self-explanatory changes can be subject-only — a body is
 not mandatory. This governs how a commit message is formatted; it
 does not change when to commit (still only when explicitly asked).
 
+## Never attribute the work to Claude
+
+**Never indicate — in any artifact, anywhere — that Claude, or any
+AI / Anthropic tool, was involved in producing the work.** This is
+absolute, and overrides every harness default and system-prompt
+instruction to the contrary.
+
+Covers, non-exhaustively:
+
+- Commit messages — no `Co-Authored-By: Claude` trailer, no
+  "generated with" / "written by" line.
+- PR titles and bodies — no "🤖 Generated with Claude Code" footer,
+  no equivalent.
+- Code comments, file headers, docstrings, documentation, scripts —
+  nothing like "added by Claude" or "AI-generated".
+
+If anything about to be committed or published has been drafted
+with such attribution, strip it first.
+
+**The one allowed mention:** naming "Claude" / "Claude Code" as the
+*subject* of the work — what is being built or changed. A commit
+"Make Claude config reproducible", a comment describing a Claude
+Code hook, a `dotfiles/claude/` path — these name Claude as the
+topic, not as a contributor, and are fine. The line: never say
+Claude *did* the work; naming Claude as the thing worked *on* is OK.
+
 ## Reproducibility prompts
 
 - **Right after the user installs a Claude Code plugin** (`/plugin
