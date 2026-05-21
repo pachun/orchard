@@ -13,12 +13,14 @@ the bar; cursor below ~35px hides it again. Cursor polling only
 runs during fullscreen, so steady-state overhead is just sitting
 blocked on the Hyprland event socket.
 
-Talks to waybar via SIGUSR1 — its "toggle visibility" signal. We
-check waybar's actual visibility on every call by looking for its
-namespace in `hyprctl layers -j`: the layer surface appears when
-mapped, vanishes when SIGUSR1 has hidden it. Comparing desired
-against actual lets us self-heal from external toggles, waybar
-restarts, and lost signals — no tracked state to drift out of sync.
+Talks to waybar via SIGUSR1 — its "toggle visibility" signal. There
+is no separate show/hide signal, and as of waybar 0.15 a hidden
+bar's layer surface stays in `hyprctl layers -j` with unchanged
+geometry — so its real visibility cannot be read back. We therefore
+track the bar's state ourselves and only signal when that state
+disagrees with what we want. The one drift case we still recover
+from is a waybar restart: a changed PID set means a fresh, and
+therefore visible, bar.
 """
 import json
 import os
@@ -62,11 +64,21 @@ if not instance:
 sock_path = f"{xdg_runtime}/hypr/{instance}/.socket2.sock"
 
 
-# Lock serializes set_bar() so the actual-state check and the
-# toggle signal can't interleave between the event-loop thread and
-# the cursor-poll thread.
+# Lock keeps set_bar()'s tracked-state read, toggle signal, and
+# tracked-state write atomic across the event-loop and cursor-poll
+# threads.
 _lock = threading.Lock()
 fullscreen_active = False
+# The cursor-poll thread for the current fullscreen session, kept so
+# update_fullscreen_state() can join it before restoring the bar.
+poll_thread = None
+
+# waybar's SIGUSR1 is a pure toggle and a hidden bar is indis-
+# tinguishable from a visible one via hyprctl, so we track visibility
+# ourselves. waybar always starts up visible.
+_bar_visible = True
+# Last-seen set of waybar PIDs; a change means waybar was restarted.
+_waybar_pids_seen = None
 
 
 def waybar_pids():
@@ -74,39 +86,28 @@ def waybar_pids():
     return [int(p) for p in out.stdout.split()]
 
 
-def waybar_visible():
-    """Ground truth from `hyprctl layers -j`: waybar's namespace
-    appears in the layer list while its surface is mapped, and
-    vanishes once SIGUSR1 has hidden it. Returns None on parse
-    failure so set_bar() can skip rather than guess."""
-    out = subprocess.run(["hyprctl", "layers", "-j"], capture_output=True, text=True)
-    try:
-        data = json.loads(out.stdout)
-    except json.JSONDecodeError:
-        return None
-    for monitor in data.values():
-        for level in monitor.get("levels", {}).values():
-            for layer in level:
-                if layer.get("namespace") == "waybar":
-                    return True
-    return False
-
-
 def set_bar(visible):
-    """Make waybar's visibility match `visible`. SIGUSR1 is a toggle,
-    so we query the actual state from Hyprland and only fire when
-    they differ — that way an out-of-band toggle (waybar restart,
-    manual signal) self-heals on the next call instead of leaving a
-    tracked-state global permanently drifted from reality."""
+    """Make waybar's visibility match `visible`. SIGUSR1 only toggles,
+    so we fire it just when our tracked `_bar_visible` disagrees with
+    the target. A changed PID set means waybar restarted — a fresh bar
+    is always visible — so we resync before deciding, recovering from
+    the one drift case explicit tracking can't otherwise survive."""
+    global _bar_visible, _waybar_pids_seen
     with _lock:
-        actual = waybar_visible()
-        if actual is None or actual == visible:
+        pids = waybar_pids()
+        pid_set = frozenset(pids)
+        if _waybar_pids_seen is not None and pid_set != _waybar_pids_seen:
+            _bar_visible = True
+        _waybar_pids_seen = pid_set
+
+        if not pids or _bar_visible == visible:
             return
-        for pid in waybar_pids():
+        for pid in pids:
             try:
                 os.kill(pid, signal.SIGUSR1)
             except OSError:
                 pass
+        _bar_visible = visible
 
 
 def active_window_is_fullscreen():
@@ -134,26 +135,45 @@ def cursor_y():
 
 
 def poll_cursor_loop():
+    # Act only when the cursor *crosses* a zone boundary. REVEAL_Y and
+    # HIDE_Y leave a dead zone between them for hysteresis; tracking
+    # `last_desired` makes us fire set_bar() once per transition rather
+    # than every tick. The `fullscreen_active` re-check drops a hide
+    # that would land after fullscreen already ended — the bar is
+    # about to be restored, so hiding it first would only flash it.
+    last_desired = False  # we just hid on entering fullscreen
     while fullscreen_active:
         y = cursor_y()
         if y is not None:
+            desired = None
             if y < REVEAL_Y:
-                set_bar(True)
+                desired = True
             elif y > HIDE_Y:
-                set_bar(False)
+                desired = False
+            if desired is not None and desired != last_desired and fullscreen_active:
+                set_bar(desired)
+                last_desired = desired
         time.sleep(POLL_INTERVAL)
 
 
 def update_fullscreen_state():
-    global fullscreen_active
+    global fullscreen_active, poll_thread
     new_state = active_window_is_fullscreen()
     if new_state == fullscreen_active:
         return
     fullscreen_active = new_state
     if new_state:
         set_bar(False)
-        threading.Thread(target=poll_cursor_loop, daemon=True).start()
+        poll_thread = threading.Thread(target=poll_cursor_loop, daemon=True)
+        poll_thread.start()
     else:
+        # Join the cursor-poll thread before restoring the bar: its
+        # final iteration must not fire a hide *after* our show, or
+        # the bar stays stuck off-screen. That was the un-fullscreen
+        # bug — set_bar(True) ran, then a late poll tick hid it again.
+        if poll_thread is not None:
+            poll_thread.join()
+            poll_thread = None
         set_bar(True)
 
 
