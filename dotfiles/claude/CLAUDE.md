@@ -82,6 +82,25 @@ edits land in the dotfiles automatically — just remember to commit.
     - Keep paste-back only for genuinely-tiny output (one short
       line that's faster to read than to fopen).
 
+## Commit messages
+
+When you write or suggest a commit message — for any project —
+follow the seven rules from https://cbea.ms/git-commit/:
+
+1. Separate subject from body with a blank line.
+2. Limit the subject line to 50 characters.
+3. Capitalize the subject line.
+4. Do not end the subject line with a period.
+5. Use the imperative mood in the subject line ("Add", "Fix",
+   "Simplify" — a subject that completes the sentence "If applied,
+   this commit will ___").
+6. Wrap the body at 72 characters.
+7. Use the body to explain *what* and *why*, not *how*.
+
+Small, self-explanatory changes can be subject-only — a body is
+not mandatory. This governs how a commit message is formatted; it
+does not change when to commit (still only when explicitly asked).
+
 ## Reproducibility prompts
 
 - **Right after the user installs a Claude Code plugin** (`/plugin
