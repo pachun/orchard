@@ -25,7 +25,7 @@ from pathlib import Path
 
 # Turns shorter than this finish silently. Raise it if quick tasks
 # chime when you didn't need them; lower it if you miss notifications.
-THRESHOLD_SECONDS = 60
+THRESHOLD_SECONDS = 10
 
 
 def stamp_path(session_id: str) -> Path:

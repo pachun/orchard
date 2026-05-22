@@ -101,6 +101,22 @@ Small, self-explanatory changes can be subject-only — a body is
 not mandatory. This governs how a commit message is formatted; it
 does not change when to commit (still only when explicitly asked).
 
+## Naming
+
+Name things the way you'd say them out loud to a colleague.
+Before naming a variable, describe what it is in a plain
+sentence — then use those words. If the sentence is "the
+previously entered answers", the name is
+`previouslyEnteredAnswers`.
+
+Resist padding a name with engineer-y suffixes — `Source`,
+`Data`, `Value`/`Values`, `Object`, `Info`, `Manager`, `Helper`
+— when the plain phrase already says it. The suffix adds
+keystrokes, not meaning: `previouslyEnteredAnswers` beats
+`savedAnswerSource`; `coverage` beats `coverageData`. If I catch
+myself describing a thing one way in prose and naming it
+another, the prose was right.
+
 ## Never attribute the work to Claude
 
 **Never indicate — in any artifact, anywhere — that Claude, or any
