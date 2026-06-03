@@ -1,0 +1,6 @@
+#!/bin/sh
+# Open the iCloud Drive mount (~/icloud, sshfs'd from the Mac mini) in
+# yazi — your default directory handler. Run it in a terminal to browse
+# in place; bind it or run `ghostty -e icloud` to open it in its own
+# window (same pattern as the Cmd+E yazi bind).
+exec yazi "$HOME/icloud"

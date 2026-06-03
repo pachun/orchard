@@ -5,11 +5,6 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
-# Build patched aquamarine before install-packages.sh runs `pacman -Syu`,
-# so the IgnorePkg entry takes effect and the upgrade leaves our build
-# alone. See install-aquamarine.sh for the full why.
-bash "$HERE/install/install-aquamarine.sh"
-
 bash "$HERE/install/install-packages.sh"
 bash "$HERE/install/install-yay.sh"
 bash "$HERE/install/configure-yay-flags.sh"
@@ -26,7 +21,6 @@ bash "$HERE/install/configure-git-identity.sh"
 bash "$HERE/install/configure-default-apps.sh"
 bash "$HERE/install/configure-chromium-extensions.sh"
 bash "$HERE/install/configure-chromium-theme.sh"
-bash "$HERE/install/configure-suspend-key.sh"
 bash "$HERE/install/configure-backlight-permissions.sh"
 bash "$HERE/install/configure-input-permissions.sh"
 bash "$HERE/install/configure-audio.sh"
@@ -36,6 +30,7 @@ bash "$HERE/install/configure-claude-plugins.sh"
 bash "$HERE/install/configure-xdg-dirs.sh"
 bash "$HERE/install/configure-user-services.sh"
 bash "$HERE/install/configure-nordvpn.sh"
+bash "$HERE/install/configure-tailscale.sh"
 bash "$HERE/install/configure-postgres.sh"
 
 # mise provisions node/npm before nvim's Mason install flow runs. The

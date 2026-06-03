@@ -36,3 +36,17 @@ state and skips. Currently:
   client in Google Cloud Console (about 3 minutes of clicks across 4 pages
   — the script opens each in chromium and waits between steps), then runs
   `gcalcli init` to complete the OAuth flow.
+
+- **tailscale** — joins this machine to your tailnet. Runs `tailscale up`,
+  which opens a browser to authenticate; sign in with the same account the
+  Mac mini uses so both devices share one tailnet. The `tailscaled` daemon
+  itself is enabled unattended by `setup/install/configure-tailscale.sh`;
+  this just logs in.
+
+- **icloud** — mounts the Mac mini's iCloud Drive at `~/icloud` over sshfs.
+  Run the **tailscale** connect first, and enable Remote Login on the Mac
+  (System Settings → General → Sharing). Installs this machine's SSH key on
+  the Mac (one password prompt the first time), then sets up a `systemd
+  --user` service that keeps `~/icloud` mounted and reconnecting across
+  reboots. Prompts for the Mac's tailnet hostname / username (defaults
+  `mac-mini` / `nick`).

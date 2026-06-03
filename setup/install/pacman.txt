@@ -14,6 +14,14 @@ tmux
 # browser
 chromium
 
+# Widevine CDM — the DRM module Chromium needs to play encrypted
+# streams (Apple TV+, Netflix, etc.). On x86_64 Chromium fetches this
+# itself via the component updater; on aarch64 it can't, so
+# ~/.config/chromium/WidevineCdm stays empty and DRM video silently
+# fails to start. This package (asahi-alarm repo) installs the CDM
+# and registers it with Chromium and Firefox.
+widevine
+
 # gnome-keyring is the Secret Service backend used by chromium and
 # other apps for password storage.
 gnome-keyring
@@ -65,8 +73,8 @@ foot
 
 # Hyprland compositor. Other hypr* packages (hyprutils, hyprlang,
 # hyprcursor, hyprgraphics, hyprtoolkit, hyprwayland-scanner, hyprwire,
-# hyprland-guiutils) are pulled transitively. aquamarine is NOT here —
-# install-aquamarine.sh builds a patched version before this step runs.
+# hyprland-guiutils) and aquamarine (its render backend) are pulled
+# transitively from extra.
 hyprland
 
 # Hyprland-specific xdg-desktop-portal backend (Screencast / Screenshot
@@ -176,3 +184,20 @@ bluez-utils
 # latest LTS Node as the global default so Mason has something to
 # call.
 mise
+
+# tailscale — mesh VPN (WireGuard underneath) that puts this laptop and
+# the always-on Mac mini on one private network whether we're on the
+# home LAN or not, without exposing anything to the public internet.
+# It's the transport for the sshfs mount below: the Mac is reachable at
+# a stable tailnet name from anywhere. The tailscaled system daemon is
+# enabled by configure-tailscale.sh; logging in (`tailscale up`, browser
+# OAuth) is interactive and lives in setup/connect/tailscale.sh.
+tailscale
+
+# sshfs — FUSE client that mounts a remote directory over plain SSH.
+# Used to mount the Mac mini's iCloud Drive folder
+# (~/Library/Mobile Documents/com~apple~CloudDocs) onto this machine so
+# iCloud docs — the Numbers/LibreOffice invoices — are editable locally.
+# Rides over the tailscale link above, so the mount works on or off the
+# home network.
+sshfs

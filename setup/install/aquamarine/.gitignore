@@ -1,6 +1,0 @@
-# Everything makepkg drops here while building. Only PKGBUILD and the
-# vendored patch are real source files; everything else is regenerable.
-/aquamarine/
-/pkg/
-/src/
-*.pkg.tar.*
