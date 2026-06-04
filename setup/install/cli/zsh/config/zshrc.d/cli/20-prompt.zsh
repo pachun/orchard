@@ -39,6 +39,15 @@ function use_custom_prompt {
     fi
   }
 
+  # When SSH'd into a remote machine, prepend the short hostname in
+  # bright yellow so it's obvious which box this prompt belongs to.
+  # Empty string in local sessions — the prompt stays minimal at home.
+  function ssh_prefix {
+    if [[ -n "$SSH_CONNECTION" ]]; then
+      echo "%F{$COLOR_BRIGHT_YELLOW}%m%f "
+    fi
+  }
+
   function status_colored_git_branch {
     if $(git rev-parse --is-inside-work-tree > /dev/null 2>&1); then
       # Handle repos with no commits yet
@@ -94,7 +103,7 @@ function use_custom_prompt {
   # Conditional spacing: include a leading space only if directory is
   # non-empty (i.e., not in $HOME). Same trick for the trailing space
   # after git branch — only included when git branch is non-empty.
-  PROMPT='${$(directory):+$(directory) }$(status_colored_git_branch)${$(status_colored_git_branch):+ }'
+  PROMPT='$(ssh_prefix)${$(directory):+$(directory) }$(status_colored_git_branch)${$(status_colored_git_branch):+ }'
 }
 
 use_custom_prompt
