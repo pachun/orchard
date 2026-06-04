@@ -22,6 +22,12 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../rust/install.sh"
 
+# Build deps: gitspine pulls in the `git2` crate which transitively
+# depends on `openssl-sys`, whose build script uses pkg-config to find
+# the system OpenSSL. Neither comes with Arch's Minimal archinstall
+# profile.
+sudo pacman -S --needed --noconfirm pkgconf openssl
+
 REPO_URL="https://github.com/pachun/gitspine.git"
 SRC_DIR="$HOME/code/gitspine"
 BIN_TARGET="$HOME/.local/bin/gitspine"
