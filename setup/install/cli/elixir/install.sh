@@ -9,6 +9,12 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Erlang's kerl build (the mise erlang installer) compiles OTP from
+# source — needs the GNU build toolchain (make, gcc, autoconf, perl,
+# etc.). base-devel is the Arch meta-group bundling those. Not on the
+# Minimal archinstall profile, so we install it explicitly here.
+sudo pacman -S --needed --noconfirm base-devel
+
 bash "$HERE/../mise/install.sh"
 
 mise use --global erlang@latest elixir@latest
