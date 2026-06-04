@@ -82,6 +82,15 @@ edits land in the dotfiles automatically — just remember to commit.
     - Keep paste-back only for genuinely-tiny output (one short
       line that's faster to read than to fopen).
 
+## Common file locations
+
+- **Screenshots**: `~/pictures/screenshots/` (lowercase
+  `pictures`, not the default `Pictures`). When the user
+  references "the screenshot," "the latest screenshot," or asks
+  you to look at one without giving a path, look here and sort by
+  mtime to find the relevant file. Read it with the `Read` tool
+  directly.
+
 ## Commit messages
 
 When you write or suggest a commit message — for any project —
