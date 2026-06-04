@@ -19,9 +19,20 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# mise gives us node for Mason; tree-sitter-cli is the parser compiler.
+# Deps for Mason's downstream installers (run via the pre-warm
+# below):
+#   - mise provides node for npm-installed LSPs (typescript-,
+#     bash-language-server, etc.)
+#   - elixir feature provides elixir+erlang via mise so Mason can
+#     compile elixir-ls from source
+#   - unzip is needed by Mason to extract zip-distributed binaries
+#     (stylua and similar) — silently failing without it. Not on
+#     Arch's Minimal profile, so we install it explicitly.
+#   - tree-sitter-cli is the parser compiler.
+#   - ripgrep backs telescope's live_grep.
 bash "$HERE/../mise/install.sh"
-sudo pacman -S --needed --noconfirm neovim tree-sitter-cli ripgrep
+bash "$HERE/../elixir/install.sh"
+sudo pacman -S --needed --noconfirm neovim tree-sitter-cli ripgrep unzip
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/nvim"
 
