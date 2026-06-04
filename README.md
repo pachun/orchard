@@ -19,6 +19,21 @@ git clone https://github.com/pachun/orchard /tmp/orchard
 bash /tmp/orchard/setup/bootstrap.sh
 ```
 
+# Install modes
+
+`setup/install.sh` accepts a mode argument: `desktop` (default — the full
+graphical setup the Asahi bootstrap flow produces) or `cli` (a server
+subset with just the shell, editor, multiplexer, mise, claude, and core
+CLI tools — no graphical environment). The Asahi bootstrap above runs
+`desktop`; pass `cli` explicitly for a headless install:
+
+```
+bash setup/install.sh cli
+```
+
+The active mode is persisted to `~/.config/orchard/mode` so zsh sources
+the right zshrc.d subset on every startup.
+
 # Connect accounts
 
 `setup/install.sh` is fully unattended — anything that needs you to log in
@@ -40,7 +55,7 @@ state and skips. Currently:
 - **tailscale** — joins this machine to your tailnet. Runs `tailscale up`,
   which opens a browser to authenticate; sign in with the same account the
   Mac mini uses so both devices share one tailnet. The `tailscaled` daemon
-  itself is enabled unattended by `setup/install/configure-tailscale.sh`;
+  itself is enabled unattended by `setup/install/desktop/tailscale/install.sh`;
   this just logs in.
 
 - **icloud** — mounts the Mac mini's iCloud Drive at `~/icloud` over sshfs.
