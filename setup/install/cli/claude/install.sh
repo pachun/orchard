@@ -20,6 +20,12 @@ if ! command -v claude >/dev/null 2>&1; then
     curl -fsSL https://claude.ai/install.sh | bash
 fi
 
+# claude installs to ~/.local/bin/claude. zshrc adds that to PATH at
+# shell startup, but this script runs in bash with whatever PATH the
+# install dispatcher had — so on a fresh machine, the just-installed
+# claude isn't reachable for the plugin commands below. Add it.
+export PATH="$HOME/.local/bin:$PATH"
+
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.claude"
 
 MARKETPLACES=(
