@@ -1,44 +1,25 @@
 #!/usr/bin/env bash
-# User-mode setup. Each line is one idempotent step. Re-run any time.
+# User-mode setup. Walks install/cli (always) and install/desktop (if
+# MODE=desktop or unset). Each subdirectory under those is one feature
+# with its own install.sh — adding/removing a feature is just create or
+# delete the folder. Idempotent — re-run any time.
 set -euo pipefail
+shopt -s nullglob
 
+MODE="${1:-desktop}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$HERE/.." && pwd)"
 
-bash "$HERE/install/install-packages.sh"
-bash "$HERE/install/install-yay.sh"
-bash "$HERE/install/configure-yay-flags.sh"
-bash "$HERE/install/install-aur.sh"
-bash "$HERE/install/install-everforest-gtk.sh"
-bash "$HERE/install/install-ghostty.sh"
-bash "$HERE/install/install-cargo-binaries.sh"
-bash "$HERE/install/install-claude.sh"
-bash "$HERE/install/install-gitspine.sh"
-bash "$HERE/install/set-default-shell.sh"
-bash "$HERE/install/link.sh"
-bash "$HERE/install/install-fonts.sh"
-bash "$HERE/install/configure-git-identity.sh"
-bash "$HERE/install/configure-default-apps.sh"
-bash "$HERE/install/configure-chromium-extensions.sh"
-bash "$HERE/install/configure-chromium-theme.sh"
-bash "$HERE/install/configure-backlight-permissions.sh"
-bash "$HERE/install/configure-input-permissions.sh"
-bash "$HERE/install/configure-audio.sh"
-bash "$HERE/install/configure-gtk-theme.sh"
-bash "$HERE/install/configure-themes.sh"
-bash "$HERE/install/configure-claude-plugins.sh"
-bash "$HERE/install/configure-xdg-dirs.sh"
-bash "$HERE/install/configure-user-services.sh"
-bash "$HERE/install/configure-nordvpn.sh"
-bash "$HERE/install/configure-tailscale.sh"
-bash "$HERE/install/configure-postgres.sh"
+# Available to every feature script — zsh's installer writes it into
+# the generated ~/.zshrc, others can branch on it if they need to.
+export ORCHARD_MODE="$MODE"
+export TOOLS="$HERE/tools"
 
-# mise provisions node/npm before nvim's Mason install flow runs. The
-# subshell that runs configure-nvim.sh inherits the parent PATH but not
-# zshrc, so we export the shims dir explicitly here for it to find the
-# mise-managed `node` and `npm`.
-bash "$HERE/install/configure-mise.sh"
-export PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+for d in "$HERE/install/cli"/*/; do
+  bash "$d/install.sh"
+done
 
-bash "$HERE/install/configure-nvim.sh"
-bash "$HERE/install/palm-filter/install.sh"
+if [[ "$MODE" == "desktop" ]]; then
+  for d in "$HERE/install/desktop"/*/; do
+    bash "$d/install.sh"
+  done
+fi

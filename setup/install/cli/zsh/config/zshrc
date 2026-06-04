@@ -1,0 +1,18 @@
+# Sources every *.zsh under zshrc.d/cli/ unconditionally, then
+# zshrc.d/desktop/ when running in desktop mode. Files are loaded in
+# lexical order — `00-`, `10-`, `20-` prefixes set the sequence.
+# Mode is read from ~/.config/orchard/mode (written by zsh/install.sh)
+# with the live env var taking precedence and 'desktop' as the
+# fallback.
+
+ORCHARD_MODE="${ORCHARD_MODE:-$(cat "$HOME/.config/orchard/mode" 2>/dev/null || echo desktop)}"
+
+for f in "$HOME/.config/zsh/zshrc.d/cli"/*.zsh; do
+  [ -r "$f" ] && source "$f"
+done
+
+if [[ "$ORCHARD_MODE" == "desktop" ]]; then
+  for f in "$HOME/.config/zsh/zshrc.d/desktop"/*.zsh; do
+    [ -r "$f" ] && source "$f"
+  done
+fi

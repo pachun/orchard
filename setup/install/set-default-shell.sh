@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-if [ "$(getent passwd "$USER" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
-  chsh -s /usr/bin/zsh
-fi
