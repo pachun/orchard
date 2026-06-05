@@ -12,8 +12,11 @@ bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/git"
 
 LOCAL="$HOME/.gitconfig.local"
 if [ ! -f "$LOCAL" ]; then
-  read -rp "git user name: " NAME </dev/tty
-  read -rp "git user email: " EMAIL </dev/tty
+  # These end up in every commit's author + committer fields, visible in
+  # `git log` and on GitHub. NOT a GitHub username — the human-readable
+  # name and email you want associated with your commits.
+  read -rp "Name for git commits: " NAME </dev/tty
+  read -rp "Email for git commits: " EMAIL </dev/tty
   cat > "$LOCAL" <<EOF
 [user]
 	name = $NAME
