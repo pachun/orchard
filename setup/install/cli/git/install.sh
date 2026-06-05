@@ -6,20 +6,19 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Source prompts so GIT_COMMIT_NAME/EMAIL are set. Idempotent — no-op
+# if the dispatcher already sourced it, or if gitconfig.local exists.
+source "$HERE/prompts.sh"
+
 sudo pacman -S --needed --noconfirm git git-delta
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/git"
 
 LOCAL="$HOME/.gitconfig.local"
 if [ ! -f "$LOCAL" ]; then
-  # These end up in every commit's author + committer fields, visible in
-  # `git log` and on GitHub. NOT a GitHub username — the human-readable
-  # name and email you want associated with your commits.
-  read -rp "Name for git commits: " NAME </dev/tty
-  read -rp "Email for git commits: " EMAIL </dev/tty
   cat > "$LOCAL" <<EOF
 [user]
-	name = $NAME
-	email = $EMAIL
+	name = $GIT_COMMIT_NAME
+	email = $GIT_COMMIT_EMAIL
 EOF
 fi

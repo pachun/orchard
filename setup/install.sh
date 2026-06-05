@@ -14,6 +14,22 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ORCHARD_MODE="$MODE"
 export TOOLS="$HERE/tools"
 
+# Phase 1: source every feature's prompts.sh (if it has one) so all
+# interactive prompts happen up front. Each prompts.sh is idempotent;
+# it skips itself when its inputs are already collected or already
+# applied. install.sh files source their sibling prompts.sh too, so
+# standalone runs of individual features still work.
+for d in "$HERE/install/cli"/*/; do
+  [ -f "$d/prompts.sh" ] && source "$d/prompts.sh"
+done
+
+if [[ "$MODE" == "desktop" ]]; then
+  for d in "$HERE/install/desktop"/*/; do
+    [ -f "$d/prompts.sh" ] && source "$d/prompts.sh"
+  done
+fi
+
+# Phase 2: run the actual installs unattended.
 for d in "$HERE/install/cli"/*/; do
   bash "$d/install.sh"
 done
