@@ -26,3 +26,19 @@ find "$SRC" -type f -print0 | while IFS= read -r -d '' src; do
   fi
   ln -sfn "$src" "$dst"
 done
+
+# Garbage-collect orphan symlinks: anything under DST that's a symlink
+# pointing back into SRC but whose target no longer exists. Happens
+# whenever a feature renames or deletes a file in its config — without
+# this, dangling symlinks accumulate at DST and the consumer (zsh's
+# *.zsh glob, nvim's plugin loader, etc.) trips over them.
+find "$DST" -type l -print0 | while IFS= read -r -d '' link; do
+  tgt="$(readlink "$link")"
+  case "$tgt" in
+    "$SRC"/*)
+      if [ ! -e "$link" ]; then
+        rm "$link"
+      fi
+      ;;
+  esac
+done
