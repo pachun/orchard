@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Idempotent: skips useradd if the user exists, and skips the password prompt
-# if a password is already set (passwd -S reports 'P' for set).
+# Idempotent: skips useradd if the user exists, and skips the password
+# prompt if a password is already set (passwd -S reports 'P' for set).
+# Reads USERNAME from the env (exported by the dispatcher).
 set -euo pipefail
-USERNAME="$1"
 
 if ! id "$USERNAME" >/dev/null 2>&1; then
   useradd -m -G wheel -s /bin/bash "$USERNAME"

@@ -14,7 +14,7 @@
 # a catch-all).
 #
 # Idempotent: pacman -R errors when the package isn't installed; the
-# `|| true` swallows that so re-running the bootstrap is safe.
+# filter below skips uninstalled entries so re-running is safe.
 set -euo pipefail
 
 PRUNE=(

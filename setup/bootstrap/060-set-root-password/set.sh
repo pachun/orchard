@@ -8,12 +8,12 @@
 #
 # Reads the encrypted hash via `getent shadow` and applies it with
 # `chpasswd -e`, so the plaintext is never re-derived or stored.
+# Reads USERNAME from the env (exported by the dispatcher).
 set -euo pipefail
-USERNAME="$1"
 
 hash=$(getent shadow "$USERNAME" | cut -d: -f2)
 case "$hash" in
-  ""|"!"*|"*") echo "configure-root-password: $USERNAME has no password set" >&2; exit 1 ;;
+  ""|"!"*|"*") echo "060-set-root-password: $USERNAME has no password set" >&2; exit 1 ;;
 esac
 
 echo "root:$hash" | chpasswd -e

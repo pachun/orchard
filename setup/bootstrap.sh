@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# First-boot setup. Run as root after wifi is up. Each line is one step.
+# First-boot setup. Run as root from the freshly-installed Arch ARM
+# system after wifi is up. Iterates the numbered folders under
+# bootstrap/ in lexical order so the FS listing matches the run order;
+# adding a step is `mkdir bootstrap/NNN-action/` + drop a script in.
+# Idempotent — every step is safe to re-run.
 set -euo pipefail
+shopt -s nullglob
 
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   echo "bootstrap.sh must run as root" >&2
@@ -11,30 +16,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
 read -rp "username: " USERNAME </dev/tty
+export USERNAME ROOT
 
-bash "$HERE/bootstrap/update-system.sh"
-bash "$HERE/bootstrap/install-base.sh"
-bash "$HERE/bootstrap/configure-prune-firmware.sh"
-bash "$HERE/bootstrap/configure-locale.sh"
-bash "$HERE/bootstrap/create-user.sh"      "$USERNAME"
-bash "$HERE/bootstrap/configure-root-password.sh" "$USERNAME"
-bash "$HERE/bootstrap/enable-wheel-sudo.sh"
+for d in "$HERE/bootstrap"/*/; do
+  for script in "$d"*.sh; do
+    bash "$script"
+  done
+done
 
-# System-level setup that doesn't need the new user. Runs at first boot
-# so it's done before the user logs in (rather than re-prompting on every
-# install.sh re-run later).
-bash "$HERE/bootstrap/configure-hostname.sh"
-bash "$HERE/bootstrap/configure-timezone.sh"
-bash "$HERE/bootstrap/configure-kernel-cmdline.sh"
-bash "$HERE/bootstrap/configure-network-dispatcher.sh"
-bash "$HERE/bootstrap/configure-geoclue.sh"
-bash "$HERE/bootstrap/configure-pam-keyring.sh"
-bash "$HERE/bootstrap/configure-suspend-key.sh"
-bash "$HERE/bootstrap/configure-remove-default-user.sh"
-
-bash "$HERE/bootstrap/move-repo-to-home.sh" "$USERNAME" "$ROOT"
-
-# Repo has moved; call the user-install via its new path.
-bash "/home/$USERNAME/code/orchard/setup/bootstrap/run-user-install.sh" "$USERNAME"
+# Step 160 moved the repo into the new user's home; hand off to install.sh
+# at its new path, running as the user.
+sudo -u "$USERNAME" -H bash "/home/$USERNAME/code/orchard/setup/install.sh"
 
 reboot
