@@ -110,6 +110,40 @@ Small, self-explanatory changes can be subject-only — a body is
 not mandatory. This governs how a commit message is formatted; it
 does not change when to commit (still only when explicitly asked).
 
+The subject line has an audience: usually the product's user, not
+its developer. The subject is the **outcome**, not the action that
+produced it. A commit that caches a result so the library opens in
+200ms instead of 4s reads "Open the library instantly" — that's
+the outcome; "Cache the library response in ETS" describes what we
+did to deliver it. Same change, two framings — pick the outcome.
+Implementation details belong in the body. The subject line is
+what gets scanned years later when the product is remembered only
+vaguely; it should help you re-orient there.
+
+When the outcome is hard to phrase succinctly, that's usually a
+hint to dig harder for the real value, not to fall back on
+describing the action. "Reduce setup time" beats "Remove manual
+onboarding steps"; "Increase aviary's uptime" beats "Auto-login on
+restarts." The body has all the room you need for what + how.
+
+Exception: chore commits — dependency bumps, build fixes, internal
+refactors where nothing observable changes for any user — can be
+technical ("Upgrade React to 19", "Drop the unused fixtures
+helper"). In XP / Pivotal Labs terms: stories get user-experience
+subjects, chores can get technical ones.
+
+If the product itself targets developers (a library, dotfiles, an
+internal tool), the audience IS a developer — but that doesn't
+make every commit a chore. The developer-as-user still has an
+experience that changes; frame around that. Adding paragraphs to
+a config doc that change how Claude phrases commit subjects reads
+"Improve Claude's commit subject line wording", not "Add subject-
+line audience paragraphs to CLAUDE.md."
+
+Never reference ticket numbers in the subject. Years later "Fix
+the import flow stalling when qBit gives up mid-grab" helps you
+scan git log; "PRJ-1421" doesn't.
+
 ## Naming
 
 Name things the way you'd say them out loud to a colleague.
@@ -125,6 +159,47 @@ keystrokes, not meaning: `previouslyEnteredAnswers` beats
 `savedAnswerSource`; `coverage` beats `coverageData`. If I catch
 myself describing a thing one way in prose and naming it
 another, the prose was right.
+
+For handlers and callbacks, name by what they do, not what
+triggered them. `<Movie onClick={playMovie} />` reads at the call
+site: the prop says it's a click, the function says what happens
+on click. `<Movie onClick={handleClick} />` is lazy — it just
+re-names the trigger and forces the reader to open the function
+body to find out what it actually does. Same for `onChange`,
+`onSubmit`, `onLoad`, any callback prop. The trigger lives in the
+prop name; the consequence lives in the function name.
+
+Avoid `should` in names. The condition itself is almost always
+the cleaner name — `if (isPowerOff) turnOn()` reads what to do
+without needing a `shouldRestart` intermediate. In tests
+especially: declarative, present tense. `it "turns on"`, not
+`it "should turn on"` — the test is asserting the behavior, not
+editorializing about it.
+
+When one value genuinely carries two meanings in two contexts,
+give it two names and assign one to the other:
+
+```
+const allFollowers = await fetchFollowers(account);
+// ...later, the digest goes out to every follower
+const digestRecipients = allFollowers;
+sendDigest(digestRecipients);
+```
+
+The compiler optimizes the indirection away; the call site reads
+with intent. Cheaper than a comment, harder to ignore. Same for
+intermediate values in a pipeline — name each step for what it
+represents at that point, not for what it came from.
+
+Succinct and clear at the same time is a skill — keep reaching
+for it. When you can't have both, pick clear. A function or
+variable named with a whole sentence beats a short cryptic one;
+`notifyHouseholdMembersOfRemovedShow` is fine if that's genuinely
+what it does. If you find yourself reaching for sentence-names
+often, that's usually a hint that something else wants to change
+— the abstraction is wrong, the thing is doing too much. But
+"should change" doesn't beat "is clear right now"; being clear
+first is cheap.
 
 ## Never attribute the work to Claude
 
