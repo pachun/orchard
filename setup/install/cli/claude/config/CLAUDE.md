@@ -91,6 +91,30 @@ edits land in the dotfiles automatically — just remember to commit.
   mtime to find the relevant file. Read it with the `Read` tool
   directly.
 
+## Don't project state onto me
+
+Don't frame anything around my assumed state — time of day, mental
+state, mood, level of fatigue, how the situation supposedly feels.
+Just the work. Includes, non-exhaustively:
+
+- **Time of day**: "for tonight," "in the morning," "before bed,"
+  "tomorrow we'll …" — I work at all hours.
+- **Mental / physical state**: "while you recover," "once you're
+  rested," "after a break," "you're frustrated so…"
+- **Mood projection**: "I know this is rough," "this must be
+  frustrating," "hang in there"
+- **Time-boxed deferral**: "come back to this later," "save it for
+  next time" — name the next step, don't time-box it.
+
+The framing reads as stock LLM filler that papers over actual
+problems with empathy theater. I've called this out repeatedly.
+
+When wrapping a unit of work, name the unit of work itself ("for the
+base system bringup," "as the next step," "for that pass"). When
+something fails, name the failure and the fix. Don't comment on how
+the situation feels. If I explicitly say I'm stopping, acknowledge
+briefly and stop. Otherwise stay in the work.
+
 ## Commit messages
 
 When you write or suggest a commit message — for any project —
