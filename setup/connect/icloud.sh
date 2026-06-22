@@ -1,8 +1,24 @@
 #!/usr/bin/env bash
-# Mount the Mac mini's iCloud Drive at ~/icloud over sshfs (via tailscale).
+# Mount the Mac mini's iCloud Drive at ~/icloud over sshfs (via tailscale),
+# on demand, via a systemd automount.
+#
+# Why an automount and not an always-on mount: an always-present sshfs
+# mount blocks every stat() of ~/icloud whenever the Mac is unreachable.
+# Because the mount lives inside $HOME, that hang propagates to anything
+# enumerating the home folder — Nautilus, GTK file pickers — so a sleeping
+# or powered-off Mac made local file browsing hang. The automount inverts
+# this: ~/icloud is an autofs trigger that costs nothing to stat, so home
+# browsing is always instant. The real sshfs mount only fires when you
+# actually enter ~/icloud, and:
+#   - Mac up   → mounts in ~1s, shows files.
+#   - Mac down → the mount attempt fails fast (ConnectTimeout/mount-timeout)
+#                and returns an error for that folder only; nothing else
+#                is affected.
+#   - idle 60s → auto-unmounts, so a mount left over from a Mac that went
+#                away clears itself. No manual umount/mount, ever.
 #
 # Interactive because the first run's ssh-copy-id needs the Mac's login
-# password once — same reason gcalcli lives here and not in install.sh.
+# password once (the Mac must be online for that step).
 #
 # One-time prereqs ON THE MAC (can't be done from this machine):
 #   - System Settings → General → Sharing → Remote Login: ON
@@ -12,10 +28,11 @@
 # What this does, all idempotent:
 #   1. Make sure we have an ed25519 key, and trust the Mac's host key.
 #   2. ssh-copy-id our key to the Mac (skips if already installed).
-#   3. Write + enable a systemd --user service that keeps the iCloud
-#      Drive folder mounted at ~/icloud, reconnecting if the link drops.
+#   3. Drop any legacy always-on user mount service.
+#   4. Enable user_allow_other (so a root-mounted fuse is usable by us).
+#   5. Write an /etc/fstab automount entry and activate it.
 #
-# Re-running is safe: it stops any current mount and re-establishes it.
+# Re-running is safe.
 set -euo pipefail
 
 MAC_HOST="mac-mini"   # the Mac's tailnet (MagicDNS) name
@@ -38,43 +55,64 @@ if ! ssh-keygen -F "$MAC_HOST" >/dev/null 2>&1; then
 fi
 
 # 2. Authorize this machine on the Mac (prompts for the Mac password only
-# the first time; afterward it reports the key is already installed).
+# the first time; afterward it reports the key is already installed). The
+# Mac must be online for this step; the automount below works regardless.
 ssh-copy-id -i "$KEY.pub" "$MAC_USER@$MAC_HOST"
 
-# 3. Persistent mount as a systemd --user service. sshfs runs in the
-# foreground (-f) so systemd supervises it; reconnect + keepalives ride
-# out tailscale blips and Mac sleep, and Restart handles a hard drop.
-SERVICE_DIR="$HOME/.config/systemd/user"
-SERVICE="$SERVICE_DIR/icloud-mount.service"
-mkdir -p "$SERVICE_DIR" "$MOUNT_POINT"
-cat > "$SERVICE" <<EOF
-[Unit]
-Description=Mount iCloud Drive from $MAC_USER@$MAC_HOST over sshfs
-After=default.target
-
-[Service]
-Type=simple
-ExecStartPre=/usr/bin/mkdir -p $MOUNT_POINT
-ExecStart=/usr/bin/sshfs -f -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3,idmap=user,IdentityFile=$KEY "$MAC_USER@$MAC_HOST:$REMOTE_PATH" $MOUNT_POINT
-ExecStop=/usr/bin/fusermount3 -u $MOUNT_POINT
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=default.target
-EOF
-
-systemctl --user daemon-reload
-systemctl --user stop icloud-mount.service 2>/dev/null || true
+# 3. Remove the legacy always-on mount service if it's still around. Older
+# revisions of this script kept sshfs running under a systemd --user
+# service; the automount replaces it. Unmount first so the mountpoint is
+# free for the automount to claim. The lazy fallback (-z) detaches a mount
+# that's hung because the Mac is gone.
+systemctl --user disable --now icloud-mount.service 2>/dev/null || true
+rm -f "$HOME/.config/systemd/user/icloud-mount.service"
+systemctl --user daemon-reload 2>/dev/null || true
 if mountpoint -q "$MOUNT_POINT"; then
-    fusermount3 -u "$MOUNT_POINT" 2>/dev/null || true
+    fusermount3 -u "$MOUNT_POINT" 2>/dev/null \
+        || fusermount3 -u -z "$MOUNT_POINT" 2>/dev/null || true
 fi
-systemctl --user enable --now icloud-mount.service
+mkdir -p "$MOUNT_POINT"
 
-sleep 1
-if mountpoint -q "$MOUNT_POINT"; then
-    echo "iCloud Drive mounted at $MOUNT_POINT ✓"
-else
-    echo "Mount didn't come up — check: systemctl --user status icloud-mount.service" >&2
-    exit 1
+# 4. allow_other lets a non-root user reach a fuse mount that root made.
+# The automount is a system (root) mount presented to us via uid/gid, so
+# we need this flag — which itself requires user_allow_other in fuse.conf.
+if ! grep -qxE 'user_allow_other' /etc/fuse.conf; then
+    echo 'user_allow_other' | sudo tee -a /etc/fuse.conf >/dev/null
 fi
+
+# 5. fstab automount entry. systemd's fstab generator turns this into
+# <mountpoint>.automount + .mount units automatically, at boot and on
+# daemon-reload — no separate enable needed.
+#
+# Option rationale:
+#   x-systemd.automount        → on-demand; stat of the dir never blocks.
+#   x-systemd.idle-timeout=60  → unmount after 60s idle (self-clears).
+#   x-systemd.mount-timeout=15 → give up the mount job after 15s.
+#   ConnectTimeout=10          → ssh itself aborts a dead connect at 10s.
+#   ServerAlive*=15/3          → tear a dropped link down within ~45s so
+#                                an in-use mount that lost the Mac dies and
+#                                then idle-unmounts, rather than wedging.
+#   uid/gid + allow_other + default_permissions → files read as ours and
+#                                the kernel enforces permissions.
+remote_path_escaped="${REMOTE_PATH// /\\040}"  # fstab needs \040 for spaces
+opts="noauto,x-systemd.automount,x-systemd.idle-timeout=60,x-systemd.mount-timeout=15"
+opts="$opts,_netdev,ConnectTimeout=10,ServerAliveInterval=15,ServerAliveCountMax=3"
+opts="$opts,IdentityFile=$KEY,UserKnownHostsFile=$HOME/.ssh/known_hosts,StrictHostKeyChecking=accept-new"
+opts="$opts,uid=$(id -u),gid=$(id -g),allow_other,default_permissions"
+fstab_line="${MAC_USER}@${MAC_HOST}:${remote_path_escaped} ${MOUNT_POINT} fuse.sshfs ${opts} 0 0"
+
+if ! grep -qE "[[:space:]]${MOUNT_POINT}[[:space:]]+fuse\.sshfs" /etc/fstab; then
+    {
+        echo "# orchard: iCloud Drive on-demand automount (setup/connect/icloud.sh)"
+        echo "$fstab_line"
+    } | sudo tee -a /etc/fstab >/dev/null
+fi
+
+sudo systemctl daemon-reload
+automount_unit="$(systemd-escape -p --suffix=automount "$MOUNT_POINT")"
+sudo systemctl start "$automount_unit"
+
+echo
+echo "iCloud Drive automount active at $MOUNT_POINT ✓"
+echo "It mounts on first access and clears itself when idle or when the Mac"
+echo "is unreachable; browsing other local files is never affected."
