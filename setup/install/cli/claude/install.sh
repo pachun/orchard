@@ -35,6 +35,7 @@ MARKETPLACES=(
 
 PLUGINS=(
     frontend-design@claude-plugins-official
+    expo@claude-plugins-official
 )
 
 for repo in "${MARKETPLACES[@]}"; do
