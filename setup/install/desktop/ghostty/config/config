@@ -23,15 +23,18 @@ keybind = ctrl+-=unbind
 # or escape sequences. Paste normally and trust the source.
 clipboard-paste-protection = false
 
-# MonoLisa Variable ships named instances (Light, Regular, Medium,
-# SemiBold, Bold, ExtraBold, ...). On Linux, ghostty has no font-thicken
-# equivalent — pick a heavier named instance via font-style instead.
+# MonoLisaCode ships named instances (Light, Regular, Medium, SemiBold,
+# Bold, ExtraBold, ...) across two variable files — Upright and Italic.
+# Ghostty picks the Italic face for italic text automatically; the
+# font-style below only steers the upright weight. On Linux, ghostty has
+# no font-thicken equivalent — pick a heavier named instance via
+# font-style instead.
 # Theme is sourced from ~/.config/orchard-themes/active/ghostty.conf,
 # which is a symlink the `set-theme` script repoints when switching.
 # Open windows reload via SIGUSR2 (sent by set-theme).
 config-file = ~/.config/orchard-themes/active/ghostty.conf
 
-font-family = "MonoLisa Variable"
+font-family = "MonoLisaCode"
 # Fallback font for nerd-font codepoints (diagnostic icons in nvim,
 # git/folder glyphs in lazygit/gh, devicons via lualine, etc.). MonoLisa
 # doesn't ship those glyphs; without a fallback they render as tofu.
