@@ -17,6 +17,12 @@
   invoke the `claude-api` skill. Make sure prompt caching is wired in
   for any new Claude API integration.
 
+- **React / React Native / Expo / TypeScript code:** invoke the
+  `expo-conventions` skill. It carries the functional, immutable
+  house style — function components only, `const`-only, no mutation,
+  make-impossible-states-impossible types, and a strict no-comments
+  rule — that governs all RN/Expo/React work.
+
 - **Custom-config slash commands the user types literally
   (`/foo`):** if the skill is in the available-skills list, call it
   via the Skill tool. Don't guess slash-command names from memory.
