@@ -97,6 +97,14 @@ edits land in the dotfiles automatically — just remember to commit.
   mtime to find the relevant file. Read it with the `Read` tool
   directly.
 
+## Verifying changes
+
+When a project has a `checks.config.json` at its root, a change isn't
+done until `checks` passes. Run it (a parallel lint / typecheck / test
+runner) and get a clean pass before calling the change complete — don't
+substitute ad-hoc lint/typecheck commands for it. On this machine
+`checks` runs through mise's Bun, so invoke it as `mise exec -- checks`.
+
 ## Don't project state onto me
 
 Don't frame anything around my assumed state — time of day, mental
