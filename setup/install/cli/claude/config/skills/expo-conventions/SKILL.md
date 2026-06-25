@@ -45,3 +45,11 @@ code in these projects should read.
   `Info` padding; name handlers for what they do, not what triggered
   them. (This mirrors the naming guidance in the global CLAUDE.md —
   load-bearing here because comments are off the table.)
+
+## Scope — build only what's asked
+
+Build the current step, not the next one. Don't add screens, flows,
+components, or abstractions that haven't been agreed to — even when a
+later need looks obvious. Float ideas in conversation and they'll be
+considered, but don't commit speculative work to the codebase ahead
+of a decision. Propose the next step; don't pre-build it.
