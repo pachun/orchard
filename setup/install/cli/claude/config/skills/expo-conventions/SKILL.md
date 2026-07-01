@@ -23,6 +23,47 @@ code in these projects should read.
   composition. Derive state from what you already have; don't
   store-and-sync duplicate state.
 
+## Lead with the affirmative case
+
+When a conditional picks between a real result and a fallback, write
+the positive, un-negated condition first and return the real result
+from it — let the fallback be the trailing return:
+
+```
+if (fontsLoaded) {
+  return <App />
+}
+return <Splash />
+```
+
+Not `if (!fontsLoaded) return <Splash />` ahead of the app. The reader
+meets what the component *is* before its degraded state, and there's
+no negation to mentally flip. Keep the flat guard-clause shape — early
+returns, no nested `else` — just order it so what's true comes first.
+
+## No timers as control flow
+
+- **`setTimeout` is not a synchronization primitive.** Reaching for a
+  timer to wait out a render, a focus change, a layout pass, or any
+  other framework-driven update is a smell — you're guessing at a
+  delay instead of subscribing to the event that actually fires. There
+  is almost always a real signal: an `onLayout`, an `onFocus`, an
+  effect keyed on the value you're waiting for, a promise, a native
+  callback. Find it. A timer that "works" only does so until the
+  device is under load and the delay you guessed runs short — then
+  it's a race, and it flashes or drops the update. If you genuinely
+  can't find the signal, prefer not building the behavior at all over
+  shipping a timer. (Real wall-clock timing — a debounce window, an
+  animation duration, a poll interval — is fine; sequencing your own
+  code against the framework's lifecycle is not.)
+
+## `async`/`await` over `.then`
+
+Write asynchronous code with `async`/`await`, not `.then`/`.catch`
+chains. It reads top to bottom, errors are a plain `try`/`catch`, and
+each awaited value gets a real name instead of living inside a
+callback. Reach for `.then` only where `await` genuinely can't go.
+
 ## Type design
 
 - **Make impossible states impossible.** Model data so invalid
