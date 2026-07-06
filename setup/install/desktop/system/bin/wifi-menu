@@ -5,7 +5,9 @@
 # Triggered from waybar's network module on-click.
 #
 # Row format (proportional font — no fixed columns, just consistent shape):
-#   <signal-icon>  <SSID>  <lock-if-secured>  <dot-if-active>
+#   <signal-icon>  <SSID>  <band>  <lock-if-secured>  <dot-if-active>
+# Band is the radio frequency the AP broadcasts on — 2.4G / 5G / 6G —
+# derived from nmcli's FREQ column. Same SSID on two bands shows as two rows.
 # Special actions get their own icon so they read as actions, not networks:
 #   <arrows-clockwise>  Refresh
 #   <link-break>        Disconnect
@@ -54,10 +56,10 @@ while :; do
 
     nmcli device wifi rescan 2>/dev/null || true
 
-    # IN-USE,SSID,SECURITY,SIGNAL — sort key prefix encodes (active first,
-    # then strongest signal first); awk emits "<rank>\t<row>", we sort,
-    # then strip the rank with cut -f2-.
-    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list \
+    # IN-USE,SSID,SECURITY,SIGNAL,FREQ — sort key prefix encodes (active
+    # first, then strongest signal first); awk emits "<rank>\t<row>", we
+    # sort, then strip the rank with cut -f2-.
+    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL,FREQ device wifi list \
         | awk -F: -v sig_high="$SIG_HIGH" -v sig_med="$SIG_MED" \
                   -v sig_low="$SIG_LOW"   -v sig_none="$SIG_NONE" \
                   -v lock="$LOCK"         -v dot="$ACTIVE_DOT" '
@@ -67,13 +69,18 @@ while :; do
                 secured = ($3 != "" && $3 != "--")
                 signal  = $4 + 0
                 in_use  = ($1 == "*")
+                freq    = $5 + 0
 
                 if      (signal >= 70) icon = sig_high
                 else if (signal >= 50) icon = sig_med
                 else if (signal >= 30) icon = sig_low
                 else                   icon = sig_none
 
-                row = icon "  " ssid
+                if      (freq >= 5925) band = "6G"
+                else if (freq >= 4900) band = "5G"
+                else                   band = "2.4G"
+
+                row = icon "  " ssid "  " band
                 if (secured) row = row "  " lock
                 if (in_use)  row = row "  " dot
 
@@ -103,15 +110,21 @@ while :; do
     esac
 
     # Recover SSID from a network row. Format is:
-    #   <icon>  <SSID>  [<lock>]  [<dot>]
+    #   <icon>  <SSID>  <band>  [<lock>]  [<dot>]
     # Strip the leading icon + 2 spaces, then trailing tags.
     rest=${choice#*  }
     case "$rest" in
         *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
     esac
     case "$rest" in
-        *"  $LOCK") ssid=${rest%"  $LOCK"}; secured=1 ;;
-        *)          ssid=$rest;              secured=0 ;;
+        *"  $LOCK") rest=${rest%"  $LOCK"}; secured=1 ;;
+        *)          secured=0 ;;
+    esac
+    case "$rest" in
+        *"  2.4G") ssid=${rest%"  2.4G"} ;;
+        *"  5G")   ssid=${rest%"  5G"} ;;
+        *"  6G")   ssid=${rest%"  6G"} ;;
+        *)         ssid=$rest ;;
     esac
 
     # Saved-connection path — works for both open and secured networks
