@@ -48,7 +48,7 @@
 #battery            { padding: 0 8px; }
 #custom-nordvpn     { padding: 0 8px; }
 #custom-wifi-status { padding: 0 8px; }
-#network            { padding: 0 8px; }
+#custom-network     { padding: 0 8px; }
 #custom-bluetooth   { padding: 0 8px; }
 /* Active scan: the bluetooth glyph itself pulses. No separate
  * indicator slot — the user's eye already knows where bluetooth

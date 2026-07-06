@@ -1,0 +1,64 @@
+#!/bin/sh
+# Waybar network module, driven by nmcli instead of waybar's built-in
+# `network` module. That module reads signal over nl80211's station
+# query, which the Broadcom brcmfmac adapter (Apple silicon's FullMAC
+# wifi) does not answer — so waybar never enters its wifi state and the
+# bar shows the bare interface name ("wlan0") instead of strength bars.
+# nmcli gets signal through wpa_supplicant, a path the firmware does
+# answer, so we render from that.
+#
+# Emits the same phosphor glyphs the built-in module used, so the bar
+# looks unchanged. Codepoints (octal UTF-8 for unambiguous bytes):
+#   wifi-none   U+E4F0  \356\223\260   wifi-low    U+E4EC  \356\223\254
+#   wifi-medium U+E4EE  \356\223\256   wifi-high   U+E4EA  \356\223\252
+#   wifi-x      U+E4F4  \356\223\264   plug        U+E946  \356\245\206
+#
+# Signal buckets mirror waybar's five-icon mapping (top two share
+# wifi-high): <20 none, 20-39 low, 40-59 medium, >=60 high.
+#
+# On-click stays wired to wifi-menu in config.jsonc. A NetworkManager
+# dispatcher fires SIGRTMIN+9 on interface-up (shared with weather /
+# nordvpn), so the icon refreshes the moment a connect completes rather
+# than waiting for the next poll.
+set -eu
+
+NONE=$(printf '\356\223\260')
+LOW=$(printf '\356\223\254')
+MEDIUM=$(printf '\356\223\256')
+HIGH=$(printf '\356\223\252')
+DISCONNECTED=$(printf '\356\223\264')
+ETHERNET=$(printf '\356\245\206')
+
+# Wired connection wins if present — show the plug, same as before.
+if nmcli -t -f TYPE,STATE device status 2>/dev/null \
+        | awk -F: '$1=="ethernet" && $2=="connected"{found=1} END{exit !found}'; then
+    printf '{"text":"%s","tooltip":"Wired","class":"ethernet"}\n' "$ETHERNET"
+    exit 0
+fi
+
+# Active AP row: IN-USE(*),SIGNAL,SSID. --rescan no keeps this a cheap
+# read of NetworkManager's cached scan — no scan is triggered by polling.
+row=$(nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no 2>/dev/null \
+      | awk -F: '$1=="*"{print; exit}')
+
+if [ -z "$row" ]; then
+    printf '{"text":"%s","tooltip":"Disconnected","class":"disconnected"}\n' "$DISCONNECTED"
+    exit 0
+fi
+
+signal=$(printf '%s' "$row" | cut -d: -f2)
+ssid=$(printf '%s' "$row" | cut -d: -f3-)
+signal=$((signal + 0))
+
+if   [ "$signal" -ge 60 ]; then icon=$HIGH
+elif [ "$signal" -ge 40 ]; then icon=$MEDIUM
+elif [ "$signal" -ge 20 ]; then icon=$LOW
+else                            icon=$NONE
+fi
+
+# SSID is user-controlled: escape for JSON (\ ") then pango (& < >) so a
+# network named with a quote or ampersand can't corrupt the bar.
+ssid=$(printf '%s' "$ssid" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+                                 -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+
+printf '{"text":"%s","tooltip":"%s (%s%%)","class":"wifi"}\n' "$icon" "$ssid" "$signal"

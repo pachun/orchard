@@ -80,7 +80,7 @@
         "format": " ",
         "tooltip": false
     },
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "network", "custom/bluetooth", "custom/updates", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "custom/network", "custom/bluetooth", "custom/updates", "custom/clock"],
 
     "custom/dnd": {
         // Bell icon (bell-off when DND is on). Sits as the leftmost
@@ -169,19 +169,21 @@
         "signal": 8
     },
 
-    "network": {
-        // Phosphor wifi-{none,low,medium,high} for signal strength,
-        // wifi-x for disconnected, plug for ethernet. Five-bucket
-        // strength input mapped to four glyphs (top two buckets share
-        // wifi-high). Hover for SSID + percent / IP.
-        "format-wifi": "{icon}",
-        "format-ethernet": "",
-        "format-disconnected": "",
-        "format-icons": ["", "", "", "", ""],
-        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
-        "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
-        "tooltip-format-disconnected": "Disconnected",
+    "custom/network": {
+        // Signal-strength wifi icon, driven by nmcli via waybar-network.
+        // Replaces waybar's built-in `network` module: on the Broadcom
+        // brcmfmac adapter (Apple silicon's FullMAC wifi) its nl80211
+        // station read returns nothing, so waybar never entered its wifi
+        // state and showed the bare interface name ("wlan0") instead of
+        // bars. nmcli reads signal through wpa_supplicant, which works.
+        // Phosphor wifi-{none,low,medium,high}, wifi-x when disconnected,
+        // plug when wired. Hover for SSID + signal percent. signal 9 is
+        // the shared interface-up refresh (see custom/weather) so the
+        // icon updates the instant a connect completes.
+        "exec": "$HOME/.local/bin/waybar-network",
+        "return-type": "json",
         "interval": 5,
+        "signal": 9,
         "on-click": "$HOME/.local/bin/wifi-menu"
     },
 
