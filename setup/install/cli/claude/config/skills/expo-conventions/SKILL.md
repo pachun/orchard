@@ -57,6 +57,29 @@ returns, no nested `else` — just order it so what's true comes first.
   animation duration, a poll interval — is fine; sequencing your own
   code against the framework's lifecycle is not.)
 
+## `useEffect` is usually the wrong tool
+
+- **Make something happen when the thing that causes it happens — not
+  by watching state change from a lifecycle.** This is the same lesson
+  as timers, one notch less strict: `setTimeout` has never once been
+  the right answer, and `useEffect` rarely is. An effect that reads
+  state every render and reacts "when X became true" is observing a
+  value settle instead of running at the moment that decided it. The
+  cause already has a home — the handler, the event, the promise that
+  changed X. Put the work there. When a modal closes, restore focus
+  *in the dismiss handler*, right before you tear the modal down; an
+  effect keyed on `modalOpen` runs a beat late, after the framework
+  has already picked its own focus fallback, and you watch it flash to
+  the wrong element first.
+- Syncing one piece of state to another, poking the imperative world
+  after a render, running a callback "when some state flips" — those
+  are the tells. The fix is almost always to move the logic into the
+  event that flipped it. Genuinely effect-shaped work exists —
+  subscribing to an external store, an imperative subscription that
+  needs teardown on unmount, reconciling with something outside React
+  — and there you do reach for it. But it's the exception. Default to
+  event-driven; make every `useEffect` earn its place.
+
 ## `async`/`await` over `.then`
 
 Write asynchronous code with `async`/`await`, not `.then`/`.catch`
