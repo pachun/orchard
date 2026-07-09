@@ -87,6 +87,33 @@ chains. It reads top to bottom, errors are a plain `try`/`catch`, and
 each awaited value gets a real name instead of living inside a
 callback. Reach for `.then` only where `await` genuinely can't go.
 
+## Optional chaining over a redundant `&&`
+
+When an `&&` exists only to guard a property access or method call, use
+optional chaining instead — `user?.name`, `subscription?.remove()`, not
+`user && user.name` / `subscription && subscription.remove()`. TS makes
+the guard redundant noise.
+
+Comparisons are where it gets subtle — four shapes, and each drops one
+of {typechecks, explicit, narrows `x`}:
+
+- `x?.length > 0` — **type error**: `x?.length` is `number | undefined`
+  and `>` won't take the `undefined`.
+- `x?.length` / `!!x?.length` in a condition — narrows, but leans on
+  implicit number→boolean (`0` is falsy). Don't; it's a footgun that's
+  miserable when it bites.
+- `(x?.length ?? 0) > 0` — explicit and typechecks, but does **not**
+  narrow `x`.
+- `x && x.length > 0` — explicit **and** narrows `x`.
+
+So if the branch uses the value (renders a child with it, etc.), keep
+`x && x.length > 0` — there the `&&` is doing real work (narrowing), not
+guarding an access, so the "prefer optional chaining" rule doesn't
+apply. When you only need a standalone boolean and don't touch `x`
+after, reach for `(x?.length ?? 0) > 0` — never the implicit
+`!!x?.length`. (`x?.length === 0` is fine for the empty check — equality
+tolerates `undefined` where relational operators don't.)
+
 ## Type design
 
 - **Make impossible states impossible.** Model data so invalid
