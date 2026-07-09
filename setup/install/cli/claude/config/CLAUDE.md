@@ -239,6 +239,39 @@ often, that's usually a hint that something else wants to change
 "should change" doesn't beat "is clear right now"; being clear
 first is cheap.
 
+## Comments
+
+Default to **no comments**. Names carry the meaning — a
+well-named variable, function, or intermediate value says what a
+comment would, and can't drift out of sync the way a comment
+does. This holds in every language, not just TS/React (where
+`expo-conventions` already enforces it): Python, Go, Ruby, shell,
+config files, all of it.
+
+The bar is high: write a comment only when the code does
+something genuinely unconventional that names alone can't
+explain — and even then, prefer a **link to a GitHub issue /
+ticket** over prose. The comment's job is to point at the *why*
+(the constraint, the upstream bug, the "yes this looks wrong,
+here's why it isn't") that can't live in the code. If you're
+explaining *what* the code does, delete the comment and fix the
+name instead.
+
+Config files count too. A `rule: 'off'` line doesn't need a
+comment saying which rule it replaced or why some version
+flipped a default — that's archaeology, not a non-obvious
+decision. If the "why" genuinely matters, file an issue and
+link it.
+
+**Shell is the one place the exception is tempting** — bash is
+genuinely hard to read. But the answer is the same: extract
+well-named functions and variables so the top-line,
+orchestrating section reads as plain English to someone who
+doesn't know bash. A reader should understand what the script
+*does* from its main body without decoding flags, `${x%/*}`
+expansions, or `[[ … ]]` tests — because those live inside
+named helpers. Names over comments, even here.
+
 ## Never attribute the work to Claude
 
 **Never indicate — in any artifact, anywhere — that Claude, or any
