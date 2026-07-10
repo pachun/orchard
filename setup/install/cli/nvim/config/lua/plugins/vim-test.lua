@@ -34,10 +34,18 @@ return {
       vim.fn.system("tmux send-keys -t " .. pane .. " " .. vim.fn.shellescape(cmd_str) .. " C-m")
     end
 
+    -- vim-test's jest runner escapes the regex metacharacters ( ) [ ] twice
+    -- (test#base#escape_regex, then again in build_position), so a test name
+    -- like `foo()` reaches jest's -t as `foo\\(\\)` and matches nothing.
+    -- Collapse the redundant backslash so -t stays a valid regex.
+    local function unescape_double_escaped_metachars(cmd_str)
+      return (cmd_str:gsub("\\\\([%(%)%[%]])", "\\%1"))
+    end
+
     vim.g["test#custom_strategies"] = {
       send_to_tmux_pane = function(cmd)
         local cmd_str = type(cmd) == "table" and table.concat(cmd, " ") or cmd
-        send_to_pane(cmd_str)
+        send_to_pane(unescape_double_escaped_metachars(cmd_str))
       end,
     }
     vim.g["test#strategy"] = "send_to_tmux_pane"
