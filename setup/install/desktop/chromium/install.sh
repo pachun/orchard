@@ -32,7 +32,13 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm chromium widevine gnome-keyring
+. "$TOOLS/machine.sh"
+
+packages=(chromium gnome-keyring)
+if is_apple_silicon; then
+  packages+=(widevine)
+fi
+sudo pacman -S --needed --noconfirm "${packages[@]}"
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 
