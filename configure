@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# User-mode setup. Walks configuration/cli (always) and
+# configuration/desktop (if MODE=desktop or unset). Each subdirectory is one feature
+# with its own install.sh — adding/removing a feature is just create or
+# delete the folder. Idempotent — re-run any time.
+set -euo pipefail
+shopt -s nullglob
+
+MODE="${1:-desktop}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Available to every feature script — zsh's installer writes it into
+# the generated ~/.zshrc, others can branch on it if they need to.
+export ORCHARD_MODE="$MODE"
+export TOOLS="$HERE/tools"
+
+# Phase 1: source every feature's prompts.sh (if it has one) so all
+# interactive prompts happen up front. Each prompts.sh is idempotent;
+# it skips itself when its inputs are already collected or already
+# applied. install.sh files source their sibling prompts.sh too, so
+# standalone runs of individual features still work.
+for d in "$HERE/configuration/cli"/*/; do
+  [ -f "$d/prompts.sh" ] && source "$d/prompts.sh"
+done
+
+if [[ "$MODE" == "desktop" ]]; then
+  for d in "$HERE/configuration/desktop"/*/; do
+    [ -f "$d/prompts.sh" ] && source "$d/prompts.sh"
+  done
+fi
+
+# Phase 2: run the actual installs unattended.
+for d in "$HERE/configuration/cli"/*/; do
+  bash "$d/install.sh"
+done
+
+if [[ "$MODE" == "desktop" ]]; then
+  for d in "$HERE/configuration/desktop"/*/; do
+    bash "$d/install.sh"
+  done
+fi

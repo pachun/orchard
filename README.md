@@ -11,13 +11,19 @@ Dell XPS 14 (x86_64).
 curl https://asahi-alarm.org/installer-bootstrap.sh | sh
 ```
 
-After rebooting into arch, connect to wifi and install:
+After rebooting into arch, connect to wifi and run the base bringup:
 
 ```
 nmtui
 pacman -Sy --noconfirm git
 git clone https://github.com/pachun/orchard /tmp/orchard
-bash /tmp/orchard/setup/bootstrap.sh
+/tmp/orchard/install-arch/asahi
+```
+
+It reboots when done. After reboot, sign in and configure:
+
+```
+~/code/orchard/configure
 ```
 
 ## Dell XPS 14 (9440)
@@ -34,26 +40,25 @@ from it.
 ```
 pacman -Sy --noconfirm git
 git clone https://github.com/pachun/orchard /tmp/orchard
-bash /tmp/orchard/install-arch/dell-xps-14/install-arch
+/tmp/orchard/install-arch/dell-xps-14
 ```
 
 After reboot, sign in, connect wifi, and install the shell + dev tools:
 
 ```
 nmtui
-bash ~/code/orchard/setup/install.sh cli
+~/code/orchard/configure cli
 ```
 
 # Install modes
 
-`setup/install.sh` accepts a mode argument: `desktop` (default — the full
-graphical setup the Asahi bootstrap flow produces) or `cli` (a server
-subset with just the shell, editor, multiplexer, mise, claude, and core
-CLI tools — no graphical environment). The Asahi bootstrap above runs
-`desktop`; pass `cli` explicitly for a headless install:
+`configure` takes an optional mode: `desktop` (default — the full
+graphical setup) or `cli` (a server subset: shell, editor, multiplexer,
+mise, claude, and core CLI tools, no graphical environment):
 
 ```
-bash setup/install.sh cli
+./configure          # desktop (default)
+./configure cli      # headless
 ```
 
 The active mode is persisted to `~/.config/orchard/mode` so zsh sources
@@ -61,15 +66,15 @@ the right zshrc.d subset on every startup.
 
 # Connect accounts
 
-`setup/install.sh` is fully unattended — anything that needs you to log in
-or paste credentials lives under `setup/connect/` instead, run on demand:
+`configure` is fully unattended — anything that needs you to log in or
+paste credentials lives under `connections/` instead, run on demand:
 
 ```
-bash setup/connect.sh                # list what's available
-bash setup/connect/<name>.sh         # run a specific one
+./connect                # list what's available
+./connect <name>         # run a specific one
 ```
 
-Each subscript is idempotent: re-running detects the already-connected
+Each connection is idempotent: re-running detects the already-connected
 state and skips. Currently:
 
 - **gcalcli** — Google Calendar CLI. Walks you through creating an OAuth
@@ -80,7 +85,7 @@ state and skips. Currently:
 - **tailscale** — joins this machine to your tailnet. Runs `tailscale up`,
   which opens a browser to authenticate; sign in with the same account the
   Mac mini uses so both devices share one tailnet. The `tailscaled` daemon
-  itself is enabled unattended by `setup/install/desktop/tailscale/install.sh`;
+  itself is enabled unattended by `configuration/desktop/tailscale/install.sh`;
   this just logs in.
 
 - **icloud** — mounts the Mac mini's iCloud Drive at `~/icloud` over sshfs.

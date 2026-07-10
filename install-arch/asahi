@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# install-arch/asahi — finish standing up Arch on an Apple-silicon Mac.
+# Runs as root on the live system the Asahi installer leaves behind (the
+# base is already installed — unlike the x86 machines, there's no ISO
+# phase). Brings the OS to orchard's baseline, then reboots. Dotfiles and
+# desktop are a separate phase run after reboot: configure.
+set -euo pipefail
+
+require_root() {
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    echo "install-arch/asahi must run as root" >&2
+    exit 1
+  fi
+}
+
+update_system() {
+  pacman -Syu --noconfirm
+}
+
+install_base_tools() {
+  pacman -S --needed --noconfirm git base-devel
+}
+
+prune_foreign_firmware() {
+  # The asahi-alarm installer pulls linux-firmware, a meta-package that
+  # hard-depends on every vendor's blobs — Intel/NVIDIA/AMD GPUs,
+  # Atheros/MediaTek/Realtek wifi — none of which exist on Apple silicon
+  # (~750 MB). Removing the meta-package too stops the next -Syu
+  # re-pulling them; broadcom/cirrus stay (BCM4377 wifi/BT, speakers).
+  local candidates=(
+    linux-firmware linux-firmware-amdgpu linux-firmware-atheros
+    linux-firmware-intel linux-firmware-mediatek linux-firmware-nvidia
+    linux-firmware-radeon linux-firmware-realtek
+  )
+  local installed=()
+  for package in "${candidates[@]}"; do
+    pacman -Qi "$package" >/dev/null 2>&1 && installed+=("$package")
+  done
+  [ "${#installed[@]}" -gt 0 ] && pacman -Rns --noconfirm "${installed[@]}"
+}
+
+set_locale() {
+  sed -i 's/^#\(en_US\.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+  locale-gen
+  echo "LANG=en_US.UTF-8" > /etc/locale.conf
+}
+
+create_user() {
+  id "$USERNAME" >/dev/null 2>&1 || useradd -m -G wheel -s /bin/bash "$USERNAME"
+  if [ "$(passwd -S "$USERNAME" 2>/dev/null | awk '{print $2}')" != "P" ]; then
+    passwd "$USERNAME" </dev/tty
+  fi
+}
+
+mirror_user_password_to_root() {
+  # Recovery path: if the graphical login chain ever breaks, Ctrl+Alt+F2
+  # and log in as root with the same password. Copy the hash so the
+  # plaintext is never re-derived.
+  local hash
+  hash=$(getent shadow "$USERNAME" | cut -d: -f2)
+  case "$hash" in
+    ""|"!"*|"*") echo "$USERNAME has no password set" >&2; exit 1 ;;
+  esac
+  echo "root:$hash" | chpasswd -e
+}
+
+grant_wheel_sudo() {
+  echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel
+  chmod 440 /etc/sudoers.d/10-wheel
+  visudo -cf /etc/sudoers.d/10-wheel
+}
+
+set_hostname() {
+  [ "$(hostnamectl --static 2>/dev/null || echo alarm)" = alarm ] || return 0
+  local name
+  read -rp "Hostname: " name </dev/tty
+  [ -n "$name" ] && hostnamectl set-hostname "$name"
+}
+
+set_timezone() {
+  case "$(timedatectl show --value -p Timezone 2>/dev/null || echo UTC)" in
+    UTC|Etc/UTC) ;;
+    *) return 0 ;;
+  esac
+  local timezone
+  timezone=$(tzselect </dev/tty | tail -1) || return 0
+  [ -n "$timezone" ] && timedatectl set-timezone "$timezone"
+}
+
+configure_kernel_cmdline() {
+  # appledrm.show_notch=1 makes the Asahi display driver expose the pixel
+  # rows beside the camera notch; without it Hyprland never sees them and
+  # waybar can't sit there. Module was apple_dcp before 6.19, so heal the
+  # old name. loglevel=2 + the quiet flags keep boot/driver chatter off
+  # the TTY.
+  local grub=/etc/default/grub
+  sed -i -E 's|apple_dcp\.show_notch=1|appledrm.show_notch=1|g' "$grub"
+  grep -qE 'appledrm\.show_notch=1' "$grub" ||
+    sed -i -E 's|^(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*)"|\1 appledrm.show_notch=1"|' "$grub"
+
+  sed -i -E 's|loglevel=[0-9]+|loglevel=2|' "$grub"
+  grep -qE 'loglevel=[0-9]+' "$grub" ||
+    sed -i -E 's|^(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*)"|\1 loglevel=2"|' "$grub"
+
+  local flag
+  for flag in splash systemd.show_status=false rd.udev.log_level=0 vt.global_cursor_default=0; do
+    grep -qE "(^|\s)${flag}(\s|\")" "$grub" ||
+      sed -i -E "s|^(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*)\"|\1 ${flag}\"|" "$grub"
+  done
+
+  sed -i -E 's|^GRUB_TIMEOUT=.*|GRUB_TIMEOUT=0|' "$grub"
+  if grep -qE '^GRUB_TIMEOUT_STYLE=' "$grub"; then
+    sed -i -E 's|^GRUB_TIMEOUT_STYLE=.*|GRUB_TIMEOUT_STYLE=hidden|' "$grub"
+  else
+    echo 'GRUB_TIMEOUT_STYLE=hidden' >> "$grub"
+  fi
+
+  grub-mkconfig -o /boot/grub/grub.cfg
+
+  # linux-asahi resets console_loglevel to 4 at runtime, so the cmdline
+  # loglevel doesn't stick; systemd-sysctl reapplies this after the reset.
+  cat > /etc/sysctl.d/00-quiet-console.conf <<'EOF'
+kernel.printk = 1 4 1 7
+EOF
+}
+
+install_network_dispatcher() {
+  # On interface-up, nudge waybar to refresh its weather module instead of
+  # sitting on stale data for up to 10 minutes. SIGRTMIN+9 = the module's
+  # `signal: 9`.
+  cat > /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh <<'EOF'
+#!/bin/bash
+case "$2" in
+    up|connectivity-change)
+        pkill -RTMIN+9 -x waybar
+        ;;
+esac
+EOF
+  chmod 755 /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh
+}
+
+point_geoclue_at_beacondb() {
+  # Mozilla Location Service shut down mid-2024; BeaconDB is the drop-in
+  # community replacement (same Ichnaea API, no key).
+  local conf=/etc/geoclue/geoclue.conf
+  local url='https://api.beacondb.net/v1/geolocate'
+  grep -qE "^[[:space:]]*url=${url}" "$conf" && return 0
+  if grep -qE '^\[wifi\]' "$conf"; then
+    sed -i -E '/^\[wifi\]/,/^\[/{ /^[[:space:]]*url=/d; }' "$conf"
+    sed -i -E "/^\[wifi\]/a url=${url}" "$conf"
+  else
+    printf '\n[wifi]\nurl=%s\n' "$url" >> "$conf"
+  fi
+  systemctl restart geoclue.service
+}
+
+enable_keyring_autounlock() {
+  # PAM captures the login password and unlocks gnome-keyring with it,
+  # macOS-Keychain style. A mismatched keyring password just falls back to
+  # the normal prompt — no lockout.
+  local pam=/etc/pam.d/login
+  grep -q 'pam_gnome_keyring' "$pam" && return 0
+  cat >> "$pam" <<'EOF'
+
+auth     optional  pam_gnome_keyring.so
+session  optional  pam_gnome_keyring.so auto_start
+EOF
+}
+
+ignore_suspend_key() {
+  # F6 sends XF86Sleep on Asahi Apple keyboards (fnmode=3); logind suspends
+  # on it by default. Ignore it so Hyprland's own XF86Sleep bind is the
+  # only handler. Done here, not in configure, because applying it live
+  # needs a logind restart that would kill the running session.
+  mkdir -p /etc/systemd/logind.conf.d
+  cat > /etc/systemd/logind.conf.d/orchard-suspend-key.conf <<'EOF'
+[Login]
+HandleSuspendKey=ignore
+HandleSuspendKeyLongPress=ignore
+EOF
+}
+
+remove_alarm_user() {
+  # The Arch Linux ARM image ships a sudo-capable `alarm` user we never
+  # use; its wheel membership makes polkit prompts ambiguous.
+  id alarm >/dev/null 2>&1 && userdel -r alarm
+}
+
+move_repo_into_user_home() {
+  local destination="/home/$USERNAME/code/orchard"
+  mkdir -p "/home/$USERNAME/code"
+  if [ -d "$destination" ]; then
+    if [ "$(realpath "$destination")" != "$(realpath "$ORCHARD_ROOT")" ]; then
+      echo "$destination exists but is not this repo; refusing to overwrite" >&2
+      exit 1
+    fi
+  else
+    mv "$ORCHARD_ROOT" "$destination"
+  fi
+  chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/code"
+}
+
+announce_next_step() {
+  cat <<EOF
+
+==========================================================
+  Base bringup complete. Rebooting.
+
+  After reboot, sign in and configure:
+    ~/code/orchard/configure
+==========================================================
+EOF
+}
+
+ORCHARD_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+require_root
+read -rp "username: " USERNAME </dev/tty
+
+update_system
+install_base_tools
+prune_foreign_firmware
+set_locale
+create_user
+mirror_user_password_to_root
+grant_wheel_sudo
+set_hostname
+set_timezone
+configure_kernel_cmdline
+install_network_dispatcher
+point_geoclue_at_beacondb
+enable_keyring_autounlock
+ignore_suspend_key
+remove_alarm_user
+move_repo_into_user_home
+announce_next_step
+reboot

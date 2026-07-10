@@ -1,4 +1,4 @@
-# Python bytecode cache. The hooks under setup/install/cli/claude/config/hooks/
+# Python bytecode cache. The hooks under configuration/cli/claude/config/hooks/
 # are imported/executed by Claude Code and Python writes __pycache__ next
 # to them on first run.
 __pycache__/
@@ -10,4 +10,4 @@ __pycache__/
 # ever symlinks repo -> $HOME (never the reverse), so a skill could
 # only land in the repo by a manual mistake; this is the backstop.
 # Public skills, if any are ever wanted, can be force-added.
-setup/install/cli/claude/config/skills/
+configuration/cli/claude/config/skills/
