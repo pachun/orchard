@@ -30,9 +30,17 @@ local keymap_actions = {
   clear_highlights = "<cmd>nohlsearch<CR>",
   show_line_diagnostics = vim.diagnostic.open_float,
 
-  -- <C-_> is what terminals emit for Ctrl+/.
+  -- <C-_> is what terminals emit for Ctrl+/. In visual mode we drop back
+  -- to the '< '> marks first, then comment the whole selection linewise.
   toggle_comment = function()
-    require("Comment.api").toggle.linewise.current()
+    local is_visual = vim.fn.mode():find("^[vV\22]") ~= nil
+    if is_visual then
+      local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+      vim.api.nvim_feedkeys(esc, "nx", false)
+      require("Comment.api").toggle.linewise(vim.fn.visualmode())
+    else
+      require("Comment.api").toggle.linewise.current()
+    end
   end,
 
   -- Reload our personal Lua modules. Plugins are intentionally not

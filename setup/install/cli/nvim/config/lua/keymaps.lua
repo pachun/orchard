@@ -31,7 +31,7 @@ local keymaps = {
   quit                  = { mode = "n", trigger = "<leader>q"  },
   rename                = { mode = "n", trigger = "<leader>rn" },
   clear_highlights      = { mode = "n", trigger = "<leader>nh" },
-  toggle_comment        = { mode = "n", trigger = "<C-_><C-_>" },
+  toggle_comment        = { mode = { "n", "x" }, trigger = "<C-_><C-_>" },
   reload_nvim_config    = { mode = "n", trigger = "<leader>R"  },
   show_line_diagnostics = { mode = "n", trigger = "<leader>d"  },
 
