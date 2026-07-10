@@ -1,10 +1,11 @@
 # Orchard
 
-My Arch configuration for Apple silicon Macs (Asahi Linux).
+My Arch configuration for Apple silicon Macs (Asahi Linux) and the
+Dell XPS 14 (x86_64).
 
 # Install
 
-On an M1/M2 machine:
+## Asahi (on an M1 or M2 Mac)
 
 ```
 curl https://asahi-alarm.org/installer-bootstrap.sh | sh
@@ -17,6 +18,30 @@ nmtui
 pacman -Sy --noconfirm git
 git clone https://github.com/pachun/orchard /tmp/orchard
 bash /tmp/orchard/setup/bootstrap.sh
+```
+
+## Dell XPS 14 (9440)
+
+First, in the BIOS (press F2 at boot):
+
+- **SATA Operation → AHCI** — the factory default (RAID) hides the NVMe
+  from Linux, so the installer won't find a disk.
+- **Secure Boot → Off**
+
+Flash an [Arch ISO](https://archlinux.org/download/) to a USB drive and boot
+from it.
+
+```
+pacman -Sy --noconfirm git
+git clone https://github.com/pachun/orchard /tmp/orchard
+bash /tmp/orchard/install-arch/dell-xps-14/install-arch
+```
+
+After reboot, sign in, connect wifi, and install the shell + dev tools:
+
+```
+nmtui
+bash ~/code/orchard/setup/install.sh cli
 ```
 
 # Install modes
@@ -62,6 +87,6 @@ state and skips. Currently:
   Run the **tailscale** connect first, and enable Remote Login on the Mac
   (System Settings → General → Sharing). Installs this machine's SSH key on
   the Mac (one password prompt the first time), then sets up a `systemd
-  --user` service that keeps `~/icloud` mounted and reconnecting across
+--user` service that keeps `~/icloud` mounted and reconnecting across
   reboots. Prompts for the Mac's tailnet hostname / username (defaults
   `mac-mini` / `nick`).
