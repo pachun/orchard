@@ -1,0 +1,22 @@
+# Swap Left Alt and Left Super at the input layer — Dell XPS only.
+#
+# Every window-manager bind and Cmd-style shortcut in this setup assumes
+# the key under your left thumb (immediately left of the spacebar) is
+# Super, because on an Apple keyboard that key is Cmd → Super. The XPS
+# bottom row is `Ctrl Fn ⊞Super Alt Space`, so the thumb key there is Alt
+# and Super sits one position further left. Swapping the two makes the XPS
+# match the Mac exactly: the thumb key becomes Super (drives everything
+# unchanged) and Alt lands where Option sits on a Mac.
+#
+# This lives in its own file, merged in via a second xremap config
+# argument only on x86 (see install.sh) — Apple machines already have
+# Super under the thumb and must not swap. It has to run in xremap's
+# modmap (not Hyprland's `kb_options = altwin:swap_alt_win`) so the swap
+# happens before xremap's own Super-* keymap rules, which would otherwise
+# see raw Alt and break. xremap applies modmap in a single pass, so the
+# two-way swap doesn't ping-pong.
+modmap:
+  - name: swap left alt ⇄ super (dell xps → mac thumb layout)
+    remap:
+      Alt_L: Super_L
+      Super_L: Alt_L

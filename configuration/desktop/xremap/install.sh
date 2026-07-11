@@ -29,5 +29,23 @@ sudo udevadm trigger --subsystem-match=misc --attr-match=name=uinput
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/xremap"
 bash "$TOOLS/link.sh" "$HERE/systemd" "$HOME/.config/systemd/user"
 
+# On the Dell XPS the thumb key left of the spacebar is Alt, not Super, so
+# a drop-in appends a second xremap config that swaps the two (see
+# config/dell-xps-alt-super-swap.yml). Apple keyboards already have Super
+# under the thumb — the swap is x86-only, and the drop-in is removed there.
+. "$TOOLS/machine.sh"
+swap_override="$HOME/.config/systemd/user/xremap.service.d/dell-xps-alt-super-swap.conf"
+if is_apple_silicon; then
+  rm -f "$swap_override"
+else
+  mkdir -p "$(dirname "$swap_override")"
+  cat > "$swap_override" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=%h/.cargo/bin/xremap --watch=config,device %h/.config/xremap/config.yml %h/.config/xremap/dell-xps-alt-super-swap.yml
+EOF
+fi
+
 systemctl --user daemon-reload
-systemctl --user enable --now xremap.service
+systemctl --user enable xremap.service
+systemctl --user restart xremap.service
