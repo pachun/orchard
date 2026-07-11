@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Register this machine's SSH key with GitHub so you can push over SSH.
+#
+# The key itself is generated unattended by the openssh feature; the only
+# part that needs you is a GitHub login, so — like tailscale — it lives
+# here rather than in the unattended configure flow. `gh auth login` works
+# in both modes: it opens a browser on the desktop, and on a headless box
+# it prints a one-time code you enter from any other device.
+#
+# Idempotent: skips the login when you're already authenticated, ensures
+# the SSH-key scope only when it's missing, and skips the upload when this
+# machine's key is already on your account.
+set -euo pipefail
+
+KEY="$HOME/.ssh/id_ed25519"
+PUB="$KEY.pub"
+
+# configure installs github-cli already; install it here too so running
+# this connection standalone (before a full configure) just works.
+if ! command -v gh >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm github-cli
+fi
+
+# The openssh feature makes this key during configure, but generate it
+# here too so the connection stands on its own.
+if [ ! -f "$PUB" ]; then
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    ssh-keygen -t ed25519 -N "" -C "$USER@$(uname -n)" -f "$KEY"
+fi
+
+# 1. Authenticate. Adding a key needs the admin:public_key scope, so
+# request it during a fresh login and top it up on an existing login
+# that predates it. The scope check keeps re-runs from re-prompting.
+if ! gh auth status >/dev/null 2>&1; then
+    gh auth login --hostname github.com --git-protocol ssh --scopes admin:public_key
+elif ! gh auth status 2>&1 | grep -q admin:public_key; then
+    gh auth refresh --hostname github.com --scopes admin:public_key
+fi
+
+# 2. Upload the public key unless GitHub already has it. Compare on the
+# key body (type + base64, no comment) so a differently-titled copy still
+# counts as present.
+this_machines_key="$(awk '{print $1" "$2}' "$PUB")"
+if gh api user/keys --jq '.[].key' 2>/dev/null | grep -qxF "$this_machines_key"; then
+    echo "This machine's SSH key is already on GitHub ✓"
+else
+    gh ssh-key add "$PUB" --title "$(uname -n)"
+    echo "Uploaded this machine's SSH key to GitHub ✓"
+fi
+
+# 3. Confirm it works. GitHub always closes the connection (ssh exits
+# non-zero), so look for its success greeting rather than the exit code.
+if ssh -T -o StrictHostKeyChecking=accept-new git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    echo "SSH to GitHub verified — you can push now ✓"
+else
+    echo "Couldn't verify SSH to GitHub; check the output above." >&2
+    exit 1
+fi

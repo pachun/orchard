@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install git + delta (the diff pager referenced from config), symlink
+# Install git, delta (the diff pager referenced from config), and the
+# GitHub CLI (used by connections/github to register the SSH key), symlink
 # the orchard-managed git config into place, and prompt for identity
 # (name + email) on first run only. Idempotent — re-runs are no-ops
 # once ~/.gitconfig.local exists.
@@ -10,7 +11,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # if the dispatcher already sourced it, or if gitconfig.local exists.
 source "$HERE/prompts.sh"
 
-sudo pacman -S --needed --noconfirm git git-delta
+sudo pacman -S --needed --noconfirm git git-delta github-cli
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/git"
 

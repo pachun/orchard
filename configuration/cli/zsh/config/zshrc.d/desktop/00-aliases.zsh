@@ -4,7 +4,8 @@ alias nord_disconnect="nordvpn disconnect"
 alias battery="cat /sys/class/power_supply/macsmc-battery/capacity"
 
 # Open the current repo's GitHub/GitLab page in the default browser.
-function gh {
+# Named ghopen so the real GitHub CLI (`gh`) stays usable interactively.
+function ghopen {
   remote_url=$(git remote get-url origin 2>/dev/null)
 
   if [[ -z "$remote_url" ]]; then
