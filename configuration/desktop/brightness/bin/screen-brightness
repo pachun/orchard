@@ -9,7 +9,10 @@
 # a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
 set -euo pipefail
 
-DEVICE=apple-panel-bl
+# The one backlight device this machine exposes: apple-panel-bl on Asahi
+# Macs, intel_backlight on the Dell XPS. Detected rather than hardcoded so
+# the same script drives both.
+DEVICE="$(ls /sys/class/backlight | head -n1)"
 STEP="${2:-5%}"
 
 show_osd() {
