@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# wb — save / restore / apply per-channel display white-balance corrections.
+# Drives the gammawb wlr-gamma-control client, which must keep running to
+# hold the correction (so this backgrounds it and kills prior instances).
+#
+#   wb set R G B eR eG eB   apply gains (R G B) + shadow curves (eR eG eB)
+#   wb save <name>          snapshot the current correction under <name>
+#   wb load <name>          re-apply a saved snapshot
+#   wb list                 list snapshots and their values
+#   wb show                 current correction + snapshots
+#   wb off                  remove correction (neutral display)
+#
+# Values: 1.0 is neutral. A channel exponent >1 darkens that channel in the
+# shadows only (leaves white untouched); <1 lifts its shadows.
+set -euo pipefail
+
+BIN="$HOME/.local/bin/gammawb"
+STATE="$HOME/.local/state/wb"
+CURRENT="$STATE/.current"
+mkdir -p "$STATE"
+
+apply() { # "$values"  (six space-separated numbers, or the word off)
+  pkill -x gammawb 2>/dev/null || true
+  sleep 0.2
+  if [ "$1" = "off" ]; then echo off >"$CURRENT"; echo "correction off (neutral display)"; return; fi
+  setsid nohup "$BIN" $1 >/tmp/gammawb.log 2>&1 &
+  sleep 0.5
+  echo "$1" >"$CURRENT"
+  echo "applied: $1"
+}
+
+case "${1:-show}" in
+  set)   shift; apply "$*" ;;
+  off|reset) apply off ;;
+  save)  name="${2:?usage: wb save <name>}"; cp "$CURRENT" "$STATE/$name"; echo "saved '$name' = $(cat "$STATE/$name")" ;;
+  load)  name="${2:?usage: wb load <name>}"
+         [ -f "$STATE/$name" ] || { echo "no snapshot '$name' (try: wb list)" >&2; exit 1; }
+         apply "$(cat "$STATE/$name")" ;;
+  list)  ls -1 "$STATE" 2>/dev/null | grep -v '^\.' | while read -r n; do
+           printf "  %-18s %s\n" "$n" "$(cat "$STATE/$n")"; done ;;
+  show|current)
+         echo "current: $(cat "$CURRENT" 2>/dev/null || echo none)"; echo "snapshots:"; "$0" list ;;
+  *)     grep '^#' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
