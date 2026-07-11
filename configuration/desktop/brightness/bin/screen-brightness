@@ -13,7 +13,16 @@ set -euo pipefail
 # Macs, intel_backlight on the Dell XPS. Detected rather than hardcoded so
 # the same script drives both.
 DEVICE="$(ls /sys/class/backlight | head -n1)"
-STEP="${2:-5%}"
+
+# Step per keypress. The Mac's brightness keys autorepeat at Hyprland's
+# full rate when held, so 5% ramps the whole range in ~0.8s. The Dell's
+# keys repeat more slowly, so at 5% a single hold barely moves — a bigger
+# step there matches the pace of the fast-repeating volume keys.
+if grep -qa apple /proc/device-tree/compatible 2>/dev/null; then
+  STEP="${2:-5%}"
+else
+  STEP="${2:-10%}"
+fi
 
 show_osd() {
   local val max fraction
