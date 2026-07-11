@@ -10,9 +10,10 @@
 # whether to re-init or bail.
 set -euo pipefail
 
+# Nothing in configure installs gcalcli — this connection is its only
+# home — so install it (an AUR package) if it isn't here yet.
 if ! command -v gcalcli >/dev/null 2>&1; then
-    echo "gcalcli not installed. Run: yay -S gcalcli" >&2
-    exit 1
+    yay -S --needed --noconfirm gcalcli
 fi
 
 if [ -f "$HOME/.gcalcli_oauth" ]; then

@@ -46,6 +46,12 @@ KEY="$HOME/.ssh/id_ed25519"
 read -rp "Mac tailnet hostname [$MAC_HOST]: " ans || true; MAC_HOST="${ans:-$MAC_HOST}"
 read -rp "Mac username [$MAC_USER]: " ans || true; MAC_USER="${ans:-$MAC_USER}"
 
+# The mount needs sshfs (which brings fusermount3); configure installs it,
+# but install it here too so this connection stands on its own.
+if ! command -v sshfs >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm sshfs
+fi
+
 # 1. Key + host trust.
 if [ ! -f "$KEY" ]; then
     ssh-keygen -t ed25519 -N "" -f "$KEY"
