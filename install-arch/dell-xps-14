@@ -124,7 +124,14 @@ mount_partitions() {
 
 install_base_system() {
   echo "Installing base packages (pacstrap)..."
-  local packages=(base linux linux-firmware git networkmanager sudo vim)
+  # sof-firmware: without the SOF DSP firmware present at boot, the XPS's
+  # SoundWire speaker amps (Cirrus CS35L56) leave the kernel audio driver
+  # half-initialized and it faults (sof_probe_work -2, then an sdw_cdns_irq
+  # oops). alsa-ucm-conf carries the routing for those amps.
+  local packages=(
+    base linux linux-firmware sof-firmware alsa-ucm-conf
+    git networkmanager sudo vim
+  )
   [ -n "$INSTALL_MICROCODE" ] && packages+=("$INSTALL_MICROCODE")
   pacstrap -K /mnt "${packages[@]}"
 }
