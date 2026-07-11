@@ -30,8 +30,13 @@ bash "$TOOLS/install-yay.sh"
 yay -S --needed --noconfirm \
     catppuccin-gtk-theme-frappe \
     catppuccin-gtk-theme-macchiato \
-    kvantum-theme-catppuccin-git \
-    apple-fonts
+    kvantum-theme-catppuccin-git
+
+# apple-fonts pulls SF Pro/Mono/New York straight from Apple's CDN; its AUR
+# checksums go stale whenever Apple ships a font update, tripping makepkg's
+# integrity check. Skip it — the source is Apple over HTTPS and we want the
+# current fonts regardless.
+yay -S --needed --noconfirm --mflags "--skipinteg" apple-fonts
 
 # Everforest GTK from upstream (Fausto-Korpsvart). `--tweaks medium`
 # matches the medium variant used by neanias/everforest-nvim and the
