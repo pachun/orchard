@@ -1,0 +1,13 @@
+[Unit]
+Description=IPU7 camera relay (libcamera to v4l2loopback, 180-degree corrected)
+
+[Service]
+Type=simple
+Environment=LIBCAMERA_LOG_LEVELS=*:ERROR
+# libcamerasrc must output the sensor's native resolution — asking it to
+# scale (e.g. width=1280) crashes libcamera 0.7.1's softISP with an
+# out-of-bounds abort, so the downscale happens in GStreamer (videoscale)
+# instead. Revisit once libcamera ships an ov08x40 sensor helper.
+ExecStart=/usr/bin/gst-launch-1.0 -e -q libcamerasrc ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! videoflip method=rotate-180 ! videoconvert ! video/x-raw,format=YUY2 ! v4l2sink device=/dev/video33 sync=false
+Restart=on-failure
+RestartSec=2

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Turn the IPU7 webcam on or off on demand. The relay feeds the flipped
+# /dev/video33 device that browsers and meeting apps use; while it's off the
+# camera is fully powered down (LED off). No argument prints the state.
+#
+# Note: libcamera apps (qcam, or anything using the PipeWire camera portal)
+# open the sensor directly and don't need this — but they see the raw,
+# upside-down feed. This relay is what makes it right-side-up for V4L2 apps.
+case "${1:-status}" in
+  on)  systemctl --user start ipu7-camera-relay.service && echo "camera on (/dev/video33 live)" ;;
+  off) systemctl --user stop  ipu7-camera-relay.service && echo "camera off" ;;
+  *)   systemctl --user is-active ipu7-camera-relay.service ;;
+esac
