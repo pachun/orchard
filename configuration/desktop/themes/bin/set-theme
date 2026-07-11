@@ -90,7 +90,7 @@ pkill -SIGUSR2 -x ghostty 2>/dev/null || true
 # active symlink) so the focused-window border repaints to the new theme.
 # reload doesn't re-run exec-once, so daemons started at launch aren't
 # disturbed.
-hyprctl reload 2>/dev/null || true
+hyprctl reload >/dev/null 2>&1 || true
 
 # Waybar hot-reloads CSS via its `reload_style_on_change` watcher
 # (set in config.jsonc). Modules keep state on this path, so the
@@ -116,7 +116,7 @@ fi
 # (and runs the include again), so the next notification gets the
 # new theme. Existing displayed toasts don't repaint, but those
 # expire on their own.
-makoctl reload 2>/dev/null || true
+makoctl reload >/dev/null 2>&1 || true
 
 # Chromium picks up theme via /etc/chromium/policies/managed/
 # orchard-theme.json, a symlink (set up by configure-chromium-theme.sh)
@@ -190,4 +190,4 @@ if tmux info >/dev/null 2>&1; then
     tmux source-file ~/.config/orchard-themes/active/tmux.conf 2>/dev/null || true
 fi
 
-notify-send "Theme" "Switched to $target"
+notify-send "Theme" "Switched to $target" >/dev/null 2>&1 || true
