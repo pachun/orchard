@@ -37,6 +37,19 @@ First, in the BIOS (press F2 at boot):
 Flash an [Arch ISO](https://archlinux.org/download/) to a USB drive and boot
 from it.
 
+The XPS has no ethernet port, so connect wifi from the live ISO first
+(`device list` shows the interface name if it isn't `wlan0`):
+
+```
+iwctl
+[iwd]# station wlan0 scan
+[iwd]# station wlan0 get-networks
+[iwd]# station wlan0 connect <SSID>
+[iwd]# exit
+```
+
+Then install the base system:
+
 ```
 pacman -Sy --noconfirm git
 git clone https://github.com/pachun/orchard /tmp/orchard
