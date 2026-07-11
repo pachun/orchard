@@ -39,3 +39,10 @@ if [[ "$MODE" == "desktop" ]]; then
     bash "$d/install.sh"
   done
 fi
+
+# The first desktop bringup ends in a reboot so you land at the login ->
+# Hyprland. The pgrep guard skips it when configure is re-run from inside a
+# running session to apply changes — that must never reboot the user out.
+if [[ "$MODE" == "desktop" ]] && ! pgrep -x Hyprland >/dev/null 2>&1; then
+  sudo reboot
+fi

@@ -56,11 +56,11 @@ git clone https://github.com/pachun/orchard /tmp/orchard
 /tmp/orchard/install-arch/dell-xps-14
 ```
 
-After reboot, sign in, connect wifi, and install the shell + dev tools:
+After reboot, sign in, connect wifi, and run the desktop setup:
 
 ```
 nmtui
-~/code/orchard/configure cli
+~/code/orchard/configure desktop
 ```
 
 # Install modes
