@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Keep windows out of the workspaces you can't reach.
+
+The `workspace empty` windowrule opens every new window on the lowest empty
+workspace — that's what gives each window a desktop of its own. But once 1..5
+are all occupied there is no empty workspace left below six, so it takes six.
+And six is nowhere: Cmd+1..5 stops at five, the bar only ever promises five,
+and a window that lands up there is plainly visible and completely unreachable.
+
+There is no way to say "the lowest empty one, but only among 1..5" in a
+windowrule. Hyprland's `empty` selector takes the lowest free number and has no
+bound — its `empty[1-5]` form parses happily and is then ignored, which is worse
+than an error. So the rule can't be fixed; the outcome has to be caught.
+
+When a window lands above the cap, move it to the workspace you were actually
+on. Running out of desktops should mean the new window joins the one you're
+looking at, not that it goes somewhere you can't follow.
+
+Failure is safe: if this dies, windows go back to overflowing onto workspace 6
+— the old behaviour, which is annoying rather than broken.
+"""
+import os
+import socket
+import subprocess
+import sys
+
+# The five workspaces the bar shows and Cmd+1..5 reach. Keep in step with
+# waybar's persistent-workspaces and xremap's Super-1..5.
+CAP = 5
+
+instance = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+if not instance:
+    sys.exit("HYPRLAND_INSTANCE_SIGNATURE not set; not inside a Hyprland session?")
+
+sock_path = f"{xdg_runtime}/hypr/{instance}/.socket2.sock"
+
+
+def active_workspace():
+    out = subprocess.run(
+        ["hyprctl", "activeworkspace", "-j"], capture_output=True, text=True, check=False
+    ).stdout
+    try:
+        import json
+
+        return json.loads(out).get("id")
+    except Exception:
+        return None
+
+
+# Where to send an overflowing window back to. Tracked from the workspace
+# events rather than read on demand, because by the time a window has opened on
+# six, six is already the active workspace — asking Hyprland where we are would
+# just tell us where we don't want to be.
+last_reachable = active_workspace() or 1
+
+
+def send_home(address):
+    subprocess.run(
+        ["hyprctl", "dispatch", "movetoworkspace", f"{last_reachable},address:{address}"],
+        check=False,
+    )
+
+
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect(sock_path)
+buf = b""
+while True:
+    chunk = s.recv(4096)
+    if not chunk:
+        break
+    buf += chunk
+    while b"\n" in buf:
+        line, buf = buf.split(b"\n", 1)
+        event = line.decode(errors="replace")
+
+        name, _, payload = event.partition(">>")
+
+        if name == "workspace":
+            # payload is the workspace name. Only remember one we could get
+            # back to — the whole point is not to strand ourselves on six.
+            if payload.isdigit() and 1 <= int(payload) <= CAP:
+                last_reachable = int(payload)
+
+        elif name == "openwindow":
+            # openwindow>>address,workspacename,class,title
+            fields = payload.split(",", 3)
+            if len(fields) < 2:
+                continue
+            address, workspace = fields[0], fields[1]
+            if workspace.isdigit() and int(workspace) > CAP:
+                send_home(f"0x{address}")
