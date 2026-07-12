@@ -50,16 +50,29 @@ spinner_off() {
 }
 trap spinner_off EXIT INT TERM
 
+# Whether the *next* listing should pay for a scan. Off by default; the
+# Refresh row turns it on for one pass.
+rescan=no
+
 while :; do
     active_wifi=$(nmcli -t -f NAME,TYPE connection show --active \
                   | awk -F: '$2=="802-11-wireless"{print $1; exit}')
 
-    nmcli device wifi rescan 2>/dev/null || true
-
     # IN-USE,SSID,SECURITY,SIGNAL,FREQ — sort key prefix encodes (active
     # first, then strongest signal first); awk emits "<rank>\t<row>", we
     # sort, then strip the rank with cut -f2-.
-    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL,FREQ device wifi list \
+    # --rescan no is the whole reason this menu opens instantly. `nmcli device
+    # wifi list` defaults to --rescan auto, which triggers a full blocking scan
+    # whenever its cache is more than 30 seconds old — i.e. essentially every
+    # time you actually open the menu. Measured at 4.3 seconds cold, against
+    # 21ms off the cache. A picker you summoned with a keystroke cannot spend
+    # four seconds deciding whether to appear.
+    #
+    # NetworkManager scans on its own schedule anyway, so the cache is rarely
+    # far behind, and the background kick below keeps the *next* open fresh.
+    # When you genuinely want current data, Refresh asks for it, and then it is
+    # fair to make you wait.
+    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL,FREQ device wifi list --rescan "$rescan" \
         | awk -F: -v sig_high="$SIG_HIGH" -v sig_med="$SIG_MED" \
                   -v sig_low="$SIG_LOW"   -v sig_none="$SIG_NONE" \
                   -v lock="$LOCK"         -v dot="$ACTIVE_DOT" '
@@ -90,6 +103,13 @@ while :; do
         | sort -u \
         | cut -f2-)
 
+    rescan=no
+
+    # Kick a scan without waiting on it, so the cache the *next* open reads is
+    # a fresh one. This is the async request only — the blocking part was never
+    # here, it was in `list --rescan auto` above.
+    (nmcli device wifi rescan >/dev/null 2>&1 &)
+
     list=$(
         [ -n "$active_wifi" ] && printf '%s\n' "$DISCONNECT_LABEL"
         printf '%s\n' "$RESCAN_LABEL"
@@ -100,6 +120,9 @@ while :; do
 
     case "$choice" in
         "$RESCAN_LABEL")
+            # The one place a scan is worth waiting for, because it's the one
+            # place you asked for it.
+            rescan=yes
             continue
             ;;
         "$DISCONNECT_LABEL")
