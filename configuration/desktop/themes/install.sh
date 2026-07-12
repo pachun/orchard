@@ -13,6 +13,7 @@
 #     chromium's file picker uses GTK3 so skipping it is fine.
 #   - apple-fonts (SF Pro / SF Mono / New York) used as the system UI
 #     font in gsettings and as the primary font in waybar.
+#   - noto-fonts-emoji so emoji render anywhere instead of as tofu.
 #   - ttf-phosphor-icons for the waybar status icons (set in waybar's
 #     own install.sh too — duplicated install is a no-op).
 #   - All theme config files (~/.config/gtk-3.0, gtk-4.0, Kvantum,
@@ -24,7 +25,14 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Qt theming runtime + sassc for the everforest from-source build.
-sudo pacman -S --needed --noconfirm kvantum qt6ct sassc
+#
+# noto-fonts-emoji is the only color emoji font on the box. Nothing in
+# orchard's package set depends on it, so without this line every emoji —
+# in ghostty, waybar, chromium, and the rofimoji picker itself — renders
+# as tofu. It ships its own fontconfig rule that installs Noto Color
+# Emoji as the fallback for the sans/serif/mono generics, so no extra
+# fontconfig of our own is needed.
+sudo pacman -S --needed --noconfirm kvantum qt6ct sassc noto-fonts-emoji
 
 bash "$TOOLS/install-yay.sh"
 yay -S --needed --noconfirm \
