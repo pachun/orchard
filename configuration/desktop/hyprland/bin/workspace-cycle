@@ -1,26 +1,52 @@
 #!/usr/bin/env bash
-# Cycle through workspaces 1..MAX with wrap-around at both ends. Bound
-# to Ctrl+Left/Right in hyprland.conf.
+# Step to the next or previous workspace, wrapping at both ends. Bound to
+# Ctrl+Left/Right in hyprland.conf.
+#
+# The ring is workspaces 1..5 — always, whether or not they hold anything, so
+# the five you see in the bar are the five you can reach — *plus* any workspace
+# above 5 that currently exists.
+#
+# That last part isn't a nicety. The global `windowrule = match:class .*,
+# workspace empty` opens every new window on the lowest empty workspace, so once
+# 1..5 are all occupied the next one lands on 6. Cmd+1..5 can't reach it (xremap
+# binds those five digits and no more), and this script used to stop at 5 — so a
+# window that landed there was simply unreachable: plainly visible in the bar,
+# and impossible to get to from the keyboard. Extending the ring to cover
+# whatever exists is what makes an overflow workspace somewhere you can go
+# rather than somewhere windows disappear to.
+#
+# The ring only ever grows to cover workspaces that *exist*, so there's still no
+# way to drift rightwards into an endless plain of empty desktops.
 #
 # Usage: workspace-cycle left|right
 set -euo pipefail
 
-MAX=5
+PERSISTENT=5
 
-dir="${1:-}"
-[ "$dir" = "left" ] || [ "$dir" = "right" ] || { echo "usage: $(basename "$0") left|right" >&2; exit 2; }
+direction="${1:-}"
+[ "$direction" = "left" ] || [ "$direction" = "right" ] || {
+    echo "usage: $(basename "$0") left|right" >&2
+    exit 2
+}
 
-current=$(hyprctl activeworkspace -j | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+current=$(hyprctl activeworkspace -j | jq '.id')
 
-case "$dir" in
-  right)
-    target=$((current + 1))
-    [ "$target" -gt "$MAX" ] && target=1
-    ;;
-  left)
-    target=$((current - 1))
-    [ "$target" -lt 1 ] && target="$MAX"
-    ;;
+# Special workspaces — the scratchpad focus-or-launch hides windows in — carry
+# negative ids and have their own keybinds. They're never part of the ring.
+highest_existing=$(hyprctl workspaces -j | jq '[.[] | select(.id > 0) | .id] | max // 0')
+
+last=$PERSISTENT
+[ "$highest_existing" -gt "$last" ] && last=$highest_existing
+
+case "$direction" in
+    right)
+        target=$((current + 1))
+        [ "$target" -gt "$last" ] && target=1
+        ;;
+    left)
+        target=$((current - 1))
+        [ "$target" -lt 1 ] && target=$last
+        ;;
 esac
 
 hyprctl dispatch workspace "$target" >/dev/null
