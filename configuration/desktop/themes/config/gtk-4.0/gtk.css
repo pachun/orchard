@@ -5,3 +5,47 @@
    particular) will still render in Adwaita defaults — accepted tradeoff
    instead of fighting libadwaita's anti-theming. */
 @import url("file:///usr/share/themes/catppuccin-frappe-blue-standard+default/gtk-4.0/gtk.css");
+
+/* Nautilus sidebar: Home, Trash, and whatever's mounted. Nothing else.
+ *
+ * Recent, Starred and Network are hardcoded into Nautilus's sidebar. There is
+ * no setting for any of them — the whole org.gnome.nautilus schema was read,
+ * and it has no key that touches the sidebar at all. The only supported lever
+ * is org.gnome.desktop.privacy remember-recent-files, which does drop Recent,
+ * but it's a system-wide privacy switch that changes every app's recent-files
+ * list; reaching for it to delete one row would be a large side effect for a
+ * small cosmetic win. So all three are hidden here instead, in one place, with
+ * no consequences beyond this sidebar.
+ *
+ * This is positional, and that's the ugly part: GTK4 CSS can't select a widget
+ * by its label, so the rows are addressed by index. The first list is
+ *
+ *     1 Home   2 Recent   3 Starred   4 Network   5 Trash
+ *
+ * (verified by colouring each index and looking), and 2..4 are the three to
+ * lose. Bookmarks and mounted volumes live in their own lists further down and
+ * are untouched — icloud keeps its row. If a GNOME release ever adds or
+ * reorders a row up there, this will quietly hide the wrong ones; the fix is to
+ * re-check the indices, not to reach for a cleverer selector, because there
+ * isn't one.
+ *
+ * The children have to be collapsed too, not just the row. GTK4 CSS has no
+ * `display: none` — hiding a row with opacity alone leaves it occupying space
+ * and, worse, still clickable, so you'd have an invisible Starred you could hit
+ * by accident. Zeroing the icon and font size as well takes the row to a real
+ * zero height, which is the only way to actually remove it. */
+.navigation-sidebar row:nth-child(2),
+.navigation-sidebar row:nth-child(3),
+.navigation-sidebar row:nth-child(4),
+.navigation-sidebar row:nth-child(2) *,
+.navigation-sidebar row:nth-child(3) *,
+.navigation-sidebar row:nth-child(4) * {
+    min-height: 0px;
+    min-width: 0px;
+    padding: 0px;
+    margin: 0px;
+    border: 0px;
+    opacity: 0;
+    font-size: 0px;
+    -gtk-icon-size: 0px;
+}
