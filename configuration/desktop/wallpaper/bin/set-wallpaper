@@ -1,0 +1,115 @@
+#!/bin/sh
+# Make the desktop wallpaper be what it ought to be.
+#
+# Usage:
+#   set-wallpaper <image>   make <image> the wallpaper
+#   set-wallpaper           paint whatever is already chosen
+#   set-wallpaper --clear   go back to the active theme's wallpaper
+#
+# One idempotent operation: work out which image ought to be up, and put
+# it up. Naming an image changes the answer first; naming none just
+# reasserts it. That's why login (hyprland.conf's exec-once, where swaybg
+# starts from nothing) and set-theme (where the theme's own wallpaper may
+# have just changed underneath us) both call it with no argument — they
+# aren't choosing anything, they just need the desktop to be correct.
+#
+# Which image ought to be up:
+#   1. the one chosen here, kept in ~/.local/state/orchard/
+#   2. otherwise the active theme's own wallpaper
+# A choice made here outranks the theme and survives theme switches,
+# until --clear. That's the point: it's for trying a wallpaper on without
+# committing it to a theme. To give a theme a new wallpaper permanently,
+# drop the image at ~/.config/orchard-themes/<theme>/wallpaper.<ext>.
+#
+# Nautilus's built-in "Set as Wallpaper" reaches this script through
+# orchard-wallpaper-portal, so right-clicking a downloaded image works.
+set -eu
+
+chosen_dir="${XDG_STATE_HOME:-$HOME/.local/state}/orchard"
+active_theme="$HOME/.config/orchard-themes/active"
+
+# Callers are as often GUI as terminal — Nautilus (via the portal) has no
+# terminal attached, so anything worth saying has to go through the
+# notification daemon to be seen at all. Echoed too, for the CLI path.
+announce() {
+    notify-send "Wallpaper" "$1" >/dev/null 2>&1 || true
+    echo "$1"
+}
+
+give_up() {
+    notify-send --urgency=critical "Wallpaper" "$1" >/dev/null 2>&1 || true
+    echo "set-wallpaper: $1" >&2
+    exit 1
+}
+
+# Glob rather than assume an extension: themes ship .png today, but a
+# chosen image lands with whatever extension its content implies.
+wallpaper_in() {
+    ls "$1"/wallpaper.* 2>/dev/null | head -n1
+}
+
+# swaybg has no IPC to swap images, so a change means a fresh process.
+# Start the new one *before* killing the old: reversing the order leaves
+# a frame where the default Hyprland background shows through. Pair with
+# `layerrule = no_anim, match:namespace wallpaper` in hyprland.conf so the
+# new surface doesn't slide in via the global layersIn animation. `setsid`
+# detaches swaybg from the caller's session so it outlives this script —
+# which matters most for set-theme, itself short-lived.
+repaint() {
+    # A choice of your own wins; otherwise the active theme's own image.
+    wallpaper=$(wallpaper_in "$chosen_dir")
+    [ -n "$wallpaper" ] || wallpaper=$(wallpaper_in "$active_theme")
+    [ -n "$wallpaper" ] && [ -f "$wallpaper" ] || return 0
+
+    previous_swaybg=$(pgrep -x swaybg 2>/dev/null || true)
+    setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
+
+    if [ -n "$previous_swaybg" ]; then
+        # Let the new layer surface render its first frame before tearing
+        # the old one down. Below ~0.15s on this hardware the gap shows.
+        # Skipped at login, where there's no old swaybg to replace.
+        sleep 0.3
+        kill $previous_swaybg 2>/dev/null || true
+    fi
+}
+
+case "${1:-}" in
+    "")
+        # No image named, so nothing to choose — just reassert the
+        # current answer. Deliberately silent about it: this is the path
+        # login takes, and a notification on every boot would be noise.
+        repaint
+        exit 0
+        ;;
+    --clear)
+        rm -f "$chosen_dir"/wallpaper.*
+        repaint
+        announce "Back to the theme's wallpaper"
+        exit 0
+        ;;
+esac
+
+image=$1
+[ -f "$image" ] || give_up "no such file: $image"
+
+# Sniff the content rather than trust the extension — a browser download
+# is as likely to be named `download` or `.jpg?width=2880` as anything
+# swaybg would recognise.
+mime=$(file --brief --mime-type "$image")
+case "$mime" in
+    image/png)  extension=png ;;
+    image/jpeg) extension=jpg ;;
+    image/webp) extension=webp ;;
+    image/*)    extension=${mime#image/} ;;
+    *)          give_up "not an image ($mime): $image" ;;
+esac
+
+# Copy rather than symlink. The source is usually a fresh download that
+# gets moved or deleted once it's been tried on; a symlink would dangle
+# and the desktop would come back bare after the next reboot.
+mkdir -p "$chosen_dir"
+rm -f "$chosen_dir"/wallpaper.*
+cp "$image" "$chosen_dir/wallpaper.$extension"
+
+repaint
+announce "$(basename "$image")"

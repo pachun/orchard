@@ -158,27 +158,12 @@ if [ -f "$nvim_lua" ]; then
     esac
 fi
 
-# Wallpaper. swaybg renders the desktop background as a wlr-layer-
-# shell surface; it has no IPC to swap images, so we start a fresh
-# instance pointed at the new theme's wallpaper, *then* kill the
-# previous one. Order matters: killing first leaves a frame where
-# the default Hyprland background shows through. Pair with the
-# `layerrule = no_anim, match:namespace wallpaper` in hyprland.conf
-# so the new surface doesn't slide-in via the global layersIn
-# animation. Glob handles whatever extension a theme uses (.png /
-# .jpg / .webp); if a theme has no wallpaper.<ext>, we leave the
-# current one in place. `setsid` detaches swaybg from this script's
-# session so it survives the script exit.
-wallpaper=$(ls "$themes_dir/active/wallpaper".* 2>/dev/null | head -n1)
-if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
-    old_swaybg_pids=$(pgrep -x swaybg 2>/dev/null || true)
-    setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
-    # Brief pause to let the new layer surface render its first
-    # frame before we tear down the old one. 0.3s is enough on this
-    # hardware; below ~0.15s the gap becomes visible.
-    sleep 0.3
-    [ -n "$old_swaybg_pids" ] && kill $old_swaybg_pids 2>/dev/null || true
-fi
+# Wallpaper. The theme owns one, so a switch may have changed which image
+# ought to be up — say so, and let set-wallpaper work it out. Note that
+# won't necessarily be *this* theme's wallpaper: an image chosen with
+# set-wallpaper deliberately outranks the theme and survives theme
+# switches, so trying a wallpaper on isn't undone by the next set-theme.
+"$HOME/.local/bin/set-wallpaper" || true
 
 # Tmux: re-source the active theme partial in the running server.
 # Status bar / pane borders / window tabs all live in that file —

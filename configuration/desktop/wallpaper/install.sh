@@ -1,17 +1,47 @@
 #!/usr/bin/env bash
-# Wallpaper daemon. Invoked from hyprland.conf with `-i <image> -m
-# fill`; no config file. swaybg over hyprpaper because hyprpaper 0.8.x
-# crashes on Asahi (empty EDID/monitor description → null std::string
-# deref in the hyprtoolkit rewrite). swaybg is the Hyprland wiki's
-# recommended simple alternative and just calls into wlr-layer-shell,
-# no monitor introspection. Idempotent.
+# Wallpaper. Owns:
+#   - swaybg, the wallpaper daemon. Invoked with `-i <image> -m fill`; no
+#     config file. Chosen over hyprpaper because hyprpaper 0.8.x crashes
+#     on Asahi (empty EDID/monitor description → null std::string deref in
+#     the hyprtoolkit rewrite). swaybg is the Hyprland wiki's recommended
+#     simple alternative and just calls into wlr-layer-shell, no monitor
+#     introspection.
+#   - set-wallpaper, which works out which image ought to be up and puts
+#     it up. A choice made there outranks the active theme's own
+#     wallpaper and survives theme switches — for trying an image on
+#     before committing it to a theme. Called with no image at all by
+#     hyprland.conf at login and by set-theme on a theme switch, both of
+#     which need the desktop to be correct without choosing anything.
+#   - orchard-wallpaper-portal, the missing XDG desktop portal backend
+#     that makes Nautilus's built-in "Set as Wallpaper" work. See below.
+# Idempotent.
 #
-# Wallpaper images live alongside this script and are symlinked into
-# ~/.local/share/wallpapers/ so hyprland.conf can reference them via
-# a stable path.
+# The images under wallpapers/ are symlinked into
+# ~/.local/share/wallpapers/ so they can be referenced by a stable path.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm swaybg
+# python-gobject is orchard-wallpaper-portal's only dependency — it talks
+# D-Bus through Gio.
+sudo pacman -S --needed --noconfirm swaybg python-gobject
 
 bash "$TOOLS/link.sh" "$HERE/wallpapers" "$HOME/.local/share/wallpapers"
+bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
+
+# D-Bus starts the portal backend on demand from this, so it needs no
+# exec-once and isn't running when nothing has asked for a wallpaper.
+bash "$TOOLS/link.sh" "$HERE/dbus" "$HOME/.local/share/dbus-1/services"
+
+# The .portal file is the one piece that can't live in $HOME:
+# xdg-desktop-portal only scans XDG_DATA_DIRS for these, and with
+# XDG_DATA_DIRS unset that means /usr/local/share and /usr/share. Copied
+# rather than symlinked into the repo, since root-owned symlinks into a
+# user checkout are a footgun if the checkout ever moves.
+sudo install -Dm644 "$HERE/portals/orchard.portal" \
+    /usr/share/xdg-desktop-portal/portals/orchard.portal
+
+# xdg-desktop-portal reads the backend list and portals.conf once, at
+# startup. Without a restart it goes on believing nothing implements the
+# Wallpaper portal and Nautilus's menu item stays dead.
+systemctl --user restart xdg-desktop-portal.service

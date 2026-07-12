@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Wallpaper backend for the XDG desktop portal.
+
+Nautilus's built-in "Set as Wallpaper" doesn't set the wallpaper itself —
+it asks the XDG desktop portal to, and the portal delegates to whichever
+backend implements org.freedesktop.impl.portal.Wallpaper. Only GNOME's
+backend ships one, and it writes a GNOME gsettings key that nothing on a
+Hyprland session reads. So the menu item exists and silently does nothing.
+
+This is that missing backend. It hands the image to set-wallpaper, which
+is what actually knows how to paint the desktop. With it registered, the
+native right-click item works — as does any other app that asks the
+portal to set a wallpaper.
+
+Started on demand by D-Bus (see the .service file alongside this script),
+not by an exec-once.
+"""
+
+import subprocess
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+BUS_NAME = "org.freedesktop.impl.portal.desktop.orchard"
+OBJECT_PATH = "/org/freedesktop/portal/desktop"
+
+# org.freedesktop.impl.portal.Wallpaper response codes.
+SUCCEEDED = 0
+FAILED = 2
+
+INTERFACE = """
+<node>
+  <interface name='org.freedesktop.impl.portal.Wallpaper'>
+    <method name='SetWallpaperURI'>
+      <arg type='o' name='handle' direction='in'/>
+      <arg type='s' name='app_id' direction='in'/>
+      <arg type='s' name='parent_window' direction='in'/>
+      <arg type='s' name='uri' direction='in'/>
+      <arg type='a{sv}' name='options' direction='in'/>
+      <arg type='u' name='response' direction='out'/>
+    </method>
+    <property name='version' type='u' access='read'/>
+  </interface>
+</node>
+"""
+
+set_wallpaper = Path(__file__).resolve().parent / "set-wallpaper"
+
+
+def paint(uri):
+    """Hand the image at `uri` to set-wallpaper. True if it took."""
+    location = urlparse(uri)
+    if location.scheme != "file":
+        return False
+
+    # The portal may hand us a document-portal path rather than the
+    # original file, so trust the URI it gives rather than looking for
+    # whatever the user clicked.
+    image = Path(unquote(location.path))
+    result = subprocess.run([str(set_wallpaper), str(image)])
+    return result.returncode == 0
+
+
+def on_call(_connection, _sender, _path, _interface, method, parameters, invocation):
+    if method != "SetWallpaperURI":
+        invocation.return_error_literal(
+            Gio.dbus_error_quark(), Gio.DBusError.UNKNOWN_METHOD, method
+        )
+        return
+
+    # `options` carries show-preview and set-on (background/lockscreen/
+    # both). We ignore both: there's no lockscreen wallpaper to set on
+    # this desktop, and applying immediately with no preview dialog is
+    # the whole point — the fast path for trying an image on.
+    _handle, _app_id, _parent_window, uri, _options = parameters.unpack()
+
+    applied = paint(uri)
+    invocation.return_value(GLib.Variant("(u)", (SUCCEEDED if applied else FAILED,)))
+
+
+def on_get_property(_connection, _sender, _path, _interface, name):
+    if name == "version":
+        return GLib.Variant("u", 1)
+    return None
+
+
+def on_bus_acquired(connection, _name):
+    connection.register_object(
+        OBJECT_PATH,
+        Gio.DBusNodeInfo.new_for_xml(INTERFACE).interfaces[0],
+        on_call,
+        on_get_property,
+        None,
+    )
+
+
+main_loop = GLib.MainLoop()
+
+Gio.bus_own_name(
+    Gio.BusType.SESSION,
+    BUS_NAME,
+    Gio.BusNameOwnerFlags.NONE,
+    on_bus_acquired,
+    None,
+    lambda *_: main_loop.quit(),
+)
+
+main_loop.run()
