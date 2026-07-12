@@ -5,9 +5,11 @@
 # Triggered from waybar's network module on-click.
 #
 # Row format (proportional font — no fixed columns, just consistent shape):
-#   <signal-icon>  <SSID>  <band>  <lock-if-secured>  <dot-if-active>
-# Band is the radio frequency the AP broadcasts on — 2.4G / 5G / 6G —
-# derived from nmcli's FREQ column. Same SSID on two bands shows as two rows.
+#   <signal-icon>  <SSID>  <lock-if-secured>  <dot-if-active>
+# One row per network. nmcli lists an entry per access point, so a mesh
+# repeats an SSID once per node; those are collapsed, keeping the strongest
+# signal. There is no band column: connecting takes an SSID and nothing else,
+# so a 2.4G row and a 5G row for one network did the same thing.
 # Special actions get their own icon so they read as actions, not networks:
 #   <arrows-clockwise>  Refresh
 #   <link-break>        Disconnect
@@ -58,9 +60,6 @@ while :; do
     active_wifi=$(nmcli -t -f NAME,TYPE connection show --active \
                   | awk -F: '$2=="802-11-wireless"{print $1; exit}')
 
-    # IN-USE,SSID,SECURITY,SIGNAL,FREQ — sort key prefix encodes (active
-    # first, then strongest signal first); awk emits "<rank>\t<row>", we
-    # sort, then strip the rank with cut -f2-.
     # --rescan no is the whole reason this menu opens instantly. `nmcli device
     # wifi list` defaults to --rescan auto, which triggers a full blocking scan
     # whenever its cache is more than 30 seconds old — i.e. essentially every
@@ -70,37 +69,51 @@ while :; do
     #
     # NetworkManager scans on its own schedule anyway, so the cache is rarely
     # far behind, and the background kick below keeps the *next* open fresh.
-    # When you genuinely want current data, Refresh asks for it, and then it is
+    # When you genuinely want current data, Refresh asks for it and then it's
     # fair to make you wait.
-    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL,FREQ device wifi list --rescan "$rescan" \
+    networks=$(nmcli -t -f IN-USE,SSID,SECURITY,SIGNAL device wifi list --rescan "$rescan" \
         | awk -F: -v sig_high="$SIG_HIGH" -v sig_med="$SIG_MED" \
                   -v sig_low="$SIG_LOW"   -v sig_none="$SIG_NONE" \
                   -v lock="$LOCK"         -v dot="$ACTIVE_DOT" '
+            # One row per network, not one per radio.
+            #
+            # nmcli lists an entry per *access point*, so a mesh answers with
+            # the same SSID over and over — a house with six of them buried the
+            # rest of the list. And the old rows carried a 2.4G/5G tag, which
+            # was a lie: connecting goes through `nmcli connection up <ssid>`,
+            # which takes an SSID and nothing else, so the two band rows for one
+            # network did exactly the same thing. Offering a choice that does
+            # not exist is worse than not offering it.
+            #
+            # So: collapse by SSID, keep the strongest signal seen for it, and
+            # let the router decide which of its radios answers.
             $2 == "" { next }
             {
-                ssid    = $2
-                secured = ($3 != "" && $3 != "--")
-                signal  = $4 + 0
-                in_use  = ($1 == "*")
-                freq    = $5 + 0
+                ssid   = $2
+                signal = $4 + 0
+                if ($1 == "*")                 in_use[ssid]  = 1
+                if ($3 != "" && $3 != "--")    secured[ssid] = 1
+                if (!(ssid in best) || signal > best[ssid]) best[ssid] = signal
+            }
+            END {
+                for (ssid in best) {
+                    signal = best[ssid]
 
-                if      (signal >= 70) icon = sig_high
-                else if (signal >= 50) icon = sig_med
-                else if (signal >= 30) icon = sig_low
-                else                   icon = sig_none
+                    if      (signal >= 70) icon = sig_high
+                    else if (signal >= 50) icon = sig_med
+                    else if (signal >= 30) icon = sig_low
+                    else                   icon = sig_none
 
-                if      (freq >= 5925) band = "6G"
-                else if (freq >= 4900) band = "5G"
-                else                   band = "2.4G"
+                    row = icon "  " ssid
+                    if (ssid in secured) row = row "  " lock
+                    if (ssid in in_use)  row = row "  " dot
 
-                row = icon "  " ssid "  " band
-                if (secured) row = row "  " lock
-                if (in_use)  row = row "  " dot
-
-                rank = in_use ? 0 : (100 - signal)
-                printf "%03d\t%s\n", rank, row
+                    # Sort key: connected network first, then strongest.
+                    rank = (ssid in in_use) ? 0 : (100 - signal)
+                    printf "%03d\t%s\n", rank, row
+                }
             }' \
-        | sort -u \
+        | sort \
         | cut -f2-)
 
     rescan=no
@@ -133,8 +146,8 @@ while :; do
     esac
 
     # Recover SSID from a network row. Format is:
-    #   <icon>  <SSID>  <band>  [<lock>]  [<dot>]
-    # Strip the leading icon + 2 spaces, then trailing tags.
+    #   <icon>  <SSID>  [<lock>]  [<dot>]
+    # Strip the leading icon + 2 spaces, then the trailing tags.
     rest=${choice#*  }
     case "$rest" in
         *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
@@ -143,12 +156,7 @@ while :; do
         *"  $LOCK") rest=${rest%"  $LOCK"}; secured=1 ;;
         *)          secured=0 ;;
     esac
-    case "$rest" in
-        *"  2.4G") ssid=${rest%"  2.4G"} ;;
-        *"  5G")   ssid=${rest%"  5G"} ;;
-        *"  6G")   ssid=${rest%"  6G"} ;;
-        *)         ssid=$rest ;;
-    esac
+    ssid=$rest
 
     # Saved-connection path — works for both open and secured networks
     # we've connected to before.
