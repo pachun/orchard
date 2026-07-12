@@ -45,7 +45,9 @@
 /* Right-side modules. Padding only — colors come from the theme. */
 #custom-recording   { padding: 0 8px; }
 #custom-weather     { padding: 0 8px; }
-#battery            { padding: 0 8px; }
+/* Battery holds the right-hand corner (on the notchless layout, where the
+ * clock is centred), so it carries the screen-edge breathing room. */
+#battery            { padding: 0 14px 0 8px; }
 #custom-nordvpn     { padding: 0 8px; }
 #custom-wifi-status { padding: 0 8px; }
 #custom-network     { padding: 0 8px; }
@@ -62,7 +64,7 @@
     to   { opacity: 1.00; }
 }
 #custom-updates     { padding: 0 8px; }
-#custom-clock       { padding: 0 14px 0 8px; }   /* 14 right = screen-edge breathing room */
+#custom-clock       { padding: 0 8px; }          /* centred, so symmetric */
 
 /* Per-module icon-weight overrides. Default font-family chain (set
  * on the global * rule) uses Phosphor regular (outlined) — kept for

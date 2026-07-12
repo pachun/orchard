@@ -1,0 +1,17 @@
+#!/bin/sh
+# waybar module: the clock. macOS-style in the bar ("Sun Jul 12  3:12 PM"),
+# with the full date and the seconds on hover — the bar is for glancing, the
+# tooltip is for when you actually need to know.
+#
+# Goes through `date` rather than waybar's built-in clock module, which uses
+# C++ chrono and doesn't support the `-` modifier needed to strip the leading
+# zeros from the day and hour. And through a script rather than an inline
+# exec, because a tooltip needs the module to emit JSON.
+#
+# Polled every second, so the seconds in the tooltip actually tick while
+# you're hovering. That's two `date` calls a second, which costs nothing.
+set -eu
+
+printf '{"text": "%s", "tooltip": "%s"}\n' \
+    "$(date +'%a %b %-d  %-I:%M %p')" \
+    "$(date +'%A, %-d %B %Y — %-I:%M:%S %p')"

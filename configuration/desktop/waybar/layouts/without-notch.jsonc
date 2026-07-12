@@ -13,16 +13,19 @@
 {
     "modules-center": ["custom/clock"],
 
+    // Battery last, hard against the screen edge. It's the one module you
+    // look for rather than notice, so it earns the corner — the place your
+    // eye can find without reading the bar.
     "modules-right": [
         "custom/dnd",
         "custom/recording",
         "custom/weather",
-        "battery",
         "custom/nordvpn",
         "custom/wifi-status",
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
-        "custom/updates"
+        "custom/updates",
+        "battery"
     ]
 }

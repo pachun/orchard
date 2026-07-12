@@ -18,16 +18,20 @@
         "custom/dnd"
     ],
 
+    // The clock keeps the corner here, because it has nowhere else to go — the
+    // notch owns the centre. Battery therefore sits as far right as it can
+    // without displacing it, rather than at the true edge it gets on a machine
+    // whose clock lives in the middle.
     "modules-right": [
         "custom/recording",
         "custom/weather",
-        "battery",
         "custom/nordvpn",
         "custom/wifi-status",
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
         "custom/updates",
+        "battery",
         "custom/clock"
     ]
 }
