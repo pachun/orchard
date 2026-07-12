@@ -1,0 +1,132 @@
+#!/bin/sh
+# Sourced by audio-menu (the picker) and waybar-audio (the bar icon). Both
+# need to answer the same questions — which outputs exist, what each one is
+# called, what icon it gets — so the answers live here once rather than
+# drifting apart in two scripts.
+#
+# Speed matters here in a way it doesn't for the other menus: this is bound to
+# a hotkey, and a picker that takes a beat to appear reads as a keypress that
+# didn't land. So the whole listing is two `pactl` calls and two `awk` passes,
+# with no forks per sink. The obvious shape — a shell function that looks up a
+# device's model, called once per row — ran `pactl list modules` fifteen times
+# and cost most of a second.
+#
+# Phosphor codepoints, taken from Phosphor's own stylesheet rather than
+# guessed. Guessing produced a thermometer for the speakers, a Google Play
+# logo for the headphones and an italic "I" for every AirPlay device — all
+# real glyphs, just not the ones I assumed:
+#   speaker-high U+E44A   speaker-low  U+E44C   speaker-none  U+E44E
+#   speaker-slash U+E45A  headphones   U+E2A6   monitor       U+E32E
+#   bluetooth    U+E0DA   television   U+E754   airplay       U+E004
+#   laptop       U+E586
+
+ICON_SPEAKER=$(printf '\356\221\212')
+ICON_SPEAKER_LOW=$(printf '\356\221\214')
+ICON_SPEAKER_NONE=$(printf '\356\221\216')
+ICON_SPEAKER_MUTED=$(printf '\356\221\232')
+ICON_HEADPHONES=$(printf '\356\212\246')
+ICON_HDMI=$(printf '\356\214\256')
+ICON_BLUETOOTH=$(printf '\356\203\232')
+ICON_APPLE_TV=$(printf '\356\235\224')
+ICON_HOMEPOD=$(printf '\356\200\204')
+ICON_MAC=$(printf '\356\226\206')
+
+audio_current_sink() {
+    pactl get-default-sink 2>/dev/null || true
+}
+
+# "<sink>\t<label>\t<icon>" for every output worth offering, in one pass.
+#
+# Three things this gets right that the obvious version doesn't.
+#
+# The label: a sink's Description is the whole sound card ("Core Ultra
+# Processors (Series 3) HD Audio HDMI / DisplayPort 1 Output"), unreadable in
+# a picker, while node.nick is the short name ("HDMI 1"). And the built-in
+# speakers are named for what they are to *you*, not to ALSA — sitting in a
+# list of speakers scattered round the house, the one in front of you is "This
+# Computer", the same thing Apple and Spotify call it.
+#
+# The filter: a laptop advertises a sink per physical port whether or not
+# anything is plugged into it, so headphones and three HDMI outputs list
+# themselves on a machine with none of them connected. A port marked "not
+# available" has nothing in it. AirPlay sinks have no ports at all and are
+# always real, so an absent port block means keep.
+#
+# The icon: an AirPlay sink knows its address but not what kind of thing it
+# is — the model lives on the module that created it. Join the two on IP, or a
+# house full of Apple devices renders as one undifferentiated list.
+audio_outputs() {
+    _models=$(pactl list modules short 2>/dev/null | awk '
+        /raop-sink/ {
+            ip = ""; model = ""
+            if (match($0, /"raop\.ip": "[^"]*"/)) {
+                ip = substr($0, RSTART, RLENGTH); sub(/.*: "/, "", ip); sub(/"$/, "", ip)
+            }
+            if (match($0, /"device\.model": "[^"]*"/)) {
+                model = substr($0, RSTART, RLENGTH); sub(/.*: "/, "", model); sub(/"$/, "", model)
+            }
+            if (ip != "") print ip "\t" model
+        }')
+
+    pactl list sinks 2>/dev/null | awk \
+        -v models="$_models" \
+        -v i_speaker="$ICON_SPEAKER" -v i_headphones="$ICON_HEADPHONES" \
+        -v i_hdmi="$ICON_HDMI" -v i_bluetooth="$ICON_BLUETOOTH" \
+        -v i_appletv="$ICON_APPLE_TV" -v i_homepod="$ICON_HOMEPOD" -v i_mac="$ICON_MAC" '
+        BEGIN {
+            rows = split(models, lines, "\n")
+            for (i = 1; i <= rows; i++) {
+                split(lines[i], kv, "\t")
+                if (kv[1] != "") model_by_ip[kv[1]] = kv[2]
+            }
+        }
+        function icon_for(sink,   ip, model) {
+            if (sink ~ /^raop_sink\./) {
+                if (match(sink, /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/))
+                    ip = substr(sink, RSTART, RLENGTH)
+                model = model_by_ip[ip]
+                if (model ~ /^AppleTV/)        return i_appletv
+                if (model ~ /^AudioAccessory/) return i_homepod
+                if (model ~ /^Mac/)            return i_mac
+                return i_homepod
+            }
+            if (sink ~ /^bluez/)     return i_bluetooth
+            if (sink ~ /HDMI|hdmi/)  return i_hdmi
+            if (sink ~ /[Hh]eadphone/) return i_headphones
+            return i_speaker
+        }
+        function flush(   label) {
+            if (name == "" || (ports > 0 && usable == 0)) return
+            label = (nick != "" ? nick : description)
+            if (name ~ /^alsa_output/ && label == "Speaker") label = "This Computer"
+            print name "\t" label "\t" icon_for(name)
+        }
+        /^Sink #/              { flush(); name=""; nick=""; description=""; ports=0; usable=0; in_ports=0 }
+        /^\tName: /            { name = $2 }
+        /^\tDescription: /     { $1=""; sub(/^ /,""); description = $0 }
+        /node\.nick = "/       { nick = $0; sub(/^.*node\.nick = "/,"",nick); sub(/".*$/,"",nick) }
+        /^\tPorts:/            { in_ports = 1; next }
+        in_ports && /^\t\t/    { ports++; if ($0 !~ /not available/) usable++; next }
+        in_ports && /^\t[^\t]/ { in_ports = 0 }
+        END                    { flush() }
+    '
+}
+
+# The bar shows a speaker, always — not the icon of whatever device is playing.
+# Which room the sound is in is what the tooltip and the picker are for; what
+# you want at a glance from a bar is the state of the *volume*, so the glyph
+# spends its one degree of freedom on that: a slash when muted, and zero, one
+# or two arcs as the level climbs.
+audio_volume_icon() {
+    if pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | grep -q yes; then
+        printf '%s' "$ICON_SPEAKER_MUTED"
+        return
+    fi
+    _volume=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null \
+        | grep -oE '[0-9]+%' | head -n1 | tr -d '%')
+    [ -n "$_volume" ] || _volume=0
+    if   [ "$_volume" -eq 0 ];  then printf '%s' "$ICON_SPEAKER_NONE"
+    elif [ "$_volume" -le 50 ]; then printf '%s' "$ICON_SPEAKER_LOW"
+    else                             printf '%s' "$ICON_SPEAKER"
+    fi
+}

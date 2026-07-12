@@ -1,0 +1,61 @@
+#!/bin/sh
+# Pick where sound comes out. Lists every usable output — the laptop itself,
+# headphones, HDMI, bluetooth, and any AirPlay speaker the airplay feature has
+# discovered — and switches to the chosen one. Bound to Cmd+Shift+A, and to a
+# click on waybar's speaker icon.
+#
+# Switching means two things, and doing only the first is the usual mistake:
+#   1. set the default sink, so anything that starts playing *later* goes
+#      there, and
+#   2. move every stream that's *already* playing. Without this, picking a
+#      speaker while Spotify is mid-song appears to do nothing at all,
+#      because the browser is already bound to the old sink.
+#
+# Why an OS-level picker exists at all: the Spotify web player's own device
+# list only enumerates Spotify Connect and Google Cast devices — it cannot see
+# a system audio sink, so AirPlay speakers will never appear in it. AirPlay
+# here is a PipeWire sink, so the choice belongs to the OS. Send the browser's
+# audio to a HomePod from this menu and Spotify is none the wiser.
+#
+# Row format mirrors wifi-menu / nordvpn-menu: leading icon, name, and a
+# trailing ● on the current output. The sink list and icons are shared with
+# waybar's module — see _audio-sinks, which also explains why the listing is
+# built the way it is (a hotkey-bound picker cannot afford to be slow).
+set -eu
+
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_audio-sinks"
+
+ACTIVE_DOT='●'
+
+current=$(audio_current_sink)
+outputs=$(audio_outputs)
+
+# Current output first (the 0/1 sort key), then alphabetical.
+rows=$(
+    printf '%s\n' "$outputs" | awk -F'\t' -v current="$current" -v dot="$ACTIVE_DOT" '
+        $1 == "" { next }
+        $1 == current { printf "0\t%s  %s  %s\n", $3, $2, dot; next }
+                      { printf "1\t%s  %s\n",     $3, $2 }
+    ' | sort | cut -f2-
+)
+
+choice=$(printf '%s' "$rows" | fuzzel --dmenu --prompt 'output: ' --width 34 --lines 12) || exit 0
+
+label=${choice#*  }
+case "$label" in
+    *"  $ACTIVE_DOT") label=${label%"  $ACTIVE_DOT"} ;;
+esac
+
+sink=$(printf '%s\n' "$outputs" | awk -F'\t' -v l="$label" '$2 == l { print $1; exit }')
+[ -n "$sink" ] || exit 0
+
+pactl set-default-sink "$sink"
+
+# Everything already playing is still attached to the old sink; move it, or
+# the switch looks like it did nothing.
+pactl list sink-inputs short 2>/dev/null | while read -r id _; do
+    [ -n "$id" ] && pactl move-sink-input "$id" "$sink" 2>/dev/null || true
+done
+
+notify-send 'Output' "$label" >/dev/null 2>&1 || true
