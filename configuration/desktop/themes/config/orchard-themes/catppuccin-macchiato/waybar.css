@@ -42,7 +42,6 @@ window#waybar {
 #custom-wifi-status         { color: #b8c0e0; }
 #custom-network             { color: #b8c0e0; }
 #custom-bluetooth           { color: #b8c0e0; }
-#custom-bluetooth.connected { color: #cad3f5; }
 #custom-audio               { color: #b8c0e0; }
 #custom-updates             { color: #b8c0e0; }
 #custom-clock               { color: #b8c0e0; }

@@ -3,20 +3,25 @@
 # in the bar at all times per design — never blanks).
 #
 # Steady-state output:
-#   service down / no adapter   → bluetooth-slash, "off" tooltip,    grey
-#   on, no devices connected    → bluetooth,       "no connections", grey (default)
-#   on, ≥1 device connected     → bluetooth-conn., device list,      class=connected (white)
+#   service down / no adapter   → bluetooth-slash, "off" tooltip
+#   on, no devices connected    → bluetooth,       "no connections"
+#   on, ≥1 device connected     → bluetooth-conn., device list
+#
+# The connection state is carried by the *glyph*, not by colour. Every
+# ambient icon on the right of the bar is the same colour by design: one
+# icon rendering brighter than its neighbours reads as a fault rather than
+# as a signal, whatever it was meant to say. bluetooth-connected is visibly
+# a different mark from bluetooth, which is signal enough, and the device
+# name is in the tooltip. The `connected` class is still emitted — it's true,
+# and a theme could use it — but nothing styles it.
 #
 # Active scan: when /tmp/bluetooth-scanning exists (dropped by
 # bluetooth-menu under a trap on auto-scan start, removed on end),
 # we append "scanning" to the class. CSS animates opacity on
 # .scanning so the existing bluetooth glyph itself pulses — no
 # separate module, no layout shift, scanning is just a *state* of
-# the icon you already know.
-#
-# CSS handles the color: default #b5bfe2 (subtext1, grey), .connected
-# bumps to #c6d0f5 (text, white), .scanning runs the bt-pulse
-# keyframe on whatever class is also present.
+# the icon you already know. Opacity, not colour, so it stays within
+# the rule above.
 #
 # Phosphor codepoints:
 #   bluetooth            U+E0DA
