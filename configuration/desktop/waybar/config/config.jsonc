@@ -202,12 +202,16 @@
     },
 
     "custom/clock": {
-        // macOS-style: "Thu Apr 30 9:28 PM". Goes through `date` (GNU
-        // strftime) instead of waybar's built-in clock module because
-        // the latter uses C++ chrono, which doesn't support the `-`
-        // modifier needed to strip leading zeros from day and hour.
-        "exec": "date +'%a %b %-d  %-I:%M %p'",
-        "interval": 60,
-        "on-click": "$HOME/.local/bin/focus-or-launch org.gnome.Calendar gnome-calendar"
+        // macOS-style in the bar; hover for the full date and the seconds.
+        // Polled every second so those seconds actually tick while you're
+        // looking at them — see waybar-clock for why it's a script rather
+        // than waybar's own clock module.
+        //
+        // Click opens Google Calendar, not gnome-calendar: the calendar that
+        // matters is the one the events are actually in.
+        "exec": "$HOME/.local/bin/waybar-clock",
+        "return-type": "json",
+        "interval": 1,
+        "on-click": "$HOME/.local/bin/focus-or-launch chrome-calendar.google.com__-Default chromium --app=https://calendar.google.com"
     }
 }
