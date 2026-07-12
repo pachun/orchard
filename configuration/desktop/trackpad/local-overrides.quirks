@@ -1,0 +1,23 @@
+# The XPS 14's trackpad is a haptic clickpad — no hinge, no switch, the
+# whole surface is a force sensor. A firm press anywhere on it fires
+# BTN_LEFT, and the heel of a hand resting on the pad while typing
+# presses hard enough to do it. Hyprland's disable_while_typing can't
+# help: libinput's DWT suppresses touch-derived events (taps, motion)
+# but deliberately never gates the physical button, on the assumption
+# that a real button press is always intentional. On a hinged clickpad
+# that holds; on a force sensor it doesn't.
+#
+# So drop the button. Every click on this machine is a tap already —
+# tap-to-click, plus two- and three-finger taps for right and middle —
+# and libinput synthesizes those from touch events without going near
+# BTN_LEFT. What this gives up is press-to-click in all three forms
+# (the pad reports no BTN_RIGHT/BTN_MIDDLE of its own; libinput derives
+# those from BTN_LEFT plus the finger count, so they go too).
+#
+# DMI-scoped to the XPS, so this file is inert on the Asahi mac, whose
+# trackpad is handled by the palm-filter daemon instead.
+[Dell XPS 14 Touchpad]
+MatchName=*Touchpad
+MatchUdevType=touchpad
+MatchDMIModalias=dmi:*:svnDellInc.:pnXPS14DA14260:*
+AttrEventCode=-BTN_LEFT
