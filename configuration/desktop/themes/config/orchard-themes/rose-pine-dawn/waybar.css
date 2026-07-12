@@ -54,5 +54,11 @@ window#waybar {
 #network                    { color: #333333; }
 #custom-bluetooth           { color: #333333; }
 #custom-bluetooth.connected { color: #000000; }
+/* Audio output: dim on the laptop's own speakers, bright when sound is
+ * leaving the machine for an AirPlay speaker — the same "this is live"
+ * tier bluetooth-connected uses. Playing into another room is a state
+ * worth noticing you're in. */
+#custom-audio               { color: #333333; }
+#custom-audio.remote        { color: #000000; }
 #custom-updates             { color: #333333; }
 #custom-clock               { color: #333333; }

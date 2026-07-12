@@ -43,6 +43,23 @@
         "custom/dnd"
     ],
 
+    "custom/audio": {
+        // Volume, and a way into the output picker. Always a speaker glyph —
+        // it gains an arc as the level climbs and wears a slash when muted.
+        // Which *device* is playing is a slower fact and lives in the tooltip;
+        // click (or Cmd+Shift+A) opens audio-menu to change it. Carries the
+        // `remote` class when sound is leaving the machine for AirPlay.
+        //
+        // No interval: the script runs continuously and pushes a line on every
+        // pactl event, so the icon tracks the volume keys exactly rather than
+        // lagging up to a poll behind them. restart-interval revives it if
+        // pactl subscribe ever dies.
+        "exec": "$HOME/.local/bin/waybar-audio",
+        "return-type": "json",
+        "restart-interval": 5,
+        "on-click": "$HOME/.local/bin/audio-menu"
+    },
+
     "custom/bluetooth": {
         // Always visible. Grey when nothing is connected (or service is
         // off / adapter missing); white via .connected class when ≥1
@@ -80,7 +97,7 @@
         "format": " ",
         "tooltip": false
     },
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "custom/network", "custom/bluetooth", "custom/updates", "custom/clock"],
+    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "custom/network", "custom/audio", "custom/bluetooth", "custom/updates", "custom/clock"],
 
     "custom/dnd": {
         // Bell icon (bell-off when DND is on). Sits as the leftmost

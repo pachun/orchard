@@ -1,0 +1,55 @@
+#!/bin/sh
+# waybar module: the volume, and a way into the output picker.
+#
+# The glyph is always a speaker — never the icon of whatever device happens to
+# be playing. A bar icon has one degree of freedom and it should spend it on
+# the thing that changes constantly and that you act on: the volume. So the
+# speaker gains an arc as the level climbs (none / one / two) and wears a slash
+# when muted. *Which* speaker the sound is going to is a slower-moving fact,
+# and it belongs in the tooltip and the picker — click to open audio-menu.
+#
+# The `remote` class is set whenever sound is leaving the machine for an
+# AirPlay speaker, so the bar can call that out (see style.css). Playing into
+# another room is a state worth noticing you're in.
+#
+# Runs continuously rather than on a poll: pactl subscribe wakes us on every
+# volume, mute and default-sink change, so the icon tracks the volume keys
+# exactly instead of lagging up to a second behind them. The sink's *label* is
+# only recomputed when the default sink actually changes — that costs a full
+# `pactl list sinks`, and re-running it on every volume keypress would be
+# wasteful.
+set -eu
+
+. "$HOME/.local/bin/_audio-sinks"
+
+known_sink=""
+label=""
+
+emit() {
+    sink=$(audio_current_sink)
+    if [ -z "$sink" ]; then
+        printf '{"text": "%s", "tooltip": "No audio output"}\n' "$ICON_SPEAKER_MUTED"
+        return
+    fi
+
+    if [ "$sink" != "$known_sink" ]; then
+        label=$(audio_outputs | awk -F'\t' -v n="$sink" '$1 == n { print $2; exit }')
+        [ -n "$label" ] || label="Unknown"
+        known_sink=$sink
+    fi
+
+    case "$sink" in
+        raop_sink.*) class=remote ;;
+        *)           class=local ;;
+    esac
+
+    printf '{"text": "%s", "tooltip": "Output: %s", "class": "%s"}\n' \
+        "$(audio_volume_icon)" "$label" "$class"
+}
+
+emit
+pactl subscribe 2>/dev/null | while read -r event; do
+    case "$event" in
+        *"on sink"*|*"on server"*) emit ;;
+    esac
+done

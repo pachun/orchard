@@ -49,6 +49,7 @@
 #custom-nordvpn     { padding: 0 8px; }
 #custom-wifi-status { padding: 0 8px; }
 #custom-network     { padding: 0 8px; }
+#custom-audio       { padding: 0 8px; }
 #custom-bluetooth   { padding: 0 8px; }
 /* Active scan: the bluetooth glyph itself pulses. No separate
  * indicator slot — the user's eye already knows where bluetooth
@@ -75,6 +76,7 @@
 #custom-nordvpn,
 #custom-dnd,
 #custom-updates,
+#custom-audio,
 #custom-bluetooth {
     font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
 }
