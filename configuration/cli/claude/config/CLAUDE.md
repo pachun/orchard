@@ -88,6 +88,18 @@ edits land in the dotfiles automatically — just remember to commit.
     - Keep paste-back only for genuinely-tiny output (one short
       line that's faster to read than to fopen).
 
+- **Open browser previews as a tab, never a new window.** When you
+  build something for me to look at — a generated gallery, a
+  comparison page, any local HTML — run `chromium <url>` with no
+  flags. Never `chromium --new-window <url>`.
+
+  Hyprland has a global `windowrule = match:class .*, workspace
+  empty`, so every *new window* gets sent to the lowest-numbered
+  empty workspace. A preview opened with `--new-window` doesn't just
+  open a window, it teleports me off the desktop I was working on.
+  Plain `chromium <url>` reuses the running instance and opens a tab
+  in the last-focused window, launching Chromium if nothing is up.
+
 ## Common file locations
 
 - **Screenshots**: `~/pictures/screenshots/` (lowercase
