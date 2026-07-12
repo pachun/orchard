@@ -45,8 +45,7 @@
         // Volume, and a way into the output picker. Always a speaker glyph —
         // it gains an arc as the level climbs and wears a slash when muted.
         // Which *device* is playing is a slower fact and lives in the tooltip;
-        // click (or Cmd+Shift+A) opens audio-menu to change it. Carries the
-        // `remote` class when sound is leaving the machine for AirPlay.
+        // click (or Cmd+Shift+S) opens audio-menu to change it.
         //
         // No interval: the script runs continuously and pushes a line on every
         // pactl event, so the icon tracks the volume keys exactly rather than
@@ -144,7 +143,7 @@
         "interval": 600,
         "signal": 9,
         "markup": "pango",
-        "on-click": "$HOME/.local/bin/focus-or-launch weather ghostty --class=weather -e sh -c 'curl wttr.in; read'"
+        "on-click": "$HOME/.local/bin/focus-or-launch chrome-www.google.com__search-Default chromium '--app=https://www.google.com/search?q=weather'"
     },
 
     "battery": {
