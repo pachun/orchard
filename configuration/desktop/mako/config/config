@@ -36,6 +36,13 @@ ignore-timeout=1
 # slot frees up.
 max-visible=1
 
+# Capping max-visible makes mako add a second toast reading "(1 more)"
+# to stand for the queue. It carries no information — you can't read,
+# dismiss or act on what it refers to — and with max-visible=1 it shows
+# up constantly, so every burst costs two toasts instead of one.
+[hidden]
+invisible=1
+
 [urgency=critical]
 default-timeout=0
 
