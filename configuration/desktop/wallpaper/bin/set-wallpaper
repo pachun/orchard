@@ -158,7 +158,15 @@ esac
 
 theme=$(theme_name)
 mkdir -p "$chosen_wallpapers"
-rm -f "$chosen_wallpapers/$theme".*
+
+# Build the new wallpaper off to the side, and only swap it into place once
+# it exists. The obvious order — clear the old file, then write the new one
+# — quietly breaks the most natural thing there is to ask for: recolour the
+# wallpaper that's already up. There, the source *is* the file being
+# cleared, so it would be deleted out from under lutgen and the desktop
+# would end up with nothing.
+staged=$(mktemp -d)
+trap 'rm -rf "$staged"' EXIT INT TERM
 
 if [ -n "$recolour" ]; then
     command -v lutgen >/dev/null 2>&1 || give_up "--recolor needs lutgen (yay -S lutgen-bin)"
@@ -172,23 +180,26 @@ if [ -n "$recolour" ]; then
     colours=$(grep -oE '#[0-9a-fA-F]{6}' "$palette" | sort -u)
     [ -n "$colours" ] || give_up "no colours found in $palette"
 
-    # lutgen always writes PNG. --preserve keeps the source's luminosity,
-    # so the artwork's light-and-dark structure survives and only the hues
-    # move. Unquoted $colours is deliberate: it must word-split into one
-    # argument per colour.
-    lutgen apply "$image" -o "$chosen_wallpapers/$theme.png" \
+    # lutgen always writes PNG. --preserve keeps the source's luminosity, so
+    # the artwork's light-and-dark structure survives and only the hues move.
+    # Unquoted $colours is deliberate: it must word-split into one argument
+    # per colour.
+    staged_wallpaper="$staged/wallpaper.png"
+    lutgen apply "$image" -o "$staged_wallpaper" \
         --preserve --lum "$recolour_strength" -- $colours >/dev/null 2>&1 \
         || give_up "lutgen failed on $(basename "$image")"
-
-    repaint
-    announce "$theme: $(basename "$image"), recoloured"
-    exit 0
+    what="$(basename "$image"), recoloured"
+else
+    # Copy rather than reference the original. The source is usually a fresh
+    # download that gets moved or deleted once it's been tried on; a symlink
+    # would dangle and the desktop would come back bare after a reboot.
+    staged_wallpaper="$staged/wallpaper.$extension"
+    cp "$image" "$staged_wallpaper"
+    what="$(basename "$image")"
 fi
 
-# Copy rather than symlink. The source is usually a fresh download that
-# gets moved or deleted once it's been tried on; a symlink would dangle
-# and the desktop would come back bare after the next reboot.
-cp "$image" "$chosen_wallpapers/$theme.$extension"
+rm -f "$chosen_wallpapers/$theme".*
+mv "$staged_wallpaper" "$chosen_wallpapers/$theme.${staged_wallpaper##*.}"
 
 repaint
-announce "$theme: $(basename "$image")"
+announce "$theme: $what"
