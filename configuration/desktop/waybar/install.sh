@@ -18,3 +18,22 @@ yay -S --needed --noconfirm ttf-phosphor-icons
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/waybar"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+
+# Which slots the clock and the DND toggle occupy depends on the screen, so
+# config.jsonc leaves modules-center and modules-right undefined and includes
+# ~/.config/waybar/layout.jsonc for them. Point that at the right layout.
+#
+# The Mac's camera cutout sits in the middle of the notch strip the bar is
+# sized to, so the centre of the bar is not somewhere anything can be read —
+# a clock there would be bisected. Every other machine has an unobstructed
+# screen, and a clock belongs in the middle of it.
+#
+# layouts/ deliberately sits outside config/ so link.sh doesn't stage both
+# files into ~/.config/waybar; only the chosen one is linked, as layout.jsonc.
+. "$TOOLS/machine.sh"
+if is_apple_silicon; then
+    layout=with-notch
+else
+    layout=without-notch
+fi
+ln -sfn "$HERE/layouts/$layout.jsonc" "$HOME/.config/waybar/layout.jsonc"

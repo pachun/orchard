@@ -1,0 +1,28 @@
+// Bar layout for a machine with an unobstructed screen — i.e. the XPS, and
+// anything that isn't an Apple laptop. Selected by waybar's install.sh and
+// symlinked to ~/.config/waybar/layout.jsonc; config.jsonc includes that path.
+//
+// The clock sits dead centre, which is where a clock wants to be and where
+// macOS can't put one. It's the only module in the centre group, so it's
+// centred on the screen rather than on a group that happens to contain it.
+//
+// Do-not-disturb moves to the head of the right-hand group. It lived in the
+// centre on the Mac purely to sit beside the notch; with no notch to sit
+// beside, the leftmost right-hand slot is the same idea — the most visible
+// spot that isn't the clock.
+{
+    "modules-center": ["custom/clock"],
+
+    "modules-right": [
+        "custom/dnd",
+        "custom/recording",
+        "custom/weather",
+        "battery",
+        "custom/nordvpn",
+        "custom/wifi-status",
+        "custom/network",
+        "custom/audio",
+        "custom/bluetooth",
+        "custom/updates"
+    ]
+}

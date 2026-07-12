@@ -18,6 +18,18 @@
     // to live on the far left / right when added.
     "height": 29,
     "spacing": 0,
+    // Where the clock and the DND toggle go depends on the machine's screen,
+    // so the two groups that differ live in a layout file that install.sh
+    // symlinks per machine: the Mac's notch makes the centre of the bar
+    // unreadable, so a clock has to sit on the right there, while on the XPS
+    // it belongs dead centre. See waybar/layouts/.
+    //
+    // waybar's include only fills in keys the main config doesn't already
+    // define, so modules-center and modules-right are deliberately absent
+    // here — defining them would silently win and the layout file would do
+    // nothing. modules-left is the same on both machines and stays.
+    "include": ["~/.config/waybar/layout.jsonc"],
+
     "modules-left": ["custom/system", "hyprland/workspaces"],
 
     "custom/system": {
@@ -28,20 +40,6 @@
         "tooltip": false,
         "on-click": "$HOME/.local/bin/system-menu"
     },
-    // Center section is structured as two zones around an invisible
-    // notch-spacer. Items BEFORE the spacer appear left of the notch
-    // (grows toward screen-left as you prepend more); items AFTER
-    // appear right of the notch (grows toward screen-right as you
-    // append more). Note: modules-center centers the WHOLE group, so
-    // adding items to one side does shift the other side slightly.
-    // For small stable item counts this is fine; if either zone
-    // outgrows a few items, re-tune notch-spacer's min-width.
-    "modules-center": [
-        // ── left-of-notch zone (currently empty) ──
-        "custom/notch-spacer",
-        // ── right-of-notch zone ──
-        "custom/dnd"
-    ],
 
     "custom/audio": {
         // Volume, and a way into the output picker. Always a speaker glyph —
@@ -97,13 +95,12 @@
         "format": " ",
         "tooltip": false
     },
-    "modules-right": ["custom/recording", "custom/weather", "battery", "custom/nordvpn", "custom/wifi-status", "custom/network", "custom/audio", "custom/bluetooth", "custom/updates", "custom/clock"],
 
     "custom/dnd": {
-        // Bell icon (bell-off when DND is on). Sits as the leftmost
-        // right-side module so it's adjacent to the notch — the most
-        // visible spot on the bar. Polled every 30s as a safety net,
-        // but dnd-toggle sends SIGRTMIN+7 to flip the icon immediately.
+        // Bell icon (bell-off when DND is on). Wants the most visible slot on
+        // the bar that isn't the clock, which is a different slot per machine
+        // — see waybar/layouts/. Polled every 30s as a safety net, but
+        // dnd-toggle sends SIGRTMIN+7 to flip the icon immediately.
         // Click toggles the mode; F6 in hyprland.conf does the same.
         "exec": "$HOME/.local/bin/waybar-dnd",
         "return-type": "json",

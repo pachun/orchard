@@ -1,0 +1,33 @@
+// Bar layout for an Apple laptop under Asahi, whose screen has a notch. The
+// bar is sized to the notch strip and the camera cutout sits in the middle of
+// it, so the centre of the bar is not a place anything can be read — a clock
+// there would be bisected by the cutout.
+//
+// So the clock stays on the right, and the centre group is a pair of zones
+// either side of an invisible spacer standing in for the notch itself.
+// Do-not-disturb sits in the right-hand zone, hard against the cutout: the
+// most visible spot on the bar.
+//
+// Selected by waybar's install.sh and symlinked to
+// ~/.config/waybar/layout.jsonc; config.jsonc includes that path.
+{
+    "modules-center": [
+        // ── left-of-notch zone (currently empty) ──
+        "custom/notch-spacer",
+        // ── right-of-notch zone ──
+        "custom/dnd"
+    ],
+
+    "modules-right": [
+        "custom/recording",
+        "custom/weather",
+        "battery",
+        "custom/nordvpn",
+        "custom/wifi-status",
+        "custom/network",
+        "custom/audio",
+        "custom/bluetooth",
+        "custom/updates",
+        "custom/clock"
+    ]
+}
