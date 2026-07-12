@@ -27,6 +27,8 @@ git clone https://github.com/pachun/orchard /tmp/orchard
 /tmp/orchard/install-arch/dell-xps-14
 ```
 
+After reboot:
+
 - Sign in
 - Connect to wifi `nmtui`
 - Install orchard `~/code/orchard/install desktop`
@@ -38,7 +40,7 @@ git clone https://github.com/pachun/orchard /tmp/orchard
 curl https://asahi-alarm.org/installer-bootstrap.sh | sh
 ```
 
-After rebooting into arch, connect to wifi and run the base bringup:
+After rebooting into arch, connect to wifi and setup the arch installation:
 
 ```
 nmtui
@@ -47,8 +49,9 @@ git clone https://github.com/pachun/orchard /tmp/orchard
 /tmp/orchard/install-arch/asahi
 ```
 
-After reboot, sign in and configure:
+After reboot:
 
-```
-~/code/orchard/configure
-```
+- Sign in
+- Connect to wifi `nmtui`
+- Install orchard `~/code/orchard/install desktop`
+- Run `~/code/orchard/connect` to connect your google calendar, github, icloud files, and tailscale
