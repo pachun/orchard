@@ -2,31 +2,46 @@
 # Make the desktop wallpaper be what it ought to be.
 #
 # Usage:
-#   set-wallpaper <image>   make <image> the wallpaper
-#   set-wallpaper           paint whatever is already chosen
-#   set-wallpaper --clear   go back to the active theme's wallpaper
+#   set-wallpaper <image>            make <image> this theme's wallpaper
+#   set-wallpaper --recolor <image>  recolour <image> to the active theme's
+#                                    palette first, then make it the wallpaper
+#   set-wallpaper --lum <n>          with --recolor: how hard to pull the image
+#                                    toward the theme. Low keeps the image's own
+#                                    colour variety; high makes everything agree
+#                                    with the theme and go grey. Default 0.4.
+#   set-wallpaper                    paint whatever is already chosen
+#   set-wallpaper --clear            go back to the theme's shipped wallpaper
 #
 # One idempotent operation: work out which image ought to be up, and put
 # it up. Naming an image changes the answer first; naming none just
 # reasserts it. That's why login (hyprland.conf's exec-once, where swaybg
-# starts from nothing) and set-theme (where the theme's own wallpaper may
-# have just changed underneath us) both call it with no argument — they
-# aren't choosing anything, they just need the desktop to be correct.
+# starts from nothing) and set-theme (where the answer may have just
+# changed underneath us) both call it with no argument — they aren't
+# choosing anything, they just need the desktop to be correct.
 #
-# Which image ought to be up:
-#   1. the one chosen here, kept in ~/.local/state/orchard/
-#   2. otherwise the active theme's own wallpaper
-# A choice made here outranks the theme and survives theme switches,
-# until --clear. That's the point: it's for trying a wallpaper on without
-# committing it to a theme. To give a theme a new wallpaper permanently,
-# drop the image at ~/.config/orchard-themes/<theme>/wallpaper.<ext>.
+# A choice belongs to the theme that was active when you made it, kept at
+# ~/.local/state/orchard/wallpapers/<theme>.<ext>. Switch themes and you
+# get that theme's wallpaper, not this one's — the whole reason to keep
+# four themes around is that they look different, and a single wallpaper
+# spanning all of them would flatten that. So: which image ought to be up
+# is answered per theme —
+#   1. the image chosen for the active theme, if there is one
+#   2. otherwise the wallpaper that theme ships with
+# --clear drops the choice for the active theme only, revealing the
+# shipped one underneath; it never deletes a theme's own wallpaper.
+#
+# To give a theme a new wallpaper permanently — as its shipped default,
+# committed to the repo — put the image at
+# ~/.config/orchard-themes/<theme>/wallpaper.<ext> instead. Choosing here
+# is the try-it-on path; that is the keep-it path.
 #
 # Nautilus's built-in "Set as Wallpaper" reaches this script through
 # orchard-wallpaper-portal, so right-clicking a downloaded image works.
 set -eu
 
-chosen_dir="${XDG_STATE_HOME:-$HOME/.local/state}/orchard"
-active_theme="$HOME/.config/orchard-themes/active"
+themes="$HOME/.config/orchard-themes"
+active_theme="$themes/active"
+chosen_wallpapers="${XDG_STATE_HOME:-$HOME/.local/state}/orchard/wallpapers"
 
 # Callers are as often GUI as terminal — Nautilus (via the portal) has no
 # terminal attached, so anything worth saying has to go through the
@@ -42,10 +57,18 @@ give_up() {
     exit 1
 }
 
+theme_name() {
+    basename "$(readlink "$active_theme" 2>/dev/null || echo unknown)"
+}
+
 # Glob rather than assume an extension: themes ship .png today, but a
 # chosen image lands with whatever extension its content implies.
-wallpaper_in() {
-    ls "$1"/wallpaper.* 2>/dev/null | head -n1
+first_match() {
+    ls "$1".* 2>/dev/null | head -n1
+}
+
+chosen_for_active_theme() {
+    first_match "$chosen_wallpapers/$(theme_name)"
 }
 
 # swaybg has no IPC to swap images, so a change means a fresh process.
@@ -56,9 +79,8 @@ wallpaper_in() {
 # detaches swaybg from the caller's session so it outlives this script —
 # which matters most for set-theme, itself short-lived.
 repaint() {
-    # A choice of your own wins; otherwise the active theme's own image.
-    wallpaper=$(wallpaper_in "$chosen_dir")
-    [ -n "$wallpaper" ] || wallpaper=$(wallpaper_in "$active_theme")
+    wallpaper=$(chosen_for_active_theme)
+    [ -n "$wallpaper" ] || wallpaper=$(first_match "$active_theme/wallpaper")
     [ -n "$wallpaper" ] && [ -f "$wallpaper" ] || return 0
 
     previous_swaybg=$(pgrep -x swaybg 2>/dev/null || true)
@@ -73,23 +95,53 @@ repaint() {
     fi
 }
 
-case "${1:-}" in
-    "")
-        # No image named, so nothing to choose — just reassert the
-        # current answer. Deliberately silent about it: this is the path
-        # login takes, and a notification on every boot would be noise.
-        repaint
-        exit 0
-        ;;
-    --clear)
-        rm -f "$chosen_dir"/wallpaper.*
-        repaint
-        announce "Back to the theme's wallpaper"
-        exit 0
-        ;;
-esac
+# How hard --recolor pulls an image toward the theme. This is lutgen's
+# `lum` factor: it decides whether a colour matches to the nearest hue or
+# the nearest brightness. lutgen defaults to 1.0, which on a palette as
+# blue-dominant as Catppuccin collapses every green, teal and purple in
+# the source into the same blue-grey — cohesive, but it flattens the
+# artwork. Low keeps the source's hue families distinct.
+recolour_strength=0.4
 
-image=$1
+recolour=""
+image=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --clear)
+            rm -f "$chosen_wallpapers/$(theme_name)".*
+            repaint
+            announce "$(theme_name): back to its own wallpaper"
+            exit 0
+            ;;
+        --recolor|--recolour)
+            [ "$#" -ge 2 ] || give_up "--recolor needs an image"
+            recolour=yes
+            image=$2
+            shift 2
+            ;;
+        --lum)
+            [ "$#" -ge 2 ] || give_up "--lum needs a number"
+            recolour_strength=$2
+            shift 2
+            ;;
+        -*)
+            give_up "unknown option: $1"
+            ;;
+        *)
+            image=$1
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$image" ]; then
+    # No image named, so nothing to choose — just reassert the current
+    # answer. Deliberately silent about it: this is the path login takes,
+    # and a notification on every boot would be noise.
+    repaint
+    exit 0
+fi
+
 [ -f "$image" ] || give_up "no such file: $image"
 
 # Sniff the content rather than trust the extension — a browser download
@@ -104,12 +156,39 @@ case "$mime" in
     *)          give_up "not an image ($mime): $image" ;;
 esac
 
+theme=$(theme_name)
+mkdir -p "$chosen_wallpapers"
+rm -f "$chosen_wallpapers/$theme".*
+
+if [ -n "$recolour" ]; then
+    command -v lutgen >/dev/null 2>&1 || give_up "--recolor needs lutgen (yay -S lutgen-bin)"
+
+    # Read the colours out of the theme's own palette file rather than
+    # naming one of lutgen's built-ins. Two reasons: a theme added later
+    # works with no code change, and orchard's names don't match lutgen's
+    # anyway (our `everforest` is its `everforest-dark-medium`).
+    palette="$active_theme/palette"
+    [ -f "$palette" ] || give_up "$theme has no palette file to recolour against"
+    colours=$(grep -oE '#[0-9a-fA-F]{6}' "$palette" | sort -u)
+    [ -n "$colours" ] || give_up "no colours found in $palette"
+
+    # lutgen always writes PNG. --preserve keeps the source's luminosity,
+    # so the artwork's light-and-dark structure survives and only the hues
+    # move. Unquoted $colours is deliberate: it must word-split into one
+    # argument per colour.
+    lutgen apply "$image" -o "$chosen_wallpapers/$theme.png" \
+        --preserve --lum "$recolour_strength" -- $colours >/dev/null 2>&1 \
+        || give_up "lutgen failed on $(basename "$image")"
+
+    repaint
+    announce "$theme: $(basename "$image"), recoloured"
+    exit 0
+fi
+
 # Copy rather than symlink. The source is usually a fresh download that
 # gets moved or deleted once it's been tried on; a symlink would dangle
 # and the desktop would come back bare after the next reboot.
-mkdir -p "$chosen_dir"
-rm -f "$chosen_dir"/wallpaper.*
-cp "$image" "$chosen_dir/wallpaper.$extension"
+cp "$image" "$chosen_wallpapers/$theme.$extension"
 
 repaint
-announce "$(basename "$image")"
+announce "$theme: $(basename "$image")"
