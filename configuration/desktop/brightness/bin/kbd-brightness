@@ -4,11 +4,24 @@
 # bl_power flip to handle, so 0 just means off here.
 #
 # Usage: kbd-brightness up|down [STEP%]   (STEP defaults to 5%)
+#        kbd-brightness max               (used at login — see hyprland.conf)
 # 5% pairs well with Hyprland's `binde` at the default 25 Hz repeat rate:
 # a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
 set -euo pipefail
 
-DEVICE=kbd_backlight
+# The LED's name is chosen by the platform driver, not by any convention: it's
+# `dell::kbd_backlight` on the XPS and plain `kbd_backlight` elsewhere. This
+# used to hardcode the bare name, so on the Dell every call answered "Device
+# 'kbd_backlight' not found" — and both these keys and the login line did
+# nothing at all, silently, because nothing looks at brightnessctl's exit code.
+# Find the device instead of assuming its name.
+DEVICE=$(basename "$(ls -d /sys/class/leds/*kbd_backlight 2>/dev/null | head -n1)" 2>/dev/null || true)
+if [ -z "$DEVICE" ]; then
+  # No keyboard backlight on this machine. Not an error — an external keyboard
+  # or a machine without one is a perfectly ordinary thing to be.
+  exit 0
+fi
+
 STEP="${2:-5%}"
 
 show_osd() {
@@ -29,8 +42,13 @@ case "${1:-}" in
     brightnessctl --device "$DEVICE" set "${STEP}+" >/dev/null
     show_osd
     ;;
+  max)
+    # No OSD: this runs at login, and a progress pill nobody asked for is not
+    # the first thing you want to see.
+    brightnessctl --device "$DEVICE" set 100% >/dev/null
+    ;;
   *)
-    echo "usage: $(basename "$0") up|down [STEP%]" >&2
+    echo "usage: $(basename "$0") up|down [STEP%] | max" >&2
     exit 2
     ;;
 esac
