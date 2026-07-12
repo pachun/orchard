@@ -30,16 +30,10 @@
     // nothing. modules-left is the same on both machines and stays.
     "include": ["~/.config/waybar/layout.jsonc"],
 
-    "modules-left": ["custom/system", "hyprland/workspaces"],
-
-    "custom/system": {
-        // Arch logo (nf-md-arch, U+F08C7) — same MDI family as the icons
-        // on the right. Click opens a fuzzel menu with Update / Reboot /
-        // Shut down actions. See ~/.local/bin/system-menu.
-        "format": "󰣇",
-        "tooltip": false,
-        "on-click": "$HOME/.local/bin/system-menu"
-    },
+    // No distro logo. It was a launcher for the system menu and nothing else,
+    // and that menu is on Cmd+comma — so the icon was pure decoration, sitting
+    // in the one spot on the bar your eye lands on first.
+    "modules-left": ["hyprland/workspaces"],
 
     "custom/audio": {
         // Volume, and a way into the output picker. Always a speaker glyph —

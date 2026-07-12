@@ -22,8 +22,10 @@
     min-height: 0;
 }
 
-#custom-system              { padding: 0 10px 0 12px; }
-#workspaces                 { padding: 0 4px; }
+/* Workspaces hold the left-hand corner, so they carry the screen-edge
+ * breathing room the distro logo used to — 12px here plus the button's own
+ * 2px margin lands the first digit at 14px, matching the battery on the right. */
+#workspaces                 { padding: 0 4px 0 12px; }
 #workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; border-radius: 3px; }
 
 /* DND has three states — see waybar-dnd:

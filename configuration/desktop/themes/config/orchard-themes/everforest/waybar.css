@@ -17,12 +17,6 @@ window#waybar {
     color: #d3c6aa;
 }
 
-/* Arch logo: bright fg. The system module is a launcher, semantically
- * equivalent to "system menu" — not a brand statement. Reads at the
- * bar's normal "live" tier (same as active workspace and bluetooth-
- * connected) so saturated color stays reserved for actual alerts
- * (recording). */
-#custom-system            { color: #d3c6aa; }
 
 /* Workspace active state = soft fill, digit hidden. The soft fill
  * (~25% fg, one step above the 15% hover) gives a clear cell
