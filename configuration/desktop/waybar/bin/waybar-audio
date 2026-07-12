@@ -8,9 +8,11 @@
 # when muted. *Which* speaker the sound is going to is a slower-moving fact,
 # and it belongs in the tooltip and the picker — click to open audio-menu.
 #
-# The `remote` class is set whenever sound is leaving the machine for an
-# AirPlay speaker, so the bar can call that out (see style.css). Playing into
-# another room is a state worth noticing you're in.
+# Deliberately no state class. An earlier version brightened the glyph while
+# sound was going to an AirPlay speaker, and the effect was that one icon on
+# the right of the bar looked a different colour from its neighbours — which
+# reads as a rendering fault, not a signal. The ambient icons are a row of
+# equals; which speaker is playing is in the tooltip.
 #
 # Runs continuously rather than on a poll: pactl subscribe wakes us on every
 # volume, mute and default-sink change, so the icon tracks the volume keys
@@ -38,13 +40,8 @@ emit() {
         known_sink=$sink
     fi
 
-    case "$sink" in
-        raop_sink.*) class=remote ;;
-        *)           class=local ;;
-    esac
-
-    printf '{"text": "%s", "tooltip": "Output: %s", "class": "%s"}\n' \
-        "$(audio_volume_icon)" "$label" "$class"
+    printf '{"text": "%s", "tooltip": "Output: %s"}\n' \
+        "$(audio_volume_icon)" "$label"
 }
 
 emit

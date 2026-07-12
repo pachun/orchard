@@ -40,14 +40,9 @@ window#waybar {
 #battery                    { color: #b5bfe2; }
 #custom-nordvpn             { color: #b5bfe2; }
 #custom-wifi-status         { color: #b5bfe2; }
-#network                    { color: #b5bfe2; }
+#custom-network             { color: #b5bfe2; }
 #custom-bluetooth           { color: #b5bfe2; }
 #custom-bluetooth.connected { color: #c6d0f5; }
-/* Audio output: dim on the laptop's own speakers, bright when sound is
- * leaving the machine for an AirPlay speaker — the same "this is live"
- * tier bluetooth-connected uses. Playing into another room is a state
- * worth noticing you're in. */
 #custom-audio               { color: #b5bfe2; }
-#custom-audio.remote        { color: #c6d0f5; }
 #custom-updates             { color: #b5bfe2; }
 #custom-clock               { color: #b5bfe2; }
