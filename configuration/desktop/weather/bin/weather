@@ -1,0 +1,46 @@
+#!/bin/sh
+# Open the weather. Bound to Cmd+Shift+W, and to a click on the bar's
+# temperature.
+#
+# Google shows a proper weather card — current conditions, an hourly graph, the
+# week — but only if it knows what town you're in, and on this machine it never
+# can. Arch builds chromium without Google's API keys, so the browser's
+# geolocation service is dead: it cannot answer a location request at all, ever,
+# and no permission prompt will change that. Google then falls back to guessing
+# from the IP, gets as far as "United States", and serves search results plus a
+# knowledge panel about the Weather Channel — the television network — which is
+# not the weather.
+#
+# So work out the town here and put it in the query, which is the one thing the
+# card actually needs. Same trick the bar's temperature already relies on:
+# ask a geolocation service what our own IP looks like from outside.
+#
+# The answer is cached, so this costs a round trip only when you've moved, and
+# a dead network shows you the last town you were in rather than nothing.
+set -eu
+
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/weather-location"
+mkdir -p "$(dirname "$CACHE")"
+
+# Short timeout on purpose: this sits between a keypress and a window
+# appearing, so it must never become the thing you're waiting for. If the
+# lookup is slow, we'd rather use a stale town than hang.
+place=$(curl -s --max-time 3 https://ipinfo.io/json 2>/dev/null \
+    | jq -r 'select(.city != null) | "\(.city), \(.region)"' 2>/dev/null) || place=""
+
+if [ -n "$place" ]; then
+    printf '%s\n' "$place" > "$CACHE"
+else
+    place=$(cat "$CACHE" 2>/dev/null || true)
+fi
+
+# With no town and no cache, ask for the weather anyway. Google will do its
+# coarse best, which is worse than useless — but it is at least not an error,
+# and the next run with a network will fix it.
+if [ -n "$place" ]; then
+    query=$(printf 'weather %s' "$place" | jq -sRr @uri)
+else
+    query=weather
+fi
+
+exec chromium "--app=https://www.google.com/search?q=$query"
