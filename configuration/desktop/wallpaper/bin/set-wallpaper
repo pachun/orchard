@@ -92,10 +92,22 @@ repaint() {
     setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
 
     if [ -n "$previous_swaybg" ]; then
-        # Let the new layer surface render its first frame before tearing
-        # the old one down. Below ~0.15s on this hardware the gap shows.
-        # Skipped at login, where there's no old swaybg to replace.
-        sleep 0.3
+        # Hold the old wallpaper up until the new one is certainly painting,
+        # then drop it. Kill it too early and there is a moment with nothing
+        # painting the background at all, and Hyprland's default shows through.
+        #
+        # This used to wait 0.3s, which was a guess, and the guess was wrong by
+        # a millisecond. swaybg has its layer surface up in ~30ms but cannot
+        # paint until it has decoded the image, and decoding an 8K PNG takes
+        # ~300ms — so the old wallpaper was being killed fractionally before the
+        # new one could draw. Hence a flash that came and went depending on
+        # nothing more than the page cache.
+        #
+        # The overlap is free: the new surface is on top from the moment it
+        # paints, so the old one underneath costs a few MB for a moment and is
+        # never seen. There is no reason to be stingy with it. A second is many
+        # times the worst decode this has to survive.
+        sleep 1
         kill $previous_swaybg 2>/dev/null || true
     fi
 }
