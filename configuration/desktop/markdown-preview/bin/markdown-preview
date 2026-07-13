@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""Show a markdown file the way GitHub will show it, beside the editor.
+
+grip does the rendering, and it renders by POSTing the file to GitHub's own
+Markdown API rather than imitating the result locally — so alerts, task lists
+and the table quirks come out exactly as they will on the repo page. It needs
+the network to do that, and there is no offline mode worth the name.
+
+grip is hosted in-process rather than shelled out to, because its page needs one
+fix before it looks like GitHub — see GITHUB_THEME below.
+
+The window is a `chromium --app` window, the same trick the maps and calendar
+launchers use to get a page without a URL bar. Chromium ignores --class for app
+windows and derives one from the URL instead, so the window arrives calling
+itself `chrome-localhost__-Default`. That name is Chromium's choice, not ours,
+and the hyprland rule that keeps the preview on the current desktop has to match
+it — change one and you must change the other.
+
+Focus returns to the editor once the preview is up. You asked to see the file,
+not to leave it.
+
+This process lives exactly as long as the preview window: close the window and
+it exits, and grip goes with it.
+"""
+import json
+import os
+import re
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
+
+from grip import Grip, serve
+
+PORT = 6419
+PREVIEW_URL = f"http://localhost:{PORT}/"
+PREVIEW_WINDOW_CLASS = "chrome-localhost__-Default"
+
+RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
+RUNNING_PREVIEW = RUNTIME / "markdown-preview.pid"
+
+# GitHub's stylesheets are inert on their own. Both its colours and its
+# accessibility preferences live in rules keyed on attributes of the <html>
+# element, and grip serves a bare `<html lang="en">`:
+#
+#   [data-color-mode=dark][data-dark-theme=dark]  { --borderColor-muted: … }
+#   [data-a11y-link-underlines=true] .markdown-body a { text-decoration: underline }
+#
+# Without the attributes, none of those blocks match. Every CSS variable then
+# resolves to nothing, so .markdown-body h1 still carries its border-bottom but
+# paints it in a colour that does not exist — which is how the preview managed
+# to load 28 GitHub stylesheets and still show no rules under its headings, no
+# blue on its links, and no dark mode. Naming the attributes turns the whole lot
+# on at once.
+#
+# color-mode=auto rather than a fixed dark, because GitHub wraps its themes in
+# prefers-color-scheme media queries — so the preview follows the desktop, the
+# way the rest of orchard does.
+#
+# link-underlines=true matches the "Link underlines" accessibility setting on
+# the account. GitHub is careful here in a way worth inheriting rather than
+# reimplementing: the same rule leaves links inside headings alone.
+GITHUB_HTML_TAG = (
+    '<html data-color-mode="auto" data-light-theme="light" data-dark-theme="dark"'
+    ' data-a11y-link-underlines="true"'
+)
+
+
+def dress_page_as_github(response):
+    if response.direct_passthrough or response.mimetype != "text/html":
+        return response
+    page = response.get_data(as_text=True)
+    response.set_data(re.sub(r"<html\b", GITHUB_HTML_TAG, page, count=1))
+    return response
+
+
+class ThemedGrip(Grip):
+    def __init__(self, *arguments, **options):
+        super().__init__(*arguments, **options)
+        self.after_request(dress_page_as_github)
+
+
+def ask_hyprland(*query):
+    answer = subprocess.run(
+        ["hyprctl", *query, "-j"], capture_output=True, text=True, check=False
+    )
+    try:
+        return json.loads(answer.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def tell_hyprland(*command):
+    subprocess.run(
+        ["hyprctl", "dispatch", *command], check=False, stdout=subprocess.DEVNULL
+    )
+
+
+def preview_windows():
+    return [w for w in ask_hyprland("clients") or [] if w["class"] == PREVIEW_WINDOW_CLASS]
+
+
+def focused_window():
+    window = ask_hyprland("activewindow")
+    return window.get("address") if window else None
+
+
+def previously_running_preview():
+    try:
+        pid = int(RUNNING_PREVIEW.read_text())
+        launched_as = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except (FileNotFoundError, ValueError):
+        return None
+    # A pid file outlives a crash, and Linux recycles pid numbers. Only trust
+    # this one if the process wearing it is still one of ours.
+    return pid if b"markdown-preview" in launched_as else None
+
+
+def stop_previous_preview():
+    """One preview at a time — running :md on another file replaces it."""
+    for window in preview_windows():
+        tell_hyprland("closewindow", "address:" + window["address"])
+
+    previous = previously_running_preview()
+    if previous is None:
+        return
+    try:
+        os.kill(previous, signal.SIGTERM)
+        for _ in range(50):
+            time.sleep(0.1)
+            os.kill(previous, 0)
+    except (ProcessLookupError, PermissionError):
+        return
+
+
+def start_grip(file):
+    grip = threading.Thread(
+        target=serve,
+        kwargs={
+            "path": str(file),
+            "host": "localhost",
+            "port": PORT,
+            "grip_class": ThemedGrip,
+        },
+        daemon=True,
+    )
+    grip.start()
+    return grip
+
+
+def wait_until_serving(grip, seconds=20):
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        if not grip.is_alive():
+            return False
+        try:
+            urlopen(PREVIEW_URL, timeout=1).read(1)
+            return True
+        except (URLError, OSError):
+            time.sleep(0.1)
+    return False
+
+
+def open_preview_window():
+    subprocess.Popen(
+        ["chromium", f"--app={PREVIEW_URL}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    for _ in range(100):
+        opened = preview_windows()
+        if opened:
+            return opened[0]["address"]
+        time.sleep(0.1)
+    return None
+
+
+def wait_until_window_closes(address):
+    instance = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    if not instance:
+        return
+    events = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    events.connect(str(RUNTIME / "hypr" / instance / ".socket2.sock"))
+
+    window_closed = "closewindow>>" + address.removeprefix("0x")
+    unread = b""
+    while True:
+        arrived = events.recv(4096)
+        if not arrived:
+            return
+        unread += arrived
+        while b"\n" in unread:
+            event, unread = unread.split(b"\n", 1)
+            if event.decode(errors="replace") == window_closed:
+                return
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: markdown-preview <file.md>")
+    file = Path(sys.argv[1]).expanduser().resolve()
+    if not file.is_file():
+        sys.exit(f"markdown-preview: no such file: {file}")
+
+    # Without this, SIGTERM from the next :md kills us outright and the finally
+    # below never runs, leaving a stale pid file behind.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+
+    stop_previous_preview()
+    RUNNING_PREVIEW.write_text(str(os.getpid()))
+
+    editor = focused_window()
+    grip = start_grip(file)
+    try:
+        if not wait_until_serving(grip):
+            sys.exit(f"markdown-preview: grip never came up on port {PORT}")
+        preview = open_preview_window()
+        if editor:
+            tell_hyprland("focuswindow", "address:" + editor)
+        if preview:
+            wait_until_window_closes(preview)
+    finally:
+        RUNNING_PREVIEW.unlink(missing_ok=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -18,3 +18,22 @@ also_spelled("Qa", "qall")
 also_spelled("QA", "qall")
 also_spelled("Wq", "wq")
 also_spelled("WQ", "wq")
+
+-- :md renders this file the way GitHub will, in a window beside this one, and
+-- keeps it in step with every save.
+--
+-- Vim keeps lowercase names for its own commands, so the real one has to be
+-- :Md. The abbreviation gives us :md anyway, and fires only when md is the
+-- whole line — left unguarded it would rewrite the md in `:e md.txt` too.
+local function preview_markdown()
+  local file = vim.api.nvim_buf_get_name(0)
+  if file == "" then
+    vim.notify("Nothing to preview — this buffer has no file yet.", vim.log.levels.WARN)
+    return
+  end
+  vim.cmd("write")
+  vim.fn.jobstart({ "markdown-preview", file }, { detach = true })
+end
+
+vim.api.nvim_create_user_command("Md", preview_markdown, {})
+vim.cmd([[cnoreabbrev <expr> md (getcmdtype() == ":" && getcmdline() ==# "md") ? "Md" : "md"]])
