@@ -74,11 +74,17 @@ def as_message(notification):
     Pango markup, so every part of it has to be escaped — a message containing
     an ampersand would otherwise take the label out.
     """
-    app = notification.get("app") or ""
+    # The app's name only earns its slot when a real app is talking. A script
+    # shouting through notify-send reports its app as "notify-send", which names
+    # the tool rather than the source and tells you nothing — "notify-send —
+    # Theme — everforest" is two thirds noise. Real applications identify
+    # themselves with a desktop-entry hint; notify-send has none. So that hint,
+    # not the name, is what decides whether the name is worth showing.
+    app = notification.get("app") if notification.get("desktop_entry") else ""
     title = notification.get("summary") or ""
     body = " ".join((notification.get("body") or "").split())
 
-    parts = [html.escape(app), f"<b>{html.escape(title)}</b>" if title else "", html.escape(body)]
+    parts = [html.escape(app or ""), f"<b>{html.escape(title)}</b>" if title else "", html.escape(body)]
     text = "  —  ".join(part for part in parts if part)
     tooltip = "  —  ".join(part for part in (app, title, body) if part)
     return text, tooltip
