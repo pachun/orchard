@@ -166,8 +166,9 @@ remove_usb_then_reboot() {
   echo "  Base install complete."
   echo
   echo "  REMOVE THE USB DRIVE, then press Enter to reboot."
-  echo "  After reboot: sign in, connect wifi with nmtui, then follow"
-  echo "  the 'Dell XPS 14' section of orchard's README to configure."
+  echo "  After reboot: sign in, connect wifi with"
+  echo "    nmcli device wifi connect \"SSID\" password \"PASS\""
+  echo "  then follow the 'Dell XPS 14' section of orchard's README."
   echo "=========================================================="
   read -r -p "> " _ </dev/tty || true
   reboot
