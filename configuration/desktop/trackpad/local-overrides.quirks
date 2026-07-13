@@ -21,3 +21,28 @@ MatchName=*Touchpad
 MatchUdevType=touchpad
 MatchDMIModalias=dmi:*:svnDellInc.:pnXPS14DA14260:*
 AttrEventCode=-BTN_LEFT
+
+# A keyboard quirk, in the trackpad's file, because its whole job is to give
+# the trackpad its palm rejection back.
+#
+# disable-while-typing is how a laptop ignores the pad while you type, and it
+# works by pairing the touchpad with an internal keyboard and watching it for
+# keystrokes. libinput picks that keyboard itself: a PS/2 keyboard (BUS_I8042)
+# is internal by definition, anything else has to prove it. So it pairs with
+# "AT Translated Set 2 keyboard", which is right — except that xremap takes an
+# exclusive grab (EVIOCGRAB) on that exact device, because that is how it
+# suppresses the keys it remaps. Nothing reaches libinput through it, ever.
+# The real keystrokes surface on xremap's own virtual device, which is
+# BUS_VIRTUAL, which libinput reads as external, which DWT skips.
+#
+# The result is a touchpad that is never once told the user is typing. It
+# fails silently and it fails open: DWT reports itself enabled (dwt-on),
+# because it is — it is just watching a device that has been muted.
+#
+# Tagging xremap's device internal is what pairs DWT to it. Deliberately not
+# DMI-scoped: the Asahi mac grabs its keyboard the same way and has the same
+# hole, and on any machine not running xremap no device is named this and the
+# section matches nothing.
+[xremap virtual keyboard]
+MatchName=xremap
+AttrKeyboardIntegration=internal
