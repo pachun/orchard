@@ -28,7 +28,7 @@ My Arch configuration for the [2026 Dell XPS 14](https://www.dell.com/en-us/shop
 1. After the automatic reboot, sign in
 1. Connect to wifi `nmcli device wifi connect "SSID" password "PASS"`
 1. Install orchard `~/code/orchard/install desktop`
-1. Run `~/code/orchard/connect` to connect your google calendar, github, icloud files, and tailscale
+1. Run `~/code/orchard/connect` to connect to things like github and tailscale
 
 **On an M1/M2 Mac**
 
@@ -40,4 +40,4 @@ My Arch configuration for the [2026 Dell XPS 14](https://www.dell.com/en-us/shop
 1. After the reboot, sign in
 1. Connect to wifi `nmcli device wifi connect "SSID" password "PASS"`
 1. Install orchard `~/code/orchard/install desktop`
-1. Run `~/code/orchard/connect` to connect your google calendar, github, icloud files, and tailscale
+1. Run `~/code/orchard/connect` to connect your to things like github and tailscale
