@@ -1,0 +1,26 @@
+#!/bin/sh
+# What clicking the middle of the bar does. It depends on what's showing there.
+#
+# A notification: open it. The daemon decides what that means — the app's own
+# `default` action if it ships one, otherwise focus-or-launch the app that sent
+# it, which we know from the notification's desktop-entry hint.
+#
+# Otherwise it's the clock, and clicking a clock opens the calendar.
+set -eu
+
+showing="${XDG_RUNTIME_DIR:-/tmp}/orchard/notification.json"
+
+# Read before acting: Activate clears the file, so asking afterwards always
+# finds it empty.
+if [ -s "$showing" ] && [ "$(tr -d ' \n' < "$showing")" != "{}" ]; then
+    gdbus call --session \
+        --dest org.freedesktop.Notifications \
+        --object-path /org/freedesktop/Notifications \
+        --method me.pachulski.Orchard.Notifications.Activate \
+        >/dev/null 2>&1
+    exit 0
+fi
+
+exec "$HOME/.local/bin/focus-or-launch" \
+    chrome-calendar.google.com__-Default \
+    chromium --app=https://calendar.google.com

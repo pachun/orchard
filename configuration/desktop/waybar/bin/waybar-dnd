@@ -1,30 +1,24 @@
 #!/bin/sh
-# Waybar custom module backing the DND indicator. Three states:
-#   - DND on        → bell-off icon, "active" class (bright)
-#   - just toggled off (within 30s) → bell icon, "linger" class (dim)
-#                    so the user gets visual confirmation that DND
-#                    actually turned off rather than the bar silently
-#                    going blank
-#   - DND off > 30s → empty (module hidden)
+# waybar module: the do-not-disturb bell.
 #
-# dnd-toggle writes /tmp/dnd-toggle-time on every toggle so this script
-# knows when the linger window started. dnd-toggle also resignals
-# waybar after 30s so the linger expires without waiting for the
-# next poll.
+# Reads the daemon's state file rather than asking it, so the bar never blocks
+# on a D-Bus round trip; the file is the daemon's own record of whether it's
+# swallowing notifications.
 set -eu
 
 LINGER_SECONDS=30
 TOGGLE_TIME_FILE=/tmp/dnd-toggle-time
+DO_NOT_DISTURB="${XDG_RUNTIME_DIR:-/tmp}/orchard/do-not-disturb"
 
-if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
-    printf '{"text":"","tooltip":"do not disturb (on)","class":"active"}\n'
+if [ -e "$DO_NOT_DISTURB" ]; then
+    printf '{"text":"","tooltip":"do not disturb (on)","class":"active"}\n'
     exit 0
 fi
 
 now=$(date +%s)
 last_toggle=$(cat "$TOGGLE_TIME_FILE" 2>/dev/null || echo 0)
 if [ $((now - last_toggle)) -lt "$LINGER_SECONDS" ]; then
-    printf '{"text":"","tooltip":"do not disturb (off)","class":"linger"}\n'
+    printf '{"text":"","tooltip":"do not disturb (off)","class":"linger"}\n'
 else
     printf '{"text":"","tooltip":""}\n'
 fi

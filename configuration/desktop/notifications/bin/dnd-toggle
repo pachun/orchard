@@ -1,0 +1,21 @@
+#!/bin/sh
+# Do not disturb, on and off. F6, and a click on the bar's bell.
+#
+# The bell only earns its slot when it has something to say, so it shows itself
+# for a moment after you turn DND *off* and then goes quiet — long enough to
+# confirm what you did. waybar-dnd draws that; the timestamp below is how it
+# knows. SIGRTMIN+7 makes the icon flip now rather than at the next poll.
+set -eu
+
+LINGER_SECONDS=30
+TOGGLE_TIME_FILE=/tmp/dnd-toggle-time
+
+gdbus call --session \
+    --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications \
+    --method me.pachulski.Orchard.Notifications.ToggleDoNotDisturb \
+    >/dev/null 2>&1
+
+date +%s > "$TOGGLE_TIME_FILE"
+pkill -RTMIN+7 waybar 2>/dev/null || true
+(sleep "$LINGER_SECONDS" && pkill -RTMIN+7 waybar 2>/dev/null) </dev/null >/dev/null 2>&1 &

@@ -195,16 +195,37 @@
     },
 
     "custom/clock": {
-        // macOS-style in the bar; hover for the full date and the seconds.
-        // Polled every second so those seconds actually tick while you're
-        // looking at them — see waybar-clock for why it's a script rather
-        // than waybar's own clock module.
+        // The clock — and, when one arrives, the notification. They share this
+        // slot: the clock fades out, the message fades in, and after its
+        // timeout they swap back. See waybar-clock, and the #custom-clock fade
+        // in style.css.
         //
-        // Click opens Google Calendar, not gnome-calendar: the calendar that
-        // matters is the one the events are actually in.
+        // No "interval": the module is continuous. A fade is a sequence of
+        // frames at particular times, and a polled script only speaks when it's
+        // spoken to. waybar-clock ticks the clock itself.
+        //
+        // Click depends on what's in the slot. A notification opens the app
+        // that sent it; the clock opens Google Calendar, not gnome-calendar,
+        // because the calendar that matters is the one the events are in.
         "exec": "$HOME/.local/bin/waybar-clock",
         "return-type": "json",
-        "interval": 1,
-        "on-click": "$HOME/.local/bin/focus-or-launch chrome-calendar.google.com__-Default chromium --app=https://calendar.google.com"
+        // Notifications are as long as whoever sent them felt like being, and
+        // this module is centred on the screen — so it grows in both directions
+        // and runs under the workspace pills on one side and the weather and
+        // wifi icons on the other. This is the leash.
+        //
+        // It is not a character count, despite the name: waybar hands it to GTK
+        // as max-width-chars + ellipsize, so GTK measures the real glyphs and
+        // places the … itself. Counting characters would be guesswork in a
+        // proportional font — "MMMMM" and "iiiii" are not the same width.
+        //
+        // 75 was measured, not chosen. The right-hand icons begin 493px from
+        // centre; at 75 the label reaches 372, which leaves ~120px spare. That
+        // slack is deliberate: the right group can still grow (the recording
+        // icon during a capture, the VPN icon on connect), and the padding has
+        // to survive that. 85 fit too, with only 72px to give — about two
+        // icons' worth, which is not padding, it's luck.
+        "max-length": 75,
+        "on-click": "$HOME/.local/bin/notification-click"
     }
 }

@@ -19,7 +19,7 @@ case "$mode" in
     region)
         # Freeze-then-select pattern. hyprpicker -rzd paints a frozen
         # snapshot of the screen as a layer-shell overlay so on-screen
-        # UI (fuzzel menus, mako toasts) stays visible during region
+        # UI (fuzzel menus, the bar) stays visible during region
         # selection. Flags:
         #   -r render-inactive — actually freezes the display
         #   -z no-zoom         — drops the magnifying lens hyprpicker

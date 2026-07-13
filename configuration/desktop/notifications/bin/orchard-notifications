@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""The notification daemon. It never draws anything.
+
+Notifications on this desktop appear where the clock is, in the bar: the clock
+fades out, the message fades in, and after its timeout they swap back. That is
+waybar's job (see waybar-clock), so all this daemon does is own the freedesktop
+notification bus, remember the one notification currently showing, and write it
+somewhere the bar can read.
+
+Replacing mako rather than hiding it: mako has no way to accept a notification
+without drawing a toast for it — no `invisible` option, and pointing it at an
+output that doesn't exist just makes it fall back to the real one. Since nothing
+here wants a toast, the daemon that draws none is the smaller thing to own.
+
+Clicking the notification activates it. Apps can say what that means by shipping
+a `default` action, and if one does we invoke it and let the app decide where to
+take you. Most don't — BlueBubbles ships `Mark Read` and two reactions and no
+default — so the fallback is to focus or launch whatever app sent it, which we
+know from the `desktop-entry` hint. That is the same thing Cmd+I does.
+"""
+import json
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+DEFAULT_TIMEOUT_MS = 5000
+# A notification the sender wants pinned (expire_timeout 0) still has to leave:
+# the clock lives in that slot and is not negotiable.
+LONGEST_TIMEOUT_MS = 20000
+
+STATE = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "orchard"
+SHOWING = STATE / "notification.json"
+DO_NOT_DISTURB = STATE / "do-not-disturb"
+
+INTERFACE = """
+<node>
+  <interface name="org.freedesktop.Notifications">
+    <method name="Notify">
+      <arg type="s" name="app_name" direction="in"/>
+      <arg type="u" name="replaces_id" direction="in"/>
+      <arg type="s" name="app_icon" direction="in"/>
+      <arg type="s" name="summary" direction="in"/>
+      <arg type="s" name="body" direction="in"/>
+      <arg type="as" name="actions" direction="in"/>
+      <arg type="a{sv}" name="hints" direction="in"/>
+      <arg type="i" name="expire_timeout" direction="in"/>
+      <arg type="u" name="id" direction="out"/>
+    </method>
+    <method name="CloseNotification">
+      <arg type="u" name="id" direction="in"/>
+    </method>
+    <method name="GetCapabilities">
+      <arg type="as" name="capabilities" direction="out"/>
+    </method>
+    <method name="GetServerInformation">
+      <arg type="s" name="name" direction="out"/>
+      <arg type="s" name="vendor" direction="out"/>
+      <arg type="s" name="version" direction="out"/>
+      <arg type="s" name="spec_version" direction="out"/>
+    </method>
+    <signal name="NotificationClosed">
+      <arg type="u" name="id"/>
+      <arg type="u" name="reason"/>
+    </signal>
+    <signal name="ActionInvoked">
+      <arg type="u" name="id"/>
+      <arg type="s" name="action_key"/>
+    </signal>
+  </interface>
+  <interface name="me.pachulski.Orchard.Notifications">
+    <method name="Activate"/>
+    <method name="Dismiss"/>
+    <method name="ToggleDoNotDisturb">
+      <arg type="b" name="enabled" direction="out"/>
+    </method>
+  </interface>
+</node>
+"""
+
+CLOSED_EXPIRED = 1
+CLOSED_DISMISSED = 2
+CLOSED_BY_CALLER = 3
+
+
+def desktop_file(entry):
+    for directory in (
+        Path.home() / ".local/share/applications",
+        Path("/usr/share/applications"),
+    ):
+        for name in (f"{entry}.desktop", f"{entry.split('.')[-1].lower()}.desktop"):
+            if (directory / name).is_file():
+                return directory / name
+    return None
+
+
+def how_to_open(entry):
+    """The window class and command that focus-or-launch needs, from a desktop id.
+
+    StartupWMClass is the app telling us what its window is called. Most don't,
+    so fall back to the executable's name, which is what it turns out to be in
+    practice — BlueBubbles has no StartupWMClass and its window class is
+    `bluebubbles`, straight off its Exec line.
+    """
+    path = desktop_file(entry)
+    if not path:
+        return None, None
+    window_class, command = None, None
+    for line in path.read_text(errors="replace").splitlines():
+        if line.startswith("StartupWMClass=") and not window_class:
+            window_class = line.split("=", 1)[1].strip()
+        elif line.startswith("Exec=") and not command:
+            fields = [w for w in shlex.split(line.split("=", 1)[1]) if not w.startswith("%")]
+            command = fields
+    if not command:
+        return None, None
+    return window_class or Path(command[0]).name, command
+
+
+class Notifications:
+    def __init__(self):
+        STATE.mkdir(parents=True, exist_ok=True)
+        self.clear_showing()
+        self.next_id = 1
+        self.showing = None
+        self.expiry = None
+        self.connection = None
+
+    # --- what the bar reads -------------------------------------------------
+
+    def clear_showing(self):
+        SHOWING.write_text("{}\n")
+
+    def publish(self, notification):
+        SHOWING.write_text(json.dumps(notification) + "\n")
+
+    def do_not_disturb(self):
+        return DO_NOT_DISTURB.exists()
+
+    # --- the spec -----------------------------------------------------------
+
+    def Notify(self, app_name, replaces_id, app_icon, summary, body, actions, hints, expire_timeout):
+        notification_id = replaces_id or self.next_id
+        if not replaces_id:
+            self.next_id += 1
+
+        if self.do_not_disturb():
+            # Accepted and acknowledged, never shown. Silence is the whole point.
+            return notification_id
+
+        timeout = DEFAULT_TIMEOUT_MS if expire_timeout < 0 else expire_timeout
+        timeout = min(timeout or LONGEST_TIMEOUT_MS, LONGEST_TIMEOUT_MS)
+
+        # actions arrive as a flat [key, label, key, label, ...]
+        keys = actions[::2]
+
+        self.showing = {
+            "id": notification_id,
+            "app": app_name,
+            "summary": summary,
+            "body": body,
+            "desktop_entry": str(hints.get("desktop-entry", "")),
+            "default_action": "default" if "default" in keys else "",
+        }
+        self.publish(self.showing)
+
+        if self.expiry:
+            GLib.source_remove(self.expiry)
+        self.expiry = GLib.timeout_add(timeout, self.expire, notification_id)
+        return notification_id
+
+    def expire(self, notification_id):
+        self.expiry = None
+        if self.showing and self.showing["id"] == notification_id:
+            self.close(CLOSED_EXPIRED)
+        return GLib.SOURCE_REMOVE
+
+    def CloseNotification(self, notification_id):
+        if self.showing and self.showing["id"] == notification_id:
+            self.close(CLOSED_BY_CALLER)
+
+    def close(self, reason):
+        if not self.showing:
+            return
+        notification_id = self.showing["id"]
+        self.showing = None
+        self.clear_showing()
+        self.emit("NotificationClosed", GLib.Variant("(uu)", (notification_id, reason)))
+
+    def GetCapabilities(self):
+        return ["body", "actions", "body-markup"]
+
+    def GetServerInformation(self):
+        return ("orchard", "orchard", "1.0", "1.2")
+
+    # --- ours ---------------------------------------------------------------
+
+    def Activate(self):
+        if not self.showing:
+            return
+        showing = self.showing
+        if showing["default_action"]:
+            self.emit(
+                "ActionInvoked",
+                GLib.Variant("(us)", (showing["id"], showing["default_action"])),
+            )
+        else:
+            window_class, command = how_to_open(showing["desktop_entry"])
+            if window_class:
+                subprocess.Popen(
+                    [str(Path.home() / ".local/bin/focus-or-launch"), window_class, *command],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+        self.close(CLOSED_DISMISSED)
+
+    def Dismiss(self):
+        self.close(CLOSED_DISMISSED)
+
+    def ToggleDoNotDisturb(self):
+        if self.do_not_disturb():
+            DO_NOT_DISTURB.unlink(missing_ok=True)
+            return False
+        DO_NOT_DISTURB.touch()
+        # Whatever is on screen goes with it — turning this on means "not now".
+        self.close(CLOSED_DISMISSED)
+        return True
+
+    # --- plumbing -----------------------------------------------------------
+
+    def emit(self, signal, arguments):
+        self.connection.emit_signal(
+            None,
+            "/org/freedesktop/Notifications",
+            "org.freedesktop.Notifications",
+            signal,
+            arguments,
+        )
+
+    def handle(self, connection, sender, path, interface, method, parameters, invocation):
+        try:
+            result = getattr(self, method)(*parameters)
+        except Exception as failure:  # never take the bus down over one bad notification
+            invocation.return_error_literal(
+                Gio.dbus_error_quark(), Gio.DBusError.FAILED, str(failure)
+            )
+            return
+
+        if method == "Notify":
+            invocation.return_value(GLib.Variant("(u)", (result,)))
+        elif method == "GetCapabilities":
+            invocation.return_value(GLib.Variant("(as)", (result,)))
+        elif method == "GetServerInformation":
+            invocation.return_value(GLib.Variant("(ssss)", result))
+        elif method == "ToggleDoNotDisturb":
+            invocation.return_value(GLib.Variant("(b)", (result,)))
+        else:
+            invocation.return_value(None)
+
+
+def main():
+    server = Notifications()
+    node = Gio.DBusNodeInfo.new_for_xml(INTERFACE)
+
+    def acquired(connection, name):
+        server.connection = connection
+        for interface in node.interfaces:
+            connection.register_object(
+                "/org/freedesktop/Notifications", interface, server.handle, None, None
+            )
+
+    def lost(connection, name):
+        sys.exit("orchard-notifications: another notification daemon owns the bus")
+
+    Gio.bus_own_name(
+        Gio.BusType.SESSION,
+        "org.freedesktop.Notifications",
+        Gio.BusNameOwnerFlags.NONE,
+        None,
+        acquired,
+        lost,
+    )
+    GLib.MainLoop().run()
+
+
+if __name__ == "__main__":
+    main()

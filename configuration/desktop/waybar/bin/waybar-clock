@@ -1,17 +1,129 @@
-#!/bin/sh
-# waybar module: the clock. macOS-style in the bar ("Sun Jul 12  3:12 PM"),
-# with the full date and the seconds on hover — the bar is for glancing, the
-# tooltip is for when you actually need to know.
-#
-# Goes through `date` rather than waybar's built-in clock module, which uses
-# C++ chrono and doesn't support the `-` modifier needed to strip the leading
-# zeros from the day and hour. And through a script rather than an inline
-# exec, because a tooltip needs the module to emit JSON.
-#
-# Polled every second, so the seconds in the tooltip actually tick while
-# you're hovering. That's two `date` calls a second, which costs nothing.
-set -eu
+#!/usr/bin/env python3
+"""The clock — and, when one arrives, the notification, in the same slot.
 
-printf '{"text": "%s", "tooltip": "%s"}\n' \
-    "$(date +'%a %b %-d  %-I:%M %p')" \
-    "$(date +'%A, %-d %B %Y — %-I:%M:%S %p')"
+Notifications don't get a toast on this desktop. They take the clock's place at
+the top of the screen: the clock fades out, the message fades in, it sits for
+its timeout, and then they swap back. orchard-notifications owns the notification
+bus and writes whatever is currently showing to a file; this reads that file and
+drives the bar.
+
+Why a fade and not a slide, which is the obvious thing to want: waybar is GTK3,
+GTK3 CSS has no `transform` and no `overflow: hidden`, so the only way to move a
+widget vertically is `margin` — and margin doesn't slide a widget within its
+container, it makes the container taller. Animating it grows the bar from 34
+pixels to 57 and back, which is worse than no animation at all. Opacity touches
+no geometry, so the bar never moves. It also reads better: a status bar should
+change its mind quietly.
+
+Continuous (no `interval` in config.jsonc), because a fade is a sequence of
+frames at particular times, and a polled script only speaks when spoken to.
+The clock still ticks once a second while it has the slot.
+"""
+import html
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+SHOWING = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "orchard/notification.json"
+
+FADE_SECONDS = 0.25  # keep in step with the transition in waybar's style.css
+SETTLE_SECONDS = 0.03  # let the invisible text swap land before fading it back up
+TICK_SECONDS = 0.05
+
+
+def say(text, tooltip="", classes=()):
+    # An array, not a space-separated string. waybar hands a string straight to
+    # GTK as one class name, so "notification faded" becomes a single bogus
+    # class with a space in it and `.faded` never matches — the notification
+    # would snap back to the clock instead of fading.
+    print(
+        json.dumps({"text": text, "tooltip": tooltip, "class": list(classes)}),
+        flush=True,
+    )
+
+
+def clock():
+    now = time.localtime()
+    return (
+        time.strftime("%a %b %-d  %-I:%M %p", now),
+        time.strftime("%A, %-d %B %Y — %-I:%M:%S %p", now),
+    )
+
+
+def showing():
+    try:
+        return json.loads(SHOWING.read_text()) or None
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def as_message(notification):
+    """Who it's from, who it's about, what it says: app — title — message.
+
+    The title carries the weight — it's the sender, and it's what you're
+    scanning for — so it's the only part in bold.
+
+    Nothing is truncated here. The width is capped by `max-length` on the module
+    in config.jsonc, which makes GTK ellipsize the label: GTK measures the real
+    glyphs and puts the … in itself. Counting characters would be guesswork, the
+    bar's font being proportional, and guessing wrong means a long message
+    running under the weather icon.
+
+    Pango markup, so every part of it has to be escaped — a message containing
+    an ampersand would otherwise take the label out.
+    """
+    app = notification.get("app") or ""
+    title = notification.get("summary") or ""
+    body = " ".join((notification.get("body") or "").split())
+
+    parts = [html.escape(app), f"<b>{html.escape(title)}</b>" if title else "", html.escape(body)]
+    text = "  —  ".join(part for part in parts if part)
+    tooltip = "  —  ".join(part for part in (app, title, body) if part)
+    return text, tooltip
+
+
+def fade(showing_text, showing_classes, text, tooltip, classes):
+    say(showing_text, "", [*showing_classes, "faded"])
+    time.sleep(FADE_SECONDS)
+    say(text, tooltip, [*classes, "faded"])
+    time.sleep(SETTLE_SECONDS)
+    say(text, tooltip, classes)
+
+
+def main():
+    text, tooltip = clock()
+    classes = []
+    say(text, tooltip)
+
+    on_screen = None  # id of the notification holding the slot, or None for the clock
+    last_tick = time.time()
+
+    while True:
+        notification = showing()
+        arriving = notification["id"] if notification else None
+
+        if arriving != on_screen:
+            if notification:
+                new_text, new_tooltip, new_classes = *as_message(notification), ["notification"]
+            else:
+                new_text, new_tooltip, new_classes = *clock(), []
+            fade(text, classes, new_text, new_tooltip, new_classes)
+            text, tooltip, classes = new_text, new_tooltip, new_classes
+            on_screen = arriving
+            last_tick = time.time()
+
+        elif on_screen is None and time.time() - last_tick >= 1:
+            text, tooltip = clock()
+            say(text, tooltip, classes)
+            last_tick = time.time()
+
+        time.sleep(TICK_SECONDS)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(0)

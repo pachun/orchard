@@ -111,13 +111,6 @@ if [ -f "$style" ]; then
     dd if="$style" of="$style" bs=1 count=1 conv=notrunc status=none 2>/dev/null || true
 fi
 
-# Mako pulls colors from ~/.config/orchard-themes/active/mako via
-# its main config's `include` directive. `makoctl reload` re-reads
-# (and runs the include again), so the next notification gets the
-# new theme. Existing displayed toasts don't repaint, but those
-# expire on their own.
-makoctl reload >/dev/null 2>&1 || true
-
 # Chromium picks up theme via /etc/chromium/policies/managed/
 # orchard-theme.json, a symlink (set up by configure-chromium-theme.sh)
 # pointing at this theme dir's chromium.json. Re-reading policy is
