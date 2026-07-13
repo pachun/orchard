@@ -84,6 +84,20 @@ INTERFACE = """
 </node>
 """
 
+# A notification can ask to be clickable by naming a file to reveal:
+#
+#   notify-send "Screenshot" "..." -h "string:x-orchard-reveal:/path/to/shot.png"
+#
+# The freedesktop way to make a notification clickable is a `default` action, but
+# that only works for an app that stays alive to receive ActionInvoked. The
+# scripts here — screenshot, screenrecord — say their piece and exit, so there
+# is nobody left to invoke. Hence a hint, which is fire-and-forget.
+#
+# It carries a path and not a command on purpose. A hint holding a shell command
+# would mean any process that can reach the session bus could hand you arbitrary
+# code and wait for you to click it. A path can only ever open a file manager.
+REVEAL = "x-orchard-reveal"
+
 CLOSED_EXPIRED = 1
 CLOSED_DISMISSED = 2
 CLOSED_BY_CALLER = 3
@@ -167,6 +181,7 @@ class Notifications:
             "body": body,
             "desktop_entry": str(hints.get("desktop-entry", "")),
             "default_action": "default" if "default" in keys else "",
+            "reveal": str(hints.get(REVEAL, "")),
         }
         self.publish(self.showing)
 
@@ -205,7 +220,15 @@ class Notifications:
         if not self.showing:
             return
         showing = self.showing
-        if showing["default_action"]:
+        if showing["reveal"]:
+            # A new window every time, and the file already selected in it —
+            # the same thing Cmd+E does, pointed at what you just made.
+            subprocess.Popen(
+                ["nautilus", "--new-window", "--select", showing["reveal"]],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        elif showing["default_action"]:
             self.emit(
                 "ActionInvoked",
                 GLib.Variant("(us)", (showing["id"], showing["default_action"])),

@@ -43,4 +43,10 @@ case "$mode" in
 esac
 
 wl-copy --type image/png < "$file"
-notify-send "Screenshot" "Saved to $file"
+
+# The bar shows this where the clock is, and clicking it opens the shot in a new
+# Files window with the file already selected — the x-orchard-reveal hint is what
+# tells the notification daemon to do that. Saying so in the body because a thing
+# you can click should look like a thing you can click.
+notify-send "Screenshot" "Click to show it in Files" \
+    -h "string:x-orchard-reveal:$file"

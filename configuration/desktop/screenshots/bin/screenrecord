@@ -15,7 +15,8 @@ if pgrep -x wf-recorder >/dev/null; then
     pkill -INT wf-recorder
     sleep 0.3
     last=$(ls -t "$HOME/videos/recordings/"recording-*.mp4 2>/dev/null | head -1)
-    notify-send "Screen recording" "Stopped: $last"
+    notify-send "Screen recording" "Click to show it in Files" \
+        -h "string:x-orchard-reveal:$last"
     exit 0
 fi
 
