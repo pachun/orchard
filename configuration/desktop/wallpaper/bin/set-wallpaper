@@ -83,6 +83,11 @@ repaint() {
     [ -n "$wallpaper" ] || wallpaper=$(first_match "$active_theme/wallpaper")
     [ -n "$wallpaper" ] && [ -f "$wallpaper" ] || return 0
 
+    # Publish what we settled on. Which image is up takes a theme, a per-theme
+    # override and two fallbacks to work out, and the lock screen needs the
+    # answer, not the algorithm.
+    ln -sfn "$wallpaper" "$chosen_wallpapers/current"
+
     previous_swaybg=$(pgrep -x swaybg 2>/dev/null || true)
     setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
 

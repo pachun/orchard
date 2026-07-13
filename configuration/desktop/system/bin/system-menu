@@ -1,13 +1,17 @@
 #!/bin/sh
-# fuzzel dmenu wired to waybar's arch logo (custom/system on-click).
-# Four actions: pick an orchard-theme, full system update, reboot,
-# shut down. Update opens a dedicated ghostty window — see
-# ./system-update for details. Theme exec's theme-menu, which is a
-# nested fuzzel picker for the available themes.
+# fuzzel dmenu, opened with Cmd+comma.
+#
+# Five actions: pick an orchard-theme, full system update, lock, reboot, shut
+# down. Update opens a dedicated ghostty window — see ./system-update. Theme
+# exec's theme-menu, a nested fuzzel picker.
+#
+# Lock is here as well as on Cmd+Ctrl+Q because the menu is where you look when
+# you don't remember the key.
 #
 # Phosphor icons (require Phosphor in fuzzel's font fallback chain):
 #   palette           U+E6C8   — switch theme
 #   download-simple   U+E20C   — pulling system updates
+#   lock-simple       U+E296   — lock the screen
 #   arrow-clockwise   U+E036   — single rotation, "restart"
 #   power             U+E3DA   — shut down
 #
@@ -21,19 +25,25 @@ ICON_REBOOT=''
 ICON_SHUTDOWN=''
 
 ICON_THEME=$(printf '\356\233\210')   # U+E6C8 palette
+ICON_LOCK=$(printf '\356\212\226')    # U+E296 lock-simple
 
 THEME_LABEL="$ICON_THEME  Theme"
 UPDATE_LABEL="$ICON_UPDATE  Update"
+LOCK_LABEL="$ICON_LOCK  Lock"
 REBOOT_LABEL="$ICON_REBOOT  Reboot"
 SHUTDOWN_LABEL="$ICON_SHUTDOWN  Shut down"
 
-choice=$(printf '%s\n%s\n%s\n%s\n' \
-            "$THEME_LABEL" "$UPDATE_LABEL" "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
-         | fuzzel --dmenu --width=24 --lines=4 --prompt='')
+choice=$(printf '%s\n%s\n%s\n%s\n%s\n' \
+            "$THEME_LABEL" "$UPDATE_LABEL" "$LOCK_LABEL" \
+            "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
+         | fuzzel --dmenu --width=24 --lines=5 --prompt='')
 
 case "$choice" in
     "$THEME_LABEL")     exec "$HOME/.local/bin/theme-menu" ;;
     "$UPDATE_LABEL")    exec "$HOME/.local/bin/system-update" ;;
+    # Guarded: a second lock request while one is up would stack a second
+    # hyprlock on the first, each wanting its own password.
+    "$LOCK_LABEL")      exec sh -c 'pidof hyprlock || hyprlock' ;;
     "$REBOOT_LABEL")    exec systemctl reboot ;;
     "$SHUTDOWN_LABEL")  exec systemctl poweroff ;;
     *)                  exit 0 ;;  # user pressed Esc
