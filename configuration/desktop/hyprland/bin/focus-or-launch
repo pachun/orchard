@@ -25,11 +25,24 @@
 # them one at a time and then unhide them, matching the macOS
 # Cmd+H per-window feel.
 #
-# Usage: focus-or-launch <window-class> <command...>
+# --here changes state 3: bring the window back to the workspace you are on,
+# rather than to an empty one. For an app that belongs beside what you are doing
+# — a calculator, a file manager — being restored to a desktop of its own is the
+# wrong answer. Pair it with `windowrule = workspace unset` on the same class, so
+# the launch and the restore agree; without the rule, the first launch would
+# still be sent away by the global empty-workspace rule.
+#
+# Usage: focus-or-launch [--here] <window-class> <command...>
 set -eu
 
+restore_here=false
+if [ "${1:-}" = "--here" ]; then
+    restore_here=true
+    shift
+fi
+
 if [ "$#" -lt 2 ]; then
-    echo "usage: $(basename "$0") <window-class> <command...>" >&2
+    echo "usage: $(basename "$0") [--here] <window-class> <command...>" >&2
     exit 2
 fi
 
@@ -48,7 +61,9 @@ stashed_addr="$(printf '%s' "$clients" \
 if [ -n "$stashed_addr" ]; then
     current_ws="$(hyprctl activeworkspace -j | jq -r '.id')"
     current_count="$(hyprctl activeworkspace -j | jq -r '.windows')"
-    if [ "$current_count" = "0" ]; then
+    if [ "$restore_here" = true ]; then
+        target="$current_ws"
+    elif [ "$current_count" = "0" ]; then
         target="$current_ws"
     else
         # Lowest non-special workspace not currently in use. Mirrors
