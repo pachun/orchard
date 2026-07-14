@@ -44,8 +44,54 @@ emit() {
         "$(audio_volume_icon)" "$label"
 }
 
+# `pactl subscribe` outlives this script if we don't kill it, and it holds one of
+# PulseAudio's client slots while it does. There are sixty-four. waybar restarts
+# on every theme switch, so every theme switch leaked one — and when the last
+# slot went, PulseAudio began refusing new clients, swayosd could no longer reach
+# it, and the volume keys stopped working while the volume itself kept working
+# fine (wpctl speaks to PipeWire directly and never touches the Pulse layer).
+# That is a very confusing way to lose your volume keys, and it took a while to
+# find, so: two defences, because one is not enough.
+#
+# The trap covers a clean exit and a SIGTERM. The pidfile covers SIGKILL, where
+# no trap runs at all — the next instance reaps whatever the last one abandoned,
+# so at most one subscriber can ever be orphaned rather than one per restart.
+#
+# The subscriber runs through a fifo rather than a pipeline because a pipeline
+# gives us no pid to kill. The fifo is unlinked the moment it's open: the fd
+# outlives the name, and nothing is left in the runtime directory.
+subscriber=""
+subscriber_pid_file="${XDG_RUNTIME_DIR:-/tmp}/waybar-audio.subscriber"
+
+stop_subscriber() {
+    [ -n "$subscriber" ] && kill "$subscriber" 2>/dev/null
+    rm -f "$subscriber_pid_file"
+    return 0
+}
+
+reap_abandoned_subscriber() {
+    abandoned=$(cat "$subscriber_pid_file" 2>/dev/null) || return 0
+    case "$abandoned" in '' | *[!0-9]*) return 0 ;; esac
+    # Pids get recycled, so only kill it if it is still what we left behind.
+    if grep -qa '^pactl$' "/proc/$abandoned/comm" 2>/dev/null; then
+        kill "$abandoned" 2>/dev/null
+    fi
+    return 0
+}
+
+reap_abandoned_subscriber
+trap stop_subscriber EXIT HUP INT TERM
+
+events="${XDG_RUNTIME_DIR:-/tmp}/waybar-audio.events.$$"
+mkfifo "$events"
+pactl subscribe >"$events" 2>/dev/null &
+subscriber=$!
+printf '%s\n' "$subscriber" > "$subscriber_pid_file"
+exec 3< "$events"
+rm -f "$events"
+
 emit
-pactl subscribe 2>/dev/null | while read -r event; do
+while IFS= read -r event <&3; do
     case "$event" in
         *"on sink"*|*"on server"*) emit ;;
     esac
