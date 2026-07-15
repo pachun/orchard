@@ -1,15 +1,17 @@
 #!/bin/sh
-# waybar-updates: count pending pacman + AUR updates and emit a JSON
-# blob for waybar's custom module. Renders the module empty (effectively
-# hidden) when there's nothing to do, when offline, or while the very
-# first refresh is still running.
+# waybar-updates: surface pending pacman + AUR package updates and
+# available device firmware, emitting a JSON blob for waybar's custom
+# module. Renders the module empty (effectively hidden) when there's
+# nothing to do, when offline, or while the very first refresh is still
+# running. Package count is exact; firmware is a boolean (present or
+# not). Clicking the badge runs system-update, which applies both.
 #
 # Architecture: stale-while-revalidate.
 #   - Waybar polls every minute; the script reads /tmp/waybar-updates.cache
 #     and prints it in <10ms.
 #   - If the cache is older than $MAX_AGE, a background refresh kicks
-#     off (checkupdates + yay -Qua, ~1s total) and signals SIGRTMIN+10
-#     to waybar when done.
+#     off (checkupdates + yay -Qua + fwupdmgr get-updates, ~1-2s total)
+#     and signals SIGRTMIN+10 to waybar when done.
 #   - A flag file at /tmp/waybar-updates.refreshing dedupes concurrent
 #     refresh runs. If the flag's older than $LOCK_TTL the prior runner
 #     was killed (e.g. a waybar restart took out the subshell with
@@ -62,12 +64,19 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
         trap 'rm -f "$LOCK"' EXIT
         repo=$(checkupdates 2>/dev/null | wc -l)
         aur=$(timeout 30 yay -Qua 2>/dev/null | wc -l)
-        total=$((repo + aur))
-        if [ "$total" -eq 0 ]; then
+        # fwupdmgr get-updates exits 0 only when a device has an update
+        # waiting; 2 (or other non-zero) means nothing to flash.
+        fw=0
+        fwupdmgr get-updates >/dev/null 2>&1 && fw=1
+        pkgs=$((repo + aur))
+        if [ "$pkgs" -eq 0 ] && [ "$fw" -eq 0 ]; then
             : > "$CACHE"
+        elif [ "$pkgs" -eq 0 ]; then
+            printf '{"text":"","tooltip":"Firmware update available"}\n' > "$CACHE"
         else
-            tooltip="$total pending — $repo from repos"
+            tooltip="$pkgs pending — $repo from repos"
             [ "$aur" -gt 0 ] && tooltip="$tooltip, $aur from AUR"
+            [ "$fw" -gt 0 ] && tooltip="$tooltip; firmware update available"
             printf '{"text":"","tooltip":"%s"}\n' \
                 "$tooltip" > "$CACHE"
         fi
