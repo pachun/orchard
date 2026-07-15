@@ -9,7 +9,7 @@
 # timezone/locale/hostname, create a wheel user, mirror its password to
 # root, install systemd-boot, enable NetworkManager, copy orchard into
 # the new user's home. Configuration (dotfiles, desktop) is a separate
-# phase the user runs after first login: configure.sh.
+# phase the user runs after first login: ./configure.
 set -euo pipefail
 shopt -s nullglob
 

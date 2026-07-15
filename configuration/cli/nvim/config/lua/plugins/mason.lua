@@ -4,7 +4,7 @@
 -- All three categories funnel through mason-tool-installer rather than
 -- splitting LSPs into mason-lspconfig.ensure_installed: tool-installer
 -- exposes a synchronous `:MasonToolsInstallSync` command that the
--- headless installer (configure-nvim.sh) can block on, whereas
+-- headless installer (install.sh) can block on, whereas
 -- mason-lspconfig's installs are async-only and would race nvim's
 -- exit. mason-lspconfig is still loaded so it translates lspconfig
 -- server names (e.g. `lua_ls`) to Mason package names

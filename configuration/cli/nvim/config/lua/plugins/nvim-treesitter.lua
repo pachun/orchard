@@ -12,15 +12,15 @@ return {
   lazy = false,
   build = ":TSUpdate",
   config = function()
-    -- Parser installs happen out-of-band via configure-nvim.sh (see
-    -- configuration/configure-nvim.sh). Calling install() from this
+    -- Parser installs happen out-of-band via install.sh (see
+    -- configuration/cli/nvim/install.sh). Calling install() from this
     -- config block would re-trigger downloads on every nvim startup,
     -- spamming :messages with download-progress lines.
     --
     -- Start treesitter highlighting whenever a buffer's filetype is
     -- detected. pcall swallows the error for filetypes without an
     -- installed parser (e.g. one added to the parser list but not yet
-    -- pulled by configure-nvim.sh).
+    -- pulled by install.sh).
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "*",
       callback = function()

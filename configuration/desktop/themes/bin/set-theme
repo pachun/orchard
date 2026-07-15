@@ -112,7 +112,7 @@ if [ -f "$style" ]; then
 fi
 
 # Chromium picks up theme via /etc/chromium/policies/managed/
-# orchard-theme.json, a symlink (set up by configure-chromium-theme.sh)
+# orchard-theme.json, a symlink (set up by chromium/install.sh)
 # pointing at this theme dir's chromium.json. Re-reading policy is
 # triggered by --refresh-platform-policy on a no-window chromium
 # launch — it pushes the change to existing windows live without
