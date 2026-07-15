@@ -50,8 +50,9 @@ changes), figure out why it didn't auto-approve and propose the fix:
   command-substitution, etc.) → leave it; expanding the hook here
   risks letting through write operations
 
-Both files are symlinked from `~/code/orchard/dotfiles/claude/`, so
-edits land in the dotfiles automatically — just remember to commit.
+Both files are symlinked from
+`~/code/orchard/configuration/cli/claude/config/`, so edits land in the
+dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
@@ -306,7 +307,7 @@ with such attribution, strip it first.
 **The one allowed mention:** naming "Claude" / "Claude Code" as the
 *subject* of the work — what is being built or changed. A commit
 "Make Claude config reproducible", a comment describing a Claude
-Code hook, a `dotfiles/claude/` path — these name Claude as the
+Code hook, a `configuration/cli/claude/` path — these name Claude as the
 topic, not as a contributor, and are fine. The line: never say
 Claude *did* the work; naming Claude as the thing worked *on* is OK.
 
@@ -316,10 +317,10 @@ Claude *did* the work; naming Claude as the thing worked *on* is OK.
   install <name>@<marketplace>`): remind them that for fresh installs
   to auto-pick-it-up, two things have to be true:
     1. The marketplace must be in
-       `setup/install/configure-claude-plugins.sh`'s `MARKETPLACES`
-       dict. If it's a new marketplace they haven't used before,
+       `configuration/cli/claude/install.sh`'s `MARKETPLACES`
+       array. If it's a new marketplace they haven't used before,
        offer to add it.
     2. The `enabledPlugins` entry in `~/.claude/settings.json`
        (symlinked from the dotfiles) must be committed. Suggest
-       running `git -C ~/code/orchard status dotfiles/claude/` and
-       committing the change.
+       running `git -C ~/code/orchard status configuration/cli/claude/`
+       and committing the change.
