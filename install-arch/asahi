@@ -124,21 +124,6 @@ kernel.printk = 1 4 1 7
 EOF
 }
 
-install_network_dispatcher() {
-  # On interface-up, nudge waybar to refresh its weather module instead of
-  # sitting on stale data for up to 10 minutes. SIGRTMIN+9 = the module's
-  # `signal: 9`.
-  cat > /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh <<'EOF'
-#!/bin/bash
-case "$2" in
-    up|connectivity-change)
-        pkill -RTMIN+9 -x waybar
-        ;;
-esac
-EOF
-  chmod 755 /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh
-}
-
 point_geoclue_at_beacondb() {
   # Mozilla Location Service shut down mid-2024; BeaconDB is the drop-in
   # community replacement (same Ichnaea API, no key).
@@ -227,7 +212,6 @@ grant_wheel_sudo
 set_hostname
 set_timezone
 configure_kernel_cmdline
-install_network_dispatcher
 point_geoclue_at_beacondb
 enable_keyring_autounlock
 ignore_suspend_key

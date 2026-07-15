@@ -37,3 +37,18 @@ else
     layout=without-notch
 fi
 ln -sfn "$HERE/layouts/$layout.jsonc" "$HOME/.config/waybar/layout.jsonc"
+
+# Refresh the bar the moment the network returns rather than waiting on the
+# next poll — up to 10 minutes for the weather module. A NetworkManager
+# dispatcher pings waybar with SIGRTMIN+9 on interface-up, the signal the
+# weather, network, and nordvpn modules all refresh on. It lives here rather
+# than in a base installer so both machines get it, not just the Mac.
+sudo tee /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh >/dev/null <<'EOF'
+#!/bin/bash
+case "$2" in
+    up|connectivity-change)
+        pkill -RTMIN+9 -x waybar
+        ;;
+esac
+EOF
+sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh
