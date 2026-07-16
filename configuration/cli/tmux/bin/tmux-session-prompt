@@ -1,8 +1,10 @@
 #!/bin/sh
 # Pop tmux's command-prompt with the current session list shown
-# inline as the label, plus tab-completion on session names. On
-# Enter, hand the typed name off to tmux-session-switch (switch if
-# exists, create + switch if not, GC the leaving session if idle).
+# inline as the label, plus tab-completion on session names. The
+# session you're in now is flagged with a trailing `*`, so the list
+# doubles as a "you are here". On Enter, hand the typed name off to
+# tmux-session-switch (switch if exists, create + switch if not, GC
+# the leaving session if idle).
 #
 # Bound from tmux.conf to `prefix + t` via run-shell.
 set -eu
@@ -12,7 +14,13 @@ set -eu
 # several sequential prompts (you'd see "session [foo" then a second
 # prompt for " bar" etc). Spaces are unambiguous because tmux
 # session names can't contain spaces.
-sessions=$(tmux list-sessions -F '#S' 2>/dev/null | paste -sd ' ' -)
+# Mark the session we're in with a trailing `*`. The name comes from
+# display-message (same as tmux-session-switch uses), and each listed
+# name is compared against it as the label is joined together.
+current=$(tmux display-message -p '#S' 2>/dev/null || true)
+sessions=$(tmux list-sessions -F '#S' 2>/dev/null | while IFS= read -r s; do
+    [ "$s" = "$current" ] && printf '%s* ' "$s" || printf '%s ' "$s"
+done | sed 's/ *$//')
 label="session"
 [ -n "$sessions" ] && label="session [$sessions]"
 
