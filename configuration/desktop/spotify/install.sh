@@ -9,7 +9,14 @@
 #
 # First `spotify-launcher` run downloads the client (a few hundred MB), so
 # run it once by hand after install to prime it and sign in.
+#
+# The linked spotify-launcher.conf is what keeps the window on Wayland rather
+# than XWayland — see its comments.
 # Idempotent.
 set -euo pipefail
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 sudo pacman -S --needed --noconfirm spotify-launcher
+
+bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
