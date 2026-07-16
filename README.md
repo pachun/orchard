@@ -10,6 +10,9 @@ My Arch configuration for the [2026 Dell XPS 14](https://www.dell.com/en-us/shop
 
 Check out the [orchard manual](https://orchard-manual.netlify.app/).
 
+> [!NOTE]
+> That manual is 95% AI generated and some things aren't accurate.
+
 <!-- screenshots -->
 <table>
   <tr>
