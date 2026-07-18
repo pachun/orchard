@@ -11,6 +11,7 @@ alias gm="git merge"
 alias wip="git add .; git commit -am 'wip' --no-verify"
 alias lanip="ip addr | grep 'inet ' | grep -v '127.0.0.1' | awk '{print \$2}' | cut -d/ -f1"
 alias tls="tmux ls"
+alias open="xdg-open"
 
 function keep {
   if [[ -z "$1" ]]; then
