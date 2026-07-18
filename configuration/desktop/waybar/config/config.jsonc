@@ -141,13 +141,26 @@
     },
 
     "battery": {
-        // Phosphor has 5 fill-level glyphs (empty / low / medium / high
-        // / full). Mapped to 11 buckets by repeating: 0%=empty, 10-30%=low,
-        // 40-60%=medium, 70-80%=high, 90-100%=full. When charging, swap
-        // for the bolt-overlay variant.
+        // Material Design battery glyphs (Symbols Nerd Font Mono), not the
+        // Phosphor set the rest of the bar uses. Phosphor only draws 5 fill
+        // levels, so a single glyph had to cover 36-62%: at 60% it showed 2
+        // bars out of 5 and read as roughly 40% — alarming, and wrong. These
+        // are one glyph per 10%, filled bottom-up in proportion, and waybar
+        // picks format-icons[capacity // 9], so every bucket lands on the
+        // glyph named for it (54-62% -> battery_60). The icon agrees with the
+        // number beside it.
+        //
+        // It is the one filled mark on a bar of outlines, deliberately: every
+        // other icon reports a state, this one reports a quantity, and the fill
+        // is the quantity. macOS draws its battery the same way.
+        //
+        // Charging stays Phosphor's bolt — a bolt reads as charging on its own,
+        // and MDI's charging glyphs hang the bolt off the battery's side, which
+        // is wider than the plain battery and would shunt the bar sideways on
+        // plug-in.
         "format": "<span size=\"smaller\">{icon}</span> {capacity}%",
         "format-charging": "<span size=\"smaller\"></span> {capacity}%",
-        "format-icons": ["", "", "", "", "", "", "", "", "", "", ""],
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
         "interval": 2
     },
 

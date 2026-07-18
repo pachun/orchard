@@ -92,6 +92,17 @@ pkill -SIGUSR2 -x ghostty 2>/dev/null || true
 # disturbed.
 hyprctl reload >/dev/null 2>&1 || true
 
+# eww OSD (the volume/brightness square) — regenerate its themed colours from
+# the new palette, then restart eww so it repaints from them. A restart rather
+# than `eww reload`: reloading in place can strand a layer surface the daemon
+# then loses track of, leaving a ghost square stuck on screen (see restart-osd).
+# Skipped cleanly on a machine without the volume-and-brightness-controls
+# feature.
+if command -v eww >/dev/null 2>&1; then
+    "$HOME/.local/bin/render-osd-theme" >/dev/null 2>&1 || true
+    "$HOME/.local/bin/restart-osd" >/dev/null 2>&1 || true
+fi
+
 # Waybar hot-reloads CSS via its `reload_style_on_change` watcher
 # (set in config.jsonc). Modules keep state on this path, so the
 # weather module doesn't blank to refetch and the bar doesn't

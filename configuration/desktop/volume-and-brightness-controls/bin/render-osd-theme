@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Regenerate the OSD's colours from the active orchard theme.
+#
+# The square derives from two palette colours: frost = the theme background, and
+# ink = the theme foreground, used for both the icon and the bar so they share
+# one tint, the way macOS's HUD is monochrome. Because both come from
+# `background`/`foreground`, the OSD self-solves light-vs-dark: rose-pine's dark
+# iris on cream, the dark themes' light text on dark, no accent guesswork.
+#
+# There's nothing to rasterise: the glyphs are GTK symbolic icons drawn by eww,
+# so they stay crisp at the display scale and recolour straight from $ink in the
+# CSS. This just writes colors.scss.
+#
+# Run by install.sh and again by set-theme on every switch (which then reloads
+# eww).
+set -euo pipefail
+
+palette="$HOME/.config/orchard-themes/active/palette"
+[ -f "$palette" ] || exit 0
+
+read_hex() { grep -E "^$1[[:space:]]*=" "$palette" | grep -oE '#[0-9a-fA-F]{6}' | head -n1; }
+frost_hex=$(read_hex background)
+ink_hex=$(read_hex foreground)
+[ -n "$frost_hex" ] && [ -n "$ink_hex" ] || exit 0
+
+as_rgb() { local h=${1#\#}; printf '%d, %d, %d' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
+frost_rgb=$(as_rgb "$frost_hex")
+ink_rgb=$(as_rgb "$ink_hex")
+
+mkdir -p "$HOME/.config/eww"
+cat > "$HOME/.config/eww/colors.scss" <<EOF
+\$frost: rgba($frost_rgb, 0.55);
+\$edge:  rgba($ink_rgb, 0.12);
+\$track: rgba($ink_rgb, 0.20);
+\$ink:   $ink_hex;
+EOF

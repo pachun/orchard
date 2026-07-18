@@ -1,0 +1,28 @@
+; The macOS-style volume/brightness square. A long-lived eww daemon holds this
+; window; the `osd` script pushes a level and an icon path into these two vars
+; and opens it, GTK draws the glyph and bar crisp at any display scale (the
+; whole point of moving off avizo, which upscaled a bitmap into graininess on
+; a HiDPI panel), and the script closes it after a beat. Colours come from
+; colors.scss, regenerated per theme by render-osd-theme.
+
+(defvar osd_icon "audio-volume-high-symbolic")
+(defvar osd_level 0)
+
+; The box fills the whole window (no halign/valign shrink) so the frosted panel
+; *is* the window — otherwise the window's own rectangle shows as a second faint
+; panel behind a content-sized box. The icon is centred in the space above the
+; bar via a vexpanding wrapper.
+(defwidget osd []
+  (box :class "osd" :orientation "v" :space-evenly false
+    (box :class "osd-iconwrap" :vexpand true :halign "center" :valign "center"
+      (image :class "osd-icon" :icon osd_icon :icon-size "dialog"))
+    (progress :class "osd-bar" :orientation "h" :value osd_level)))
+
+(defwindow osd
+  :monitor 0
+  :namespace "eww-osd"
+  :geometry (geometry :y "12%" :width "180px" :height "180px" :anchor "bottom center")
+  :stacking "overlay"
+  :exclusive false
+  :focusable false
+  (osd))

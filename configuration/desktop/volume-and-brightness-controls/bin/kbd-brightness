@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Keyboard backlight with the swayosd progress pill, mirroring
-# screen-brightness. Unlike the screen panel, the kbd backlight has no
-# bl_power flip to handle, so 0 just means off here.
+# Keyboard backlight with the avizo OSD square, mirroring screen-brightness.
+# Unlike the screen panel, the kbd backlight has no bl_power flip to handle, so
+# 0 just means off here.
 #
 # Usage: kbd-brightness up|down [STEP%]   (STEP defaults to 5%)
 #        kbd-brightness max               (used at login — see hyprland.conf)
@@ -28,9 +28,8 @@ show_osd() {
   local val max fraction
   val=$(brightnessctl --device "$DEVICE" get)
   max=$(brightnessctl --device "$DEVICE" max)
-  # swayosd's --custom-progress wants 0.0-1.0, not a percent.
   fraction=$(awk -v v="$val" -v m="$max" 'BEGIN { printf "%.3f", v/m }')
-  swayosd-client --custom-progress "$fraction" --custom-icon keyboard-brightness-symbolic 2>/dev/null || true
+  "$HOME/.local/bin/osd" "$fraction" keyboard-brightness
 }
 
 case "${1:-}" in

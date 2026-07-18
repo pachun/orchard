@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Adjust the default sink's volume (or toggle mute) and pop the avizo OSD
+# square. Raising or lowering also unmutes, matching macOS — the set-mute call
+# is a no-op when already unmuted. Steps are 3%, capped at 100% so a hold can't
+# push the sink into soft-clipping boost.
+#
+# Usage: volume up|down|mute
+set -euo pipefail
+
+sink=@DEFAULT_AUDIO_SINK@
+
+case "${1:-}" in
+  up)   wpctl set-mute "$sink" 0; wpctl set-volume -l 1.0 "$sink" 3%+ ;;
+  down) wpctl set-mute "$sink" 0; wpctl set-volume "$sink" 3%- ;;
+  mute) wpctl set-mute "$sink" toggle ;;
+  *) echo "usage: $(basename "$0") up|down|mute" >&2; exit 2 ;;
+esac
+
+# `wpctl get-volume` prints "Volume: 0.65", plus " [MUTED]" when muted.
+read -r level muted < <(
+  wpctl get-volume "$sink" | awk '{ printf "%s %d\n", $2, ($0 ~ /MUTED/) }'
+)
+percent=$(awk -v v="$level" 'BEGIN { printf "%d", v * 100 }')
+
+if [ "$muted" = 1 ]; then
+  glyph=volume-muted
+elif [ "$percent" -le 33 ]; then
+  glyph=volume-low
+elif [ "$percent" -le 66 ]; then
+  glyph=volume-medium
+else
+  glyph=volume-high
+fi
+
+"$HOME/.local/bin/osd" "$level" "$glyph"

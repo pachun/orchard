@@ -28,9 +28,8 @@ show_osd() {
   local val max fraction
   val=$(brightnessctl --device "$DEVICE" get)
   max=$(brightnessctl --device "$DEVICE" max)
-  # swayosd's --custom-progress wants 0.0-1.0, not a percent.
   fraction=$(awk -v v="$val" -v m="$max" 'BEGIN { printf "%.3f", v/m }')
-  swayosd-client --custom-progress "$fraction" --custom-icon display-brightness-symbolic 2>/dev/null || true
+  "$HOME/.local/bin/osd" "$fraction" screen-brightness
 }
 
 cur="$(brightnessctl --device "$DEVICE" get)"

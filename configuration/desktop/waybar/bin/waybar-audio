@@ -47,9 +47,9 @@ emit() {
 # `pactl subscribe` outlives this script if we don't kill it, and it holds one of
 # PulseAudio's client slots while it does. There are sixty-four. waybar restarts
 # on every theme switch, so every theme switch leaked one — and when the last
-# slot went, PulseAudio began refusing new clients, swayosd could no longer reach
-# it, and the volume keys stopped working while the volume itself kept working
-# fine (wpctl speaks to PipeWire directly and never touches the Pulse layer).
+# slot went, PulseAudio began refusing new clients, and Pulse-based apps could no
+# longer reach it while wpctl-based ones kept working fine (wpctl speaks to
+# PipeWire directly and never touches the Pulse layer).
 # That is a very confusing way to lose your volume keys, and it took a while to
 # find, so: two defences, because one is not enough.
 #

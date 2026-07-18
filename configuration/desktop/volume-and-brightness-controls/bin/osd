@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Show the on-screen square for a level change: given a 0.0-1.0 fraction and a
+# glyph name, push them into the eww OSD window and open it, then close it after
+# a beat. The glyph is a GTK symbolic icon name — eww hands it to GTK, which
+# rasterises it at the display scale (crisp on HiDPI) and recolours it to the
+# theme via the CSS in eww.scss.
+#
+# Usage: osd <fraction> <glyph>
+#   e.g. osd 0.65 volume-high
+set -euo pipefail
+
+fraction=$1
+glyph=$2
+percent=$(awk -v v="$fraction" 'BEGIN { printf "%d", v * 100 }')
+
+case "$glyph" in
+  volume-high)         icon=audio-volume-high-symbolic ;;
+  volume-medium)       icon=audio-volume-medium-symbolic ;;
+  volume-low)          icon=audio-volume-low-symbolic ;;
+  volume-muted)        icon=audio-volume-muted-symbolic ;;
+  screen-brightness)   icon=display-brightness-symbolic ;;
+  keyboard-brightness) icon=keyboard-brightness-symbolic ;;
+  *)                   icon=$glyph ;;
+esac
+
+# A wedged eww daemon draws the square and then stops answering — the window
+# stays lit and nothing can close it. So before drawing, check the daemon is
+# responsive, and if opening still hangs, restart it (which clears the stuck
+# square) and draw on the fresh one. Every path is time-bounded so a wedge can
+# never leave this script hanging.
+daemon_answers()   { timeout 1 eww ping >/dev/null 2>&1; }
+push_level()       { timeout 1 eww update osd_icon="$icon" osd_level="$percent" >/dev/null 2>&1; }
+raise_square()     { timeout 1 eww open osd >/dev/null 2>&1; }
+
+daemon_answers || "$HOME/.local/bin/restart-osd"
+push_level || true
+if ! raise_square; then
+  "$HOME/.local/bin/restart-osd"
+  push_level || true
+  raise_square || true
+fi
+
+# Close after 1.2s, but only if no newer change has come in. Holding a key fires
+# this many times a second; each writes a fresh token and the stale closers bow
+# out, so the square stays up while you're adjusting and dismisses once you stop.
+token=$(date +%s%N)
+echo "$token" > /tmp/orchard-osd.token
+( sleep 1.2
+  [ "$(cat /tmp/orchard-osd.token 2>/dev/null)" = "$token" ] && timeout 1 eww close osd >/dev/null 2>&1
+) & disown 2>/dev/null || true

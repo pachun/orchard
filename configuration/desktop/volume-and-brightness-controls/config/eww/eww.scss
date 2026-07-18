@@ -1,0 +1,48 @@
+// Frosted rounded square, macOS HUD style. The translucent background is read
+// through Hyprland's blur layerrule on this window's namespace (see
+// hyprland.conf). Colours ($frost / $edge / $track / $ink) are regenerated
+// from the active theme's palette by render-osd-theme into colors.scss.
+@import "colors";
+
+* {
+  all: unset;
+}
+
+// The eww window itself must be transparent, otherwise its full rectangle sits
+// as a second faint panel behind the frosted box (GTK paints the window
+// background on a .background node, so that's the one that has to be cleared).
+window,
+.background {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.osd {
+  background-color: $frost;
+  border: 1px solid $edge;
+  border-radius: 22px;
+  padding: 24px 22px;
+}
+
+// Recolours the GTK symbolic icon to the theme foreground.
+.osd-icon {
+  color: $ink;
+  margin-bottom: 20px;
+}
+
+.osd-bar {
+  min-height: 6px;
+  border-radius: 999px;
+
+  trough {
+    background-color: $track;
+    border-radius: 999px;
+    min-height: 6px;
+  }
+
+  progress {
+    background-color: $ink;
+    border-radius: 999px;
+    min-height: 6px;
+  }
+}

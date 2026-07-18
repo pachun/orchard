@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Bring the OSD daemon up clean, and wait until it answers before returning.
+#
+# This deliberately kills the whole process instead of `eww reload`. A reload
+# re-reads the config in place, and on wlr-layer-shell (Hyprland) that can leave
+# the daemon's window registry out of sync with the surfaces actually on screen
+# — you get a ghost square the daemon no longer knows about (active-windows
+# comes back empty while it's still lit), and the next open draws a second one
+# in front of it. Killing the process destroys every surface it owns along with
+# it, so there's nothing left to strand. Starting fresh also re-reads the
+# current colours, which is the other reason set-theme calls this.
+#
+# The wait matters because a caller (the osd script) opens the window straight
+# after: `eww daemon` daemonises and returns before the socket is up, so we ping
+# until it responds rather than racing it.
+#
+# The kill is SIGKILL, not a polite SIGTERM: a wedged daemon is exactly the one
+# that won't act on a catchable signal (a frozen or stopped process leaves TERM
+# pending and keeps its ghost surface on screen), and eww has no shutdown work
+# worth waiting for anyway.
+set -euo pipefail
+
+pkill -9 -x eww 2>/dev/null || true
+eww daemon >/dev/null 2>&1 || true
+
+for _ in $(seq 1 20); do
+  timeout 1 eww ping >/dev/null 2>&1 && exit 0
+  sleep 0.1
+done
