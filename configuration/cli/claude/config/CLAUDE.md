@@ -1,5 +1,14 @@
 # Personal Claude Code instructions
 
+## Spelling
+
+Use American English spelling everywhere — prose, commit messages, code,
+comments, docs, artifacts. Never British spelling: `color` not `colour`,
+`behavior` not `behaviour`, `canceled` not `cancelled`, `center` not
+`centre`, `-ize` not `-ise` (`organize`, `serialize`). The one exception
+is matching an identifier or API that is already spelled the British way
+in the code being touched.
+
 ## When to reach for specific tools
 
 - **Claude Code features, plugins, configuration, MCP servers, hooks,
