@@ -49,4 +49,6 @@ case "$direction" in
         ;;
 esac
 
-hyprctl dispatch workspace "$target" >/dev/null
+# Via workspace-switch rather than hyprctl directly, so that stepping onto a
+# workspace that lives on the other monitor takes focus with it.
+workspace-switch "$target"

@@ -53,15 +53,26 @@ emit() {
 # That is a very confusing way to lose your volume keys, and it took a while to
 # find, so: two defences, because one is not enough.
 #
-# The trap covers a clean exit and a SIGTERM. The pidfile covers SIGKILL, where
-# no trap runs at all — the next instance reaps whatever the last one abandoned,
-# so at most one subscriber can ever be orphaned rather than one per restart.
+# The trap covers a clean exit and a SIGTERM. The pid files cover SIGKILL, where
+# no trap runs at all — a later instance reaps whatever an earlier one abandoned,
+# so at most one subscriber can be orphaned rather than one per restart.
+#
+# One file per instance, named for that instance's own pid, because waybar runs
+# a separate copy of this script for every bar and there is a bar per monitor.
+# A single shared file meant each new instance reaped the *live* sibling's
+# subscriber; that sibling's read loop then hit EOF and exited, waybar restarted
+# it on restart-interval, and it reaped the other one's subscriber in turn. The
+# two bars killed each other's audio module several times a minute for as long
+# as a second monitor was attached, which looks like the icon hopping from one
+# bar to the other. An instance is only abandoned if the process that wrote its
+# file is gone, so a running sibling is never touched.
 #
 # The subscriber runs through a fifo rather than a pipeline because a pipeline
 # gives us no pid to kill. The fifo is unlinked the moment it's open: the fd
 # outlives the name, and nothing is left in the runtime directory.
 subscriber=""
-subscriber_pid_file="${XDG_RUNTIME_DIR:-/tmp}/waybar-audio.subscriber"
+subscriber_pid_dir="${XDG_RUNTIME_DIR:-/tmp}/waybar-audio.subscribers"
+subscriber_pid_file="$subscriber_pid_dir/$$"
 
 stop_subscriber() {
     [ -n "$subscriber" ] && kill "$subscriber" 2>/dev/null
@@ -69,17 +80,34 @@ stop_subscriber() {
     return 0
 }
 
-reap_abandoned_subscriber() {
-    abandoned=$(cat "$subscriber_pid_file" 2>/dev/null) || return 0
-    case "$abandoned" in '' | *[!0-9]*) return 0 ;; esac
-    # Pids get recycled, so only kill it if it is still what we left behind.
-    if grep -qa '^pactl$' "/proc/$abandoned/comm" 2>/dev/null; then
-        kill "$abandoned" 2>/dev/null
-    fi
+instance_still_running() {
+    grep -qa 'waybar-audio' "/proc/$1/cmdline" 2>/dev/null
+}
+
+reap_abandoned_subscribers() {
+    for record in "$subscriber_pid_dir"/*; do
+        [ -f "$record" ] || continue
+
+        owner=${record##*/}
+        if [ "$owner" = "$$" ] || instance_still_running "$owner"; then
+            continue
+        fi
+
+        abandoned=$(cat "$record" 2>/dev/null || true)
+        case "$abandoned" in
+            '' | *[!0-9]*) rm -f "$record"; continue ;;
+        esac
+        # Pids get recycled, so only kill it if it is still what was left behind.
+        if grep -qa '^pactl$' "/proc/$abandoned/comm" 2>/dev/null; then
+            kill "$abandoned" 2>/dev/null || true
+        fi
+        rm -f "$record"
+    done
     return 0
 }
 
-reap_abandoned_subscriber
+mkdir -p "$subscriber_pid_dir"
+reap_abandoned_subscribers
 trap stop_subscriber EXIT HUP INT TERM
 
 events="${XDG_RUNTIME_DIR:-/tmp}/waybar-audio.events.$$"

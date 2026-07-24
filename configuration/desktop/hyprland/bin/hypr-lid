@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Fold the laptop panel in and out of the layout as the lid closes and opens.
+# Bound to the lid switch in hyprland.conf.
+#
+# logind deliberately does not suspend here: HandleLidSwitchDocked applies
+# whenever more than one display is connected and defaults to "ignore". So
+# closing the lid leaves eDP-1 enabled behind a shut panel, with workspaces and
+# the pointer free to wander somewhere nobody can see. Disabling the output is
+# what makes the external monitor the only screen.
+#
+# The monitor is left showing whatever it was already showing. The five spaces
+# that matter are bound to it (see the workspace rules in hyprland.conf), so
+# they are already there when the lid shuts — the laptop only ever holds its
+# own side space, and carrying that across would drag an unrelated workspace
+# onto the monitor and hide the one you were working in.
+#
+# Windows on that side space are not lost: Hyprland moves the workspace to the
+# remaining monitor, and workspace-cycle walks whatever exists above 5, so
+# Ctrl+Left/Right still reaches it.
+#
+# `sync` re-asserts whichever state the lid is actually in, and hyprland.conf
+# runs it from `exec` so it fires on every config reload. Without that the panel
+# comes back from the dead: the monitor line in the config enables eDP-1, a
+# reload re-applies it, and disable was only ever a runtime keyword. Editing the
+# config or switching theme with the lid shut would silently restore a screen
+# behind a closed lid — invisible, but the pointer still walks onto it and
+# windows still open there.
+#
+# Usage: hypr-lid closed|opened|sync
+set -euo pipefail
+
+INTERNAL_PANEL=eDP-1
+
+monitors() { hyprctl monitors -j; }
+
+external_monitor_is_attached() {
+    local count
+    count=$(monitors | jq --arg panel "$INTERNAL_PANEL" \
+        '[.[] | select(.name != $panel)] | length')
+    [ "$count" -gt 0 ]
+}
+
+fold_panel_away() {
+    hyprctl keyword monitor "$INTERNAL_PANEL, disable"
+}
+
+bring_panel_back() {
+    hyprctl keyword monitor "$INTERNAL_PANEL, preferred, 0x0, 2"
+}
+
+lid_is_closed() {
+    grep -qi closed /proc/acpi/button/lid/*/state 2>/dev/null
+}
+
+close_up() {
+    # With no second screen there is nowhere for the windows to go, and logind
+    # is about to suspend anyway — leave the layout alone.
+    if external_monitor_is_attached; then
+        fold_panel_away
+    fi
+}
+
+case "${1:-}" in
+    closed)
+        close_up
+        ;;
+    opened)
+        bring_panel_back
+        ;;
+    sync)
+        if lid_is_closed; then
+            close_up
+        else
+            bring_panel_back
+        fi
+        ;;
+    *)
+        echo "usage: $(basename "$0") closed|opened|sync" >&2
+        exit 2
+        ;;
+esac

@@ -3,6 +3,10 @@ Description=xremap key remapper (Cmd-letter macOS-style shortcuts via wlroots)
 
 [Service]
 Type=simple
+# The systemd user manager's PATH has no ~/.local/bin, so a `launch:` naming
+# one of our own scripts would silently fail to resolve — only /usr/bin things
+# like hyprctl would run. Prepending it lets the keymap call them by name.
+Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
 ExecStart=%h/.cargo/bin/xremap --watch=config,device %h/.config/xremap/config.yml
 Restart=on-failure
 RestartSec=2

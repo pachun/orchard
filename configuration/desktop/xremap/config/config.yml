@@ -85,8 +85,8 @@ keymap:
   - name: workspace switching (Cmd+1..5)
     exact_match: true
     remap:
-      Super-1: { launch: ["hyprctl", "dispatch", "workspace", "1"] }
-      Super-2: { launch: ["hyprctl", "dispatch", "workspace", "2"] }
-      Super-3: { launch: ["hyprctl", "dispatch", "workspace", "3"] }
-      Super-4: { launch: ["hyprctl", "dispatch", "workspace", "4"] }
-      Super-5: { launch: ["hyprctl", "dispatch", "workspace", "5"] }
+      Super-1: { launch: ["workspace-switch", "1"] }
+      Super-2: { launch: ["workspace-switch", "2"] }
+      Super-3: { launch: ["workspace-switch", "3"] }
+      Super-4: { launch: ["workspace-switch", "4"] }
+      Super-5: { launch: ["workspace-switch", "5"] }

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Switch to a workspace, and carry focus with it when that means crossing to
+# the other monitor. Every workspace switch goes through here — Cmd+1..5 via
+# xremap, and Ctrl+Left/Right via workspace-cycle.
+#
+# `hyprctl dispatch workspace N` alone is not enough on two screens. It does
+# show the workspace on whichever monitor owns it, but focus only follows if
+# there is a window there to take it. Switch to an *empty* workspace on the
+# other monitor and follow_mouse=2 hands focus straight back to whichever
+# monitor the pointer is sitting on — so the space you asked for appears on a
+# screen you aren't typing into, which reads as the switch having silently
+# failed. That was the long-standing "can't get to workspace 4".
+#
+# The blunt fix is cursor:no_warps=false, but that also yanks the pointer on
+# every focuswindow, which the cursor block deliberately turns off. Warping
+# only when the switch actually changes monitor keeps that preference intact:
+# same-monitor switches, the common case, still leave the pointer alone.
+set -euo pipefail
+
+target="${1:-}"
+[ -n "$target" ] || { echo "usage: $(basename "$0") <workspace>" >&2; exit 2; }
+
+monitors() { hyprctl monitors -j; }
+
+focused_monitor() { monitors | jq -r '.[] | select(.focused) | .name'; }
+
+monitor_showing_workspace() {
+    monitors | jq -r --argjson id "$1" \
+        '.[] | select(.activeWorkspace.id == $id) | .name'
+}
+
+# Logical centre, so scale is accounted for — eDP-1 is 2880px wide at scale 2,
+# which is 1440 as far as cursor coordinates are concerned.
+centre_of_monitor() {
+    monitors | jq -r --arg name "$1" '.[] | select(.name == $name) |
+        "\((.x + (.width / .scale / 2)) | floor) \((.y + (.height / .scale / 2)) | floor)"'
+}
+
+hyprctl dispatch workspace "$target" >/dev/null
+
+destination=$(monitor_showing_workspace "$target")
+
+if [ -n "$destination" ] && [ "$destination" != "$(focused_monitor)" ]; then
+    # shellcheck disable=SC2046 # centre_of_monitor deliberately yields two args
+    hyprctl dispatch movecursor $(centre_of_monitor "$destination") >/dev/null
+fi
