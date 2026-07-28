@@ -36,6 +36,22 @@ in the code being touched.
   (`/foo`):** if the skill is in the available-skills list, call it
   via the Skill tool. Don't guess slash-command names from memory.
 
+## The tdd-loop trigger
+
+- **When I say `tdd-loop <which tests>` — with or without a leading
+  slash:** run the `tdd-loop` workflow
+  (`/home/nick/.claude/workflows/tdd-loop.js`) via the Workflow tool,
+  targeting the tests the phrase refers to. The bare phrase is a
+  colloquial alias for the `/tdd-loop` slash command, and saying it is
+  an explicit opt-in to that multi-agent run. Resolve the description
+  ("the failing tests we just created", a path, a `path:line`, a list)
+  to concrete targets from context — ask only if genuinely ambiguous —
+  and pass `{ target, testCommand }` (detect the repo's test command).
+  The loop freezes the failing tests as a group and drives each to green
+  one at a time (runner → minimal implementer → minimality critic),
+  ignoring collateral breakage until the group is green, then verifies
+  the full suite.
+
 ## Self-tightening permissions
 
 After the user manually grants permission for a Bash command, ask
