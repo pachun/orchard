@@ -107,6 +107,14 @@ INTERFACE = """
 # code and wait for you to click it. A path can only ever open a file manager.
 REVEAL = "x-orchard-reveal"
 
+# The tmux session a notification jumps to when clicked, and a flag asking to
+# arrive without a sound. The Claude-finished hook sets both: it names the
+# session Claude ran in — a click switches your terminal there — and stays quiet,
+# because it stands in for the old finish chime rather than adding to it. A bare
+# session name can only ever switch a tmux client, the same safety as REVEAL.
+TMUX_SESSION = "x-orchard-tmux-session"
+SILENT = "x-orchard-silent"
+
 CLOSED_EXPIRED = 1
 CLOSED_DISMISSED = 2
 CLOSED_BY_CALLER = 3
@@ -187,8 +195,9 @@ class Notifications:
             # Accepted and acknowledged, never shown. Silence is the whole point.
             return notification_id
 
-        # A new arrival dings; an in-place update (replaces_id set) does not.
-        if not replaces_id:
+        # A new arrival dings — unless it asks to stay silent (the Claude-finished
+        # notification does) or it is an in-place update (replaces_id set).
+        if not replaces_id and not hints.get(SILENT):
             self.play_notification_sound()
 
         timeout = DEFAULT_TIMEOUT_MS if expire_timeout < 0 else expire_timeout
@@ -205,6 +214,7 @@ class Notifications:
             "desktop_entry": str(hints.get("desktop-entry", "")),
             "default_action": "default" if "default" in keys else "",
             "reveal": str(hints.get(REVEAL, "")),
+            "tmux_session": str(hints.get(TMUX_SESSION, "")),
         }
         self.publish(self.showing)
 
@@ -243,7 +253,14 @@ class Notifications:
         if not self.showing:
             return
         showing = self.showing
-        if showing["reveal"]:
+        if showing["tmux_session"]:
+            # Jump the terminal to the session Claude finished in.
+            subprocess.Popen(
+                [str(Path.home() / ".local/bin/open-tmux-session"), showing["tmux_session"]],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        elif showing["reveal"]:
             # A new window every time, and the file already selected in it —
             # the same thing Cmd+E does, pointed at what you just made.
             subprocess.Popen(
