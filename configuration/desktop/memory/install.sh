@@ -3,9 +3,12 @@
 #   - zram: a compressed swap device that lives inside RAM. When memory
 #     fills, the coldest pages are compressed in place rather than paged
 #     out to the slow SSD, so far more fits before anything gives.
-#   - systemd-oomd: the last resort. If swap still hits the wall, it kills
-#     the single hungriest cgroup instead of letting the whole machine
-#     freeze. Configured to act once zram-swap passes 90% used.
+#   - systemd-oomd: NOT used to kill on swap. On zram, swap filling is
+#     normal, and oomd's swap-kill picks the cgroup with the largest swap
+#     footprint - a long-lived tmux/desktop session - rather than the
+#     transient hog, so it logged us out mid-build. The kernel OOM killer
+#     is the backstop instead: it kills the hungriest process, not the
+#     session's cgroup, so tmux and the compositor survive.
 # Idempotent.
 set -euo pipefail
 
@@ -19,17 +22,17 @@ zram-size = min(ram / 2, 8192)
 compression-algorithm = zstd
 EOF
 
-# Let oomd act on swap pressure system-wide: a global swap limit, plus
-# ManagedOOMSwap=kill on the root slice (inherited by everything under
-# it) so the limit actually has teeth.
+# Disarm oomd's swap-based killing (see above): keep the drop-in for a
+# documented, easily-reverted limit pinned at 100%, and ManagedOOMSwap=auto
+# on the root slice so nothing under it is ever swap-killed.
 sudo mkdir -p /etc/systemd/oomd.conf.d /etc/systemd/system/-.slice.d
 sudo tee /etc/systemd/oomd.conf.d/orchard.conf >/dev/null <<'EOF'
 [OOM]
-SwapUsedLimit=90%
+SwapUsedLimit=100%
 EOF
 sudo tee /etc/systemd/system/-.slice.d/10-oomd.conf >/dev/null <<'EOF'
 [Slice]
-ManagedOOMSwap=kill
+ManagedOOMSwap=auto
 EOF
 
 sudo systemctl daemon-reload
