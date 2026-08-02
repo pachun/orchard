@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Start the session on desktop 1.
+#
+# The five workspaces are pinned to the external monitor (`workspace = 1..5,
+# monitor:DP-1` in hyprland.conf). Hyprland reads those rules whether or not
+# DP-1 is actually plugged in, and when a monitor comes up it takes the first
+# workspace that no *other* monitor has claimed. Undocked, that rules out all
+# five, so the laptop panel opens on six — a desktop Cmd+1..5 can't reach and
+# the bar never promises. You log in already stranded.
+#
+# Docked, six is where the laptop panel is supposed to sit (see the workspace
+# rules), so the answer isn't to stop it happening — it's that the *view* should
+# begin on one either way. On the external, one is the space the config calls
+# primary; on the laptop alone, one is the only space you'd expect to see.
+#
+# Hyprland assigns the panel its workspace while the backend brings outputs up,
+# which can land either side of exec-once. So rather than read the workspace
+# once and trust it, watch for a few seconds and correct the first reading that
+# comes back out of reach.
+set -euo pipefail
+
+LAST_REACHABLE_WORKSPACE=5
+FIRST_WORKSPACE=1
+SETTLE_CHECKS=20
+SECONDS_BETWEEN_CHECKS=0.25
+
+active_workspace() {
+    hyprctl activeworkspace -j | jq '.id'
+}
+
+view_is_out_of_reach() {
+    [ "$(active_workspace)" -gt "$LAST_REACHABLE_WORKSPACE" ]
+}
+
+show_first_workspace() {
+    hyprctl dispatch workspace "$FIRST_WORKSPACE" >/dev/null
+}
+
+for _ in $(seq "$SETTLE_CHECKS"); do
+    if view_is_out_of_reach; then
+        show_first_workspace
+        exit 0
+    fi
+    sleep "$SECONDS_BETWEEN_CHECKS"
+done

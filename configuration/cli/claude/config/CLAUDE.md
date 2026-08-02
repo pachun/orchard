@@ -277,6 +277,24 @@ often, that's usually a hint that something else wants to change
 "should change" doesn't beat "is clear right now"; being clear
 first is cheap.
 
+**No magic numbers.** A bare numeric literal buried in an
+expression is a name waiting to happen — `div(len * 3, 4)` is
+opaque; `div(len * bytesPerBase64Group, charsPerBase64Group)`
+reads. Lift ratios, unit conversions, thresholds, and
+API-mandated sizes into named constants (or named intermediate
+values) that say what the number *is*, and where the value
+itself is non-obvious let the name carry the *why*:
+`graphRequiredChunkMultipleBytes` for `320 * 1024`,
+`largeAttachmentThresholdMegabytes` for `3`. This goes further
+than it first looks: even the literals that feel purely
+definitional carry context worth naming — a `0` is the *byte
+offset* a stream starts at (`firstByteOffset = 0`), and the
+`- 1` in `offset + length - 1` is what makes a byte range
+*inclusive* (`lastByteOffset = offset + length - 1`). If a
+number means something, name it. The test: could a reader tell
+what the number means without going to hunt for it? Applies in
+every language.
+
 ## Comments
 
 Default to **no comments**. Names carry the meaning — a
