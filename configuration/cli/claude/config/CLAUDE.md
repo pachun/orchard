@@ -36,6 +36,18 @@ in the code being touched.
   (`/foo`):** if the skill is in the available-skills list, call it
   via the Skill tool. Don't guess slash-command names from memory.
 
+## No drop shadows
+
+Never add a drop shadow to anything you build for me — not to cards,
+buttons, modals, sheets, anything. This covers every form: CSS
+`box-shadow` / `filter: drop-shadow`, React Native `shadowColor` /
+`shadowOpacity` / `shadowRadius` / `shadowOffset` / `elevation`, SVG or
+Canvas shadow primitives, and any framework's shadow helper. To separate
+a surface from its background, reach for a border, a fill/contrast
+change, or spacing instead. The only exception is a request where I
+explicitly ask for a shadow — and it applies only to that request, not
+onward.
+
 ## The tdd-loop trigger
 
 - **When I say `tdd-loop <which tests>` — with or without a leading
