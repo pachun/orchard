@@ -45,6 +45,23 @@ fi
 # out, so the square stays up while you're adjusting and dismisses once you stop.
 token=$(date +%s%N)
 echo "$token" > /tmp/orchard-osd.token
+square_still_painted() { hyprctl layers 2>/dev/null | grep -q "namespace: eww-osd"; }
+still_owns_screen()    { [ "$(cat /tmp/orchard-osd.token 2>/dev/null)" = "$token" ]; }
+
 ( sleep 1.2
-  [ "$(cat /tmp/orchard-osd.token 2>/dev/null)" = "$token" ] && timeout 1 eww close osd >/dev/null 2>&1
+  if still_owns_screen; then
+    # The close's exit code only reports the daemon's window registry, and the
+    # registry can be wrong in both directions: it can refuse ("no such
+    # window", or a timeout) while the square is visibly up, or agree while a
+    # stranded surface stays painted. The compositor is the ground truth, so
+    # after closing ask Hyprland whether an eww-osd layer is still on screen
+    # and restart the daemon if so — unless a newer change has taken over the
+    # square in the meantime, in which case the layer is legitimately alive
+    # and its own closer will handle it.
+    timeout 1 eww close osd >/dev/null 2>&1 || "$HOME/.local/bin/restart-osd"
+    sleep 0.4
+    if still_owns_screen && square_still_painted; then
+      "$HOME/.local/bin/restart-osd"
+    fi
+  fi
 ) & disown 2>/dev/null || true

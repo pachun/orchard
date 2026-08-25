@@ -134,6 +134,7 @@
         // weather curl, blanking the temp slot for ~1s while the new
         // request was in flight. 9 is dedicated to weather.)
         "exec": "$HOME/.local/bin/waybar-weather",
+        "return-type": "json",
         "interval": 600,
         "signal": 9,
         "markup": "pango",

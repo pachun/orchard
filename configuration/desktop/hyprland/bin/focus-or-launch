@@ -32,23 +32,58 @@
 # the launch and the restore agree; without the rule, the first launch would
 # still be sent away by the global empty-workspace rule.
 #
-# Usage: focus-or-launch [--here] <window-class> <command...>
+# --name "Friendly Name" announces the launch: for the seconds between the
+# keypress and the first window of a slow-starting app (Beekeeper Studio takes
+# five), "Opening Friendly Name…" holds the bar's clock slot, silently, and is
+# dismissed the moment the window appears. Only state 1 announces — focusing,
+# stashing, and restoring are already their own instant feedback.
+#
+# Usage: focus-or-launch [--here] [--name <friendly-name>] <window-class> <command...>
 set -eu
 
 restore_here=false
-if [ "${1:-}" = "--here" ]; then
-    restore_here=true
-    shift
-fi
+launch_name=''
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --here) restore_here=true; shift ;;
+        --name) launch_name="$2"; shift 2 ;;
+        *) break ;;
+    esac
+done
 
 if [ "$#" -lt 2 ]; then
-    echo "usage: $(basename "$0") [--here] <window-class> <command...>" >&2
+    echo "usage: $(basename "$0") [--here] [--name <friendly-name>] <window-class> <command...>" >&2
     exit 2
 fi
 
 class="$1"
 shift
 special="special:$class"
+
+# The announcement outlives this script (state 1 ends in exec), so it runs as a
+# backgrounded watcher: put up the notice, poll for the window, take the notice
+# down. The timeout is the fallback for a launch that never produces a window —
+# wrong class, crashed app — so the bar doesn't hold "Opening…" forever.
+slowest_expected_launch_ms=15000
+polls_per_second=10
+
+announce_launch_until_window_appears() {
+    notice_id="$(notify-send -p -t "$slowest_expected_launch_ms" \
+        -h boolean:x-orchard-silent:true "Opening $launch_name…" 2>/dev/null)" || return 0
+    polls_remaining=$((slowest_expected_launch_ms / 1000 * polls_per_second))
+    while [ "$polls_remaining" -gt 0 ]; do
+        if hyprctl clients -j | jq -e --arg cls "$class" 'any(.[]; .class == $cls)' >/dev/null; then
+            break
+        fi
+        sleep 0.1
+        polls_remaining=$((polls_remaining - 1))
+    done
+    gdbus call --session \
+        --dest org.freedesktop.Notifications \
+        --object-path /org/freedesktop/Notifications \
+        --method org.freedesktop.Notifications.CloseNotification \
+        "$notice_id" >/dev/null 2>&1 || true
+}
 
 clients="$(hyprctl clients -j)"
 
@@ -89,6 +124,9 @@ visible_addr="$(printf '%s' "$clients" \
 
 if [ -z "$visible_addr" ]; then
     # State 1: not running anywhere — launch.
+    if [ -n "$launch_name" ]; then
+        announce_launch_until_window_appears &
+    fi
     exec "$@"
 fi
 

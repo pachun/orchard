@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="thunderbolt", ATTR{vendor}=="0x1e", ATTR{device}=="0x1114", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ultrafine-bringup.service"

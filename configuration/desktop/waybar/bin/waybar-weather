@@ -1,10 +1,12 @@
 #!/bin/bash
-# Waybar weather module: fetches current condition + temperature from
-# wttr.in (location auto-detected from IP, units forced to US/Fahrenheit)
-# and emits "<icon> <temp>". Requires bash for the $'\UXXXXXXXX' escape
-# sequences used to embed the supplementary-plane MDI weather glyphs
-# from Symbols Nerd Font Mono (same icon family as battery / wifi —
-# outlined silhouette with state shown by partial fills inside).
+# Waybar weather module: fetches current condition + temperature +
+# sun times from wttr.in (location auto-detected from IP, units forced
+# to US/Fahrenheit) and emits waybar JSON — "<icon> <temp>" as the text,
+# the next sunrise/sunset as the tooltip. Requires bash for the
+# $'\UXXXXXXXX' escape sequences used to embed the supplementary-plane
+# MDI weather glyphs from Symbols Nerd Font Mono (same icon family as
+# battery / wifi — outlined silhouette with state shown by partial
+# fills inside).
 #
 # Resilience: every successful fetch caches its output. On network
 # failure we emit the cached value instead of "--", so the bar stays
@@ -14,33 +16,51 @@
 # within seconds of reconnect rather than up to 10 minutes later.
 set -eu
 
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather"
+# .json suffix keeps a cache written by the old plain-text version of
+# this script from being replayed as (invalid) waybar JSON.
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather.json"
 mkdir -p "$(dirname "$CACHE")"
 
 emit_cached() {
     if [ -s "$CACHE" ]; then
         cat "$CACHE"
     else
-        printf '%s\n' '--'
+        printf '%s\n' '{"text": "--"}'
     fi
 }
 
-raw=$(curl -s --max-time 5 'https://wttr.in/?u&format=%C|%t' 2>/dev/null || true)
+raw=$(curl -s --max-time 5 'https://wttr.in/?u&format=%C|%t|%S|%s' 2>/dev/null || true)
 
 if [ -z "$raw" ] || echo "$raw" | grep -qiE 'unknown|error|<html'; then
     emit_cached
     exit 0
 fi
 
-condition=${raw%|*}
-temp=${raw#*|}
+IFS='|' read -r condition temp sunrise sunset <<<"$raw"
+condition=${condition%"${condition##*[![:space:]]}"}    # wttr.in pads %C with a trailing space
 temp=${temp#+}    # strip the leading "+" from "+71°F"
 
-# Use night glyph for clear-sky conditions outside daylight hours.
-hour=$(date +%H)
+now=$(date +%s)
+sunrise_epoch=$(date -d "$sunrise" +%s 2>/dev/null || true)
+sunset_epoch=$(date -d "$sunset" +%s 2>/dev/null || true)
+have_sun_times=0
+if [ -n "$sunrise_epoch" ] && [ -n "$sunset_epoch" ]; then
+    have_sun_times=1
+fi
+
+# Use night glyph for clear-sky conditions outside daylight hours —
+# by the real sun times when wttr.in gave us parseable ones, by fixed
+# hours otherwise.
 is_night=0
-if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
-    is_night=1
+if [ "$have_sun_times" -eq 1 ]; then
+    if [ "$now" -lt "$sunrise_epoch" ] || [ "$now" -ge "$sunset_epoch" ]; then
+        is_night=1
+    fi
+else
+    hour=$(date +%H)
+    if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
+        is_night=1
+    fi
 fi
 
 # Phosphor weather glyphs (matches the rest of the right-side icon
@@ -61,11 +81,27 @@ case "$condition" in
     *Thunder*|*Storm*)            icon=$'\ue1b2' ;;
 esac
 
+# The tooltip shows whichever sun event comes next. wttr.in only gives
+# today's times, so after sunset the tomorrow line reuses today's
+# sunrise — off by the minute or two the sunrise drifts per day.
+tooltip=''
+if [ "$have_sun_times" -eq 1 ]; then
+    sunrise_pretty=$(date -d "@$sunrise_epoch" +'%-I:%M %p')
+    sunset_pretty=$(date -d "@$sunset_epoch" +'%-I:%M %p')
+    if [ "$now" -lt "$sunrise_epoch" ]; then
+        tooltip="Sunrise $sunrise_pretty"
+    elif [ "$now" -lt "$sunset_epoch" ]; then
+        tooltip="Sunset $sunset_pretty"
+    else
+        tooltip="Sunrise $sunrise_pretty tomorrow"
+    fi
+fi
+
 # Wrap the icon in Pango markup so we can shift it independently of
 # the temp text. Phosphor's weather glyphs (moon, sun, cloud-sun)
 # occupy the upper half of their em-square, sitting visibly above the
 # rest of the row. rise is in 1/10000 of em — negative pushes down.
 # -2500 ≈ 0.25em down, which centers the glyph against neighboring
 # icons. The custom module needs markup=pango (set in config.jsonc).
-output=$(printf '<span rise="-1200" letter_spacing="4000">%s</span> %s\n' "$icon" "$temp")
-printf '%s\n' "$output" | tee "$CACHE"
+text=$(printf '<span rise="-1200" letter_spacing="4000">%s</span> %s' "$icon" "$temp")
+jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}' | tee "$CACHE"

@@ -41,6 +41,23 @@ meets what the component *is* before its degraded state, and there's
 no negation to mentally flip. Keep the flat guard-clause shape — early
 returns, no nested `else` — just order it so what's true comes first.
 
+## Components return ReactElements — `<></>` over `null`
+
+A component that sometimes renders nothing returns an empty fragment,
+not `null`. `return <></>` keeps every component uniformly
+`ReactElement` (no `ReactElement | null` unions rippling into
+signatures), and an empty fragment renders nothing just the same. So a
+self-hiding component pairs this with the affirmative-first guard:
+
+```
+if (isToFieldFocused) {
+  return <View testID="Recipient Suggestions Bar">…</View>
+}
+return <></>
+```
+
+Generic React guidance says `return null`; this codebase doesn't.
+
 ## No timers as control flow
 
 - **`setTimeout` is not a synchronization primitive.** Reaching for a
@@ -136,6 +153,29 @@ tolerates `undefined` where relational operators don't.)
   `Info` padding; name handlers for what they do, not what triggered
   them. (This mirrors the naming guidance in the global CLAUDE.md —
   load-bearing here because comments are off the table.)
+- **Name the part the reader can't get from context.** When the call
+  site already conveys a value's role, the name's job is to decode
+  what's still opaque. `fieldValue.split(x)` already says x is the
+  delimiter — so `addressDelimiter` restates the obvious while leaving
+  the regex unreadable; `whitespaceOrCommaRegex` translates the
+  `/[\s,]+/` syntax a human can't sight-read. And when both gaps are
+  real, the global CLAUDE.md two-names practice covers both: define
+  by content, alias by role, use the role —
+
+  ```
+  const whitespaceOrCommaRegex = /[\s,]+/
+  const addressDelimiter = whitespaceOrCommaRegex
+  ```
+
+  (Nick's correction, 2026-08-22.)
+- **A named concept keeps its name across boundaries.** The value read
+  from the mmkv key "Recent Recipients" is `recentRecipients` — not
+  `rememberedAddresses`, not `savedRecipients`. Renaming an established
+  concept at a pull-out point (a storage read, an API response, a prop
+  hand-off) creates two names for one thing and signals nobody thought
+  critically about either. The two-names practice above is for one
+  value carrying two *meanings* — never license to drift a single
+  concept's name. (Nick's correction, 2026-08-22.)
 
 ## Scope — build only what's asked
 
