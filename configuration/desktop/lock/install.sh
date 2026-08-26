@@ -27,3 +27,4 @@ if [ ! -f /etc/pam.d/hyprlock ]; then
 fi
 
 bash "$TOOLS/link.sh" "$HERE/config/hypr" "$HOME/.config/hypr"
+bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

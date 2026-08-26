@@ -1,0 +1,32 @@
+#!/bin/sh
+# The battery line for the lock screen: the same filled glyph the bar uses,
+# with the percentage, and the bolt in place of the glyph while charging. Empty
+# output on a machine with no battery, so the label simply isn't there.
+#
+# Glyphs are Material Design battery icons from Symbols Nerd Font Mono, one per
+# 10%, filled bottom-up in proportion — the set the bar's battery module uses,
+# so the two agree. The bolt is Phosphor's, as in the bar.
+set -eu
+
+battery=$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -n1)
+[ -n "$battery" ] || exit 0
+
+capacity=$(cat "$battery/capacity")
+status=$(cat "$battery/status")
+
+glyph_for_capacity() {
+    bucket=$(( $1 / 10 ))
+    [ "$bucket" -gt 10 ] && bucket=10
+    case "$bucket" in
+        0)  printf '󰂎' ;; 1) printf '󰁺' ;; 2) printf '󰁻' ;; 3) printf '󰁼' ;;
+        4)  printf '󰁽' ;; 5) printf '󰁾' ;; 6) printf '󰁿' ;; 7) printf '󰂀' ;;
+        8)  printf '󰂁' ;; 9) printf '󰂂' ;; *) printf '󰁹' ;;
+    esac
+}
+
+case "$status" in
+    Charging) glyph='' ;;
+    *)        glyph=$(glyph_for_capacity "$capacity") ;;
+esac
+
+printf '<span font_family="Symbols Nerd Font Mono, Phosphor-Fill" size="smaller">%s</span>  %s%%\n' "$glyph" "$capacity"
