@@ -49,6 +49,13 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 # (both shipped themes are dark) so it's set unconditionally here.
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 
+# No window-control buttons on GTK/libadwaita header bars. Hyprland closes
+# windows by keybind, and the theme's red close blob was the only thing the
+# layout added. The settings.ini `gtk-decoration-layout` line covers GTK
+# apps that read settings.ini; the gsettings key covers those that go through
+# the settings portal instead.
+gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:'
+
 # Seed the orchard-themes default on a fresh machine — only if the
 # user hasn't picked one yet.
 themes_dir="$HOME/.config/orchard-themes"
