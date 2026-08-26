@@ -1,0 +1,37 @@
+/* Tokyo Night colors for waybar. Imported by config/waybar/style.css
+ * through ~/.config/orchard-themes/active/waybar.css. Structural rules
+ * (padding, fonts, animations) live in style.css; everything
+ * color-related lives here so set-theme can swap palettes by
+ * repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * foreground. */
+window#waybar {
+    background-color: #653595;
+    color: #a9b1d6;
+}
+
+
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #b4bee6; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(169, 177, 214, 0.15); } /* foreground@15% */
+#workspaces button.active { background-color: rgba(169, 177, 214, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #a9b1d6; }
+#custom-dnd.linger   { color: #565f89; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #a9b1d6; }
+#custom-weather              { color: #b4bee6; }
+#battery                     { color: #b4bee6; }
+#custom-nordvpn              { color: #b4bee6; }
+#custom-wifi-status          { color: #b4bee6; }
+#custom-network              { color: #b4bee6; }
+#custom-bluetooth            { color: #b4bee6; }
+#custom-audio                { color: #b4bee6; }
+#custom-updates              { color: #b4bee6; }
+#custom-clock                { color: #b4bee6; }

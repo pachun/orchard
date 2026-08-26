@@ -1,0 +1,37 @@
+/* Monokai Pro Ristretto colors for waybar. Imported by config/waybar/
+ * style.css through ~/.config/orchard-themes/active/waybar.css.
+ * Structural rules (padding, fonts, animations) live in style.css;
+ * everything color-related lives here so set-theme can swap palettes
+ * by repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * foreground. */
+window#waybar {
+    background-color: #232625;
+    color: #e6d9db;
+}
+
+
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #c3b7b8; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(230, 217, 219, 0.15); } /* foreground@15% */
+#workspaces button.active { background-color: rgba(230, 217, 219, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #e6d9db; }
+#custom-dnd.linger   { color: #72696a; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #e6d9db; }
+#custom-weather             { color: #c3b7b8; }
+#battery                    { color: #c3b7b8; }
+#custom-nordvpn             { color: #c3b7b8; }
+#custom-wifi-status         { color: #c3b7b8; }
+#custom-network             { color: #c3b7b8; }
+#custom-bluetooth           { color: #c3b7b8; }
+#custom-audio               { color: #c3b7b8; }
+#custom-updates             { color: #c3b7b8; }
+#custom-clock               { color: #c3b7b8; }

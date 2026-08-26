@@ -1,7 +1,7 @@
 #!/bin/sh
-# Run a full system update — `yay -Syu` (repos + AUR) then `fwupdmgr`
-# (device firmware) — in a dedicated ghostty window attached to a tmux
-# session named "system-update".
+# Run a full system update — `pacman -Syu` (repos), `yay -Sua` (AUR),
+# then `fwupdmgr` (device firmware) — in a dedicated ghostty window
+# attached to a tmux session named "system-update".
 #
 # Why a dedicated window: the user's regular ghostty(s) usually have
 # their own tmux session(s) running. We don't want to disrupt them by
@@ -16,23 +16,31 @@ set -eu
 CLASS=system-update
 
 # Outer tmux command keeps the session alive after the upgrade finishes
-# so the user can read the output before the window closes. After yay
-# and fwupdmgr, we wipe the waybar update cache and signal waybar so the
-# badge clears immediately instead of waiting for the next refresh window.
+# so the user can read the output before the window closes.
+#
+# Repo packages upgrade first, on their own, with pacman. AUR packages
+# follow with `yay -Sua`. Kept separate on purpose: a single `yay -Syu`
+# resolves both at once, so one AUR package that can't build (a missing
+# PGP key, a failed compile, a -debug leftover) aborts the whole run
+# before pacman has upgraded anything — and the machine drifts behind the
+# repos with no sign anything is wrong. Split, an AUR failure costs only
+# that AUR package.
+#
+# Everything is tee'd to a log so a failed run can be read after the
+# window has been closed.
 #
 # Flag rationale:
+#   --noconfirm        skips "Proceed with installation? [Y/n]". The sudo
+#                      password prompt remains as the single gate on
+#                      whether the update actually runs. Caveat: it also
+#                      auto-answers any conflict / replacement prompt
+#                      (defaults to "no" for most), so an unusual upgrade
+#                      with package replacements may abort rather than
+#                      ask. The log will say so; rerun pacman by hand
+#                      without the flag if that ever happens.
 #   --answerupgrade=N  predetermined "no exclusions" answer to yay's
 #                      "Packages to exclude" prompt — skips the menu
 #                      (yay 12+ has no --noupgrademenu)
-#   --noconfirm        skips pacman's "Proceed with installation? [Y/n]"
-#
-# The sudo password prompt remains as the single gate on whether the
-# update actually runs — clicking the badge plus entering the password
-# is clear authorization, no need for a redundant Y/n step. Caveat:
-# --noconfirm also auto-answers any conflict / replacement prompts
-# (defaults to "no" for most), so an unusual upgrade with package
-# replacements may abort rather than ask. Rerun yay manually without
-# the flags if that ever happens.
 #
 # Firmware runs after packages, chained with ';' so a firmware hiccup
 # can't undo a good package upgrade. Flags:
@@ -41,7 +49,14 @@ CLASS=system-update
 #                      System firmware (BIOS/UEFI) flashes via capsule on
 #                      the next reboot regardless — nothing to indicate,
 #                      nothing to wait on.
-CMD="tmux new-session -A -s system-update 'yay -Syu --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null; echo; echo --- Done. Press any key to close. ---; read -n 1'"
+#
+# After packages and firmware, the waybar update cache is wiped and waybar
+# signaled so the badge clears immediately instead of waiting for the next
+# refresh window.
+LOG="$HOME/.local/state/system-update.log"
+mkdir -p "$(dirname "$LOG")"
+UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null"
+CMD="tmux new-session -A -s system-update 'sh -c \"$UPGRADE\" 2>&1 | tee $LOG; echo; echo --- Done. Log: $LOG. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \
     ghostty --class="$CLASS" -e sh -c "$CMD"
