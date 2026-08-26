@@ -25,6 +25,16 @@ touch "$gpg_conf"
 sed -i '/^keyserver /d' "$gpg_conf"
 printf 'keyserver hkps://pgpkeys.eu\n' >> "$gpg_conf"
 
+# Build AUR packages on every core. /etc/makepkg.conf ships with
+# MAKEFLAGS commented out, so makepkg compiles single-threaded — anything
+# built from source takes many times longer than it needs to. makepkg
+# reads this per-user file after the system one, so no root needed.
+mkdir -p "$HOME/.config/pacman"
+makepkg_conf="$HOME/.config/pacman/makepkg.conf"
+touch "$makepkg_conf"
+sed -i '/^MAKEFLAGS=/d' "$makepkg_conf"
+printf 'MAKEFLAGS="-j$(nproc)"\n' >> "$makepkg_conf"
+
 if command -v yay >/dev/null 2>&1; then
   exit 0
 fi
