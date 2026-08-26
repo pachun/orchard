@@ -25,11 +25,25 @@ Check out the [orchard manual](https://orchard-manual.netlify.app/).
   </tr>
   <tr>
     <td width="50%"><img src="screenshots/everforest.png" alt="everforest" width="100%"></td>
-    <td width="50%"><img src="screenshots/rose-pine-dawn.png" alt="rose-pine-dawn" width="100%"></td>
+    <td width="50%"><img src="screenshots/hackerman.png" alt="hackerman" width="100%"></td>
   </tr>
   <tr>
     <td align="center"><code>everforest</code></td>
+    <td align="center"><code>hackerman</code></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/ristretto.png" alt="ristretto" width="100%"></td>
+    <td width="50%"><img src="screenshots/rose-pine-dawn.png" alt="rose-pine-dawn" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><code>ristretto</code></td>
     <td align="center"><code>rose-pine-dawn</code></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/tokyo-night.png" alt="tokyo-night" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><code>tokyo-night</code></td>
   </tr>
 </table>
 <!-- /screenshots -->
