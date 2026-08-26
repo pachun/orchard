@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Regenerate the dropdown's colours from the active orchard theme: panel from
+# the background, text from the foreground, bars from the theme's blue slot
+# (ANSI 4), which every shipped palette uses for its accent. Run by install.sh
+# and again by set-theme on every switch.
+set -euo pipefail
+
+palette="$HOME/.config/orchard-themes/active/palette"
+[ -f "$palette" ] || exit 0
+
+read_hex() { grep -E "^$1[[:space:]]*=" "$palette" | grep -oE '#[0-9a-fA-F]{6}' | head -n1; }
+panel_hex=$(read_hex background)
+ink_hex=$(read_hex foreground)
+accent_hex=$(read_hex "palette = 4")
+[ -n "$panel_hex" ] && [ -n "$ink_hex" ] && [ -n "$accent_hex" ] || exit 0
+
+as_rgb() { local h=${1#\#}; printf '%d, %d, %d' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
+panel_rgb=$(as_rgb "$panel_hex")
+ink_rgb=$(as_rgb "$ink_hex")
+
+mkdir -p "$HOME/.config/claude-usage/eww"
+cat > "$HOME/.config/claude-usage/eww/colors.scss" <<SCSS
+\$panel:  rgba($panel_rgb, 0.80);
+\$edge:   rgba($ink_rgb, 0.12);
+\$track:  rgba($ink_rgb, 0.15);
+\$ink:    $ink_hex;
+\$dim:    rgba($ink_rgb, 0.60);
+\$accent: $accent_hex;
+SCSS

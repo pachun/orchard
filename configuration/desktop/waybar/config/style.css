@@ -66,6 +66,9 @@
     to   { opacity: 1.00; }
 }
 #custom-updates     { padding: 0 8px; }
+#custom-claude-usage { padding: 0 8px; }
+#custom-claude-usage.signed-out,
+#custom-claude-usage.unavailable { opacity: 0.45; }
 #custom-clock       { padding: 0 8px; }          /* centred, so symmetric */
 
 /* The clock's slot is also where notifications appear: the clock fades out, the
@@ -95,6 +98,7 @@
 #custom-nordvpn,
 #custom-dnd,
 #custom-updates,
+#custom-claude-usage,
 #custom-audio,
 #custom-bluetooth {
     font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;

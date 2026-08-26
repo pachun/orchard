@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""Waybar module: a robot glyph that opens the Claude usage panel.
+
+Waybar polls this on its interval; claude-usage serves its cache unless
+that's gone stale, so the bar never blocks on the network. The tooltip
+carries every window; clicking opens the dropdown (claude-usage-panel).
+
+Phosphor icons used:
+  robot  U+E762
+"""
+import json
+import os
+import subprocess
+
+ROBOT = "\ue762"
+ELEVATED_PERCENT = 70
+HIGH_PERCENT = 90
+
+fetcher = os.path.expanduser("~/.local/bin/claude-usage")
+
+
+def emit(text, tooltip, css_class):
+    print(json.dumps({"text": text, "tooltip": tooltip, "class": css_class}))
+
+
+record = json.loads(subprocess.run([fetcher], capture_output=True, text=True, check=True).stdout)
+
+if not record.get("signed_in"):
+    emit(ROBOT, "Claude Code: signed out", "signed-out")
+elif not record.get("limits"):
+    emit(ROBOT, "Claude Code: usage unavailable", "unavailable")
+else:
+    limits = record["limits"]
+    tooltip = "\n".join(f'{limit["label"]}: {limit["percent"]}% — {limit["resets"]}' for limit in limits)
+    worst = max(limit["percent"] for limit in limits)
+    css_class = "high" if worst >= HIGH_PERCENT else "elevated" if worst >= ELEVATED_PERCENT else "normal"
+    emit(ROBOT, tooltip, css_class)

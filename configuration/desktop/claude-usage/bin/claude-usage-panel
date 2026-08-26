@@ -1,0 +1,20 @@
+#!/bin/sh
+# Toggle the Claude usage dropdown under the bar. Opening forces a fresh
+# fetch so the numbers are current, pushes the record into the eww window,
+# and shows it; a second click closes it.
+set -eu
+
+config="$HOME/.config/claude-usage/eww"
+eww_cmd() { timeout 2 eww --config "$config" "$@"; }
+
+if eww_cmd active-windows 2>/dev/null | grep -q '^usage'; then
+    eww_cmd close usage >/dev/null 2>&1 || true
+    exit 0
+fi
+
+eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-claude-usage"
+
+record=$("$HOME/.local/bin/claude-usage" --force)
+eww_cmd update usage="$record" >/dev/null 2>&1 || true
+eww_cmd open usage >/dev/null 2>&1 || true
+pkill -RTMIN+12 waybar 2>/dev/null || true

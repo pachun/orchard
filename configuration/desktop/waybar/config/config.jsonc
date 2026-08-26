@@ -81,6 +81,20 @@
         "on-click": "$HOME/.local/bin/system-update"
     },
 
+    "custom/claude-usage": {
+        // Claude Code plan usage. A robot glyph; the numbers live in the
+        // tooltip and the panel. The script serves a 5-minute cache so the
+        // poll never blocks on the network; click (or Cmd+Shift+U) drops the
+        // full panel — every rate-limit window and when it resets — under
+        // the bar, and the panel sends SIGRTMIN+12 after its forced refresh
+        // so the tooltip matches it.
+        "exec": "$HOME/.local/bin/waybar-claude-usage",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 12,
+        "on-click": "$HOME/.local/bin/claude-usage-panel"
+    },
+
     "custom/notch-spacer": {
         // Invisible widget representing the notch + visual buffer.
         // Width set in style.css; format must be non-empty so GTK

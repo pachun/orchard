@@ -47,7 +47,7 @@ def say(text, tooltip="", classes=()):
 def clock():
     now = time.localtime()
     return (
-        time.strftime("%a %b %-d  %-I:%M %p", now),
+        time.strftime("%A %-I:%M", now),
         time.strftime("%A, %-d %B %Y — %-I:%M:%S %p", now),
     )
 

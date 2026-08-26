@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Claude Code plan usage, as one JSON record.
+
+Reads the rate limits Anthropic reports for the account Claude Code is logged
+in to — the same numbers claude.ai's Usage page shows: the 5-hour session,
+the 7-day all-models window, and any per-model weekly window. The endpoint
+takes the OAuth token Claude Code keeps in ~/.claude/.credentials.json; this
+never refreshes that token itself, Claude Code does, so an expired login shows
+as signed_out rather than being fought over.
+
+The record is cached so the bar and the dropdown can both read it without
+each hitting the network; a fetch happens at most once per cache TTL unless
+--force is given (the dropdown forces one on open).
+
+Usage: claude-usage [--force]
+"""
+import datetime as dt
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+USAGE_ENDPOINT = "https://api.anthropic.com/api/oauth/usage"
+OAUTH_BETA = "oauth-2025-04-20"
+CACHE_TTL_SECONDS = 300
+REQUEST_TIMEOUT_SECONDS = 10
+
+credentials_file = Path(os.environ.get("CLAUDE_CONFIG_DIR", "~/.claude")).expanduser() / ".credentials.json"
+cache_file = Path(os.environ.get("XDG_CACHE_HOME", "~/.cache")).expanduser() / "claude-usage.json"
+
+LABELS = {
+    "session": "Session",
+    "weekly_all": "Weekly · all models",
+}
+
+
+def access_token():
+    try:
+        return json.loads(credentials_file.read_text())["claudeAiOauth"]["accessToken"]
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def resets_phrase(iso, group):
+    if not iso:
+        return ""
+    resets_at = dt.datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone()
+    remaining = resets_at - dt.datetime.now(dt.timezone.utc).astimezone()
+    if group == "session":
+        minutes = max(0, int(remaining.total_seconds() // 60))
+        hours, minutes = divmod(minutes, 60)
+        return f"Resets in {hours} hr {minutes} min" if hours else f"Resets in {minutes} min"
+    return "Resets " + resets_at.strftime("%a %-I:%M %p")
+
+
+def label_for(limit):
+    scope = (limit.get("scope") or {}).get("model") or {}
+    if limit["kind"] == "weekly_scoped":
+        return "Weekly · " + (scope.get("display_name") or "model")
+    return LABELS.get(limit["kind"], limit["kind"])
+
+
+def normalize(raw):
+    limits = [
+        {
+            "label": label_for(limit),
+            "percent": int(round(limit.get("percent") or 0)),
+            "resets": resets_phrase(limit.get("resets_at"), limit.get("group")),
+            "severity": limit.get("severity") or "normal",
+        }
+        for limit in raw.get("limits") or []
+    ]
+    return {"signed_in": True, "limits": limits, "fetched_at": time.time()}
+
+
+def fetch(token):
+    request = urllib.request.Request(
+        USAGE_ENDPOINT,
+        headers={"Authorization": f"Bearer {token}", "anthropic-beta": OAUTH_BETA, "User-Agent": "orchard-claude-usage"},
+    )
+    with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        return json.load(response)
+
+
+def cached():
+    try:
+        return json.loads(cache_file.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def fresh_enough(record):
+    return record is not None and time.time() - record.get("fetched_at", 0) < CACHE_TTL_SECONDS
+
+
+def main():
+    force = "--force" in sys.argv[1:]
+    record = cached()
+    if not force and fresh_enough(record):
+        print(json.dumps(record))
+        return
+
+    token = access_token()
+    if token is None:
+        print(json.dumps({"signed_in": False, "limits": [], "fetched_at": time.time()}))
+        return
+
+    try:
+        record = normalize(fetch(token))
+    except urllib.error.HTTPError as error:
+        if error.code in (401, 403):
+            record = {"signed_in": False, "limits": [], "fetched_at": time.time()}
+        elif record is None:
+            record = {"signed_in": True, "limits": [], "fetched_at": 0, "error": f"HTTP {error.code}"}
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        if record is None:
+            record = {"signed_in": True, "limits": [], "fetched_at": 0, "error": "offline"}
+
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(json.dumps(record))
+    print(json.dumps(record))
+
+
+if __name__ == "__main__":
+    main()

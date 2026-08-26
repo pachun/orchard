@@ -1,0 +1,78 @@
+// The dropdown: a frosted panel matching the OSD square, blurred by Hyprland's
+// layerrule on this window's namespace. Colours ($panel / $edge / $track /
+// $ink / $dim / $accent) are regenerated from the active theme's palette by
+// render-claude-usage-theme into colors.scss.
+@import "colors";
+
+* {
+  all: unset;
+  font-family: "SF Pro", sans-serif;
+}
+
+window,
+.background {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.panel {
+  background-color: $panel;
+  border: 1px solid $edge;
+  border-radius: 10px;
+  padding: 14px 16px 10px;
+  color: $ink;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.empty {
+  font-size: 13px;
+  color: $dim;
+  margin-bottom: 6px;
+}
+
+.row {
+  margin-bottom: 10px;
+}
+
+.row-label {
+  font-size: 13px;
+}
+
+.row-percent {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.row-resets {
+  font-size: 11px;
+  color: $dim;
+  margin-top: 3px;
+}
+
+.row-bar {
+  min-height: 5px;
+  margin-top: 6px;
+  border-radius: 999px;
+
+  trough {
+    background-color: $track;
+    border-radius: 999px;
+    min-height: 5px;
+  }
+
+  progress {
+    background-color: $accent;
+    border-radius: 999px;
+    min-height: 5px;
+  }
+}
+
+.row-bar.warning progress,
+.row-bar.critical progress {
+  background-color: $ink;
+}

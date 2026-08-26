@@ -97,11 +97,12 @@ if [ "$have_sun_times" -eq 1 ]; then
     fi
 fi
 
-# Wrap the icon in Pango markup so we can shift it independently of
-# the temp text. Phosphor's weather glyphs (moon, sun, cloud-sun)
-# occupy the upper half of their em-square, sitting visibly above the
-# rest of the row. rise is in 1/10000 of em — negative pushes down.
-# -2500 ≈ 0.25em down, which centers the glyph against neighboring
-# icons. The custom module needs markup=pango (set in config.jsonc).
-text=$(printf '<span rise="-1200" letter_spacing="4000">%s</span> %s' "$icon" "$temp")
+# Just the glyph: the temperature lives in the tooltip with the sun times.
+# Wrapped in Pango markup to shift it down. Phosphor's weather glyphs (moon,
+# sun, cloud-sun) occupy the upper half of their em-square, sitting visibly
+# above the rest of the row. rise is in 1/10000 of em — negative pushes
+# down; -1200 centers the glyph against the clock beside it. The custom
+# module needs markup=pango (set in config.jsonc).
+tooltip="$temp${tooltip:+ · $tooltip}"
+text=$(printf '<span rise="-1200">%s</span>' "$icon")
 jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}' | tee "$CACHE"

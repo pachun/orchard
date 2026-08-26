@@ -1,0 +1,34 @@
+; The Claude usage dropdown: one row per rate-limit window, each a label, a
+; bar, the percentage, and when it resets. claude-usage-panel pushes the
+; record from claude-usage into `usage` and opens this window under the bar's
+; right end. Colours come from colors.scss, regenerated per theme by
+; render-claude-usage-theme.
+
+(defvar usage '{"signed_in": true, "limits": []}')
+
+(defwidget limit-row [row]
+  (box :class "row" :orientation "v" :space-evenly false
+    (box :class "row-head" :space-evenly false
+      (label :class "row-label" :halign "start" :hexpand true :text {row.label})
+      (label :class "row-percent ${row.severity}" :halign "end" :text "${row.percent}%"))
+    (progress :class "row-bar ${row.severity}" :orientation "h" :value {row.percent})
+    (label :class "row-resets" :halign "start" :text {row.resets})))
+
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (label :class "title" :halign "start" :text "Claude Code")
+    (label :class "empty" :halign "start" :visible {!usage.signed_in} :text "Signed out — run `claude` to sign in")
+    (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0} :text "Usage unavailable")
+    (for row in {usage.limits}
+      (limit-row :row row))))
+
+; Offsets match Hyprland's gaps_out and window rounding so the panel's edges
+; and corners line up with a tiled window's outer border in that corner.
+(defwindow usage
+  :monitor 0
+  :namespace "claude-usage"
+  :geometry (geometry :x "10px" :y "10px" :width "320px" :anchor "top right")
+  :stacking "overlay"
+  :exclusive false
+  :focusable false
+  (panel))

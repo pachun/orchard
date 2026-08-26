@@ -11,3 +11,10 @@ __pycache__/
 # only land in the repo by a manual mistake; this is the backstop.
 # Public skills, if any are ever wanted, can be force-added.
 configuration/cli/claude/config/skills/
+
+# The /orchard skill ships with the repo. The global git ignore drops all of
+# .claude/ because it's usually per-repo state (settings.local.json,
+# history); this lets skills/ through and keeps the rest out.
+!.claude/
+.claude/*
+!.claude/skills/
