@@ -1,108 +1,83 @@
-#!/bin/bash
-# Waybar weather module: fetches current condition + temperature +
-# sun times from wttr.in (location auto-detected from IP, units forced
-# to US/Fahrenheit) and emits waybar JSON — "<icon> <temp>" as the text,
-# the next sunrise/sunset as the tooltip. Requires bash for the
-# $'\UXXXXXXXX' escape sequences used to embed the supplementary-plane
-# MDI weather glyphs from Symbols Nerd Font Mono (same icon family as
-# battery / wifi — outlined silhouette with state shown by partial
-# fills inside).
-#
-# Resilience: every successful fetch caches its output. On network
-# failure we emit the cached value instead of "--", so the bar stays
-# populated through brief outages and post-sleep wifi reconnects.
-# A NetworkManager dispatcher (99-waybar-weather-refresh) sends
-# SIGRTMIN+9 to waybar on interface up so the next refresh happens
-# within seconds of reconnect rather than up to 10 minutes later.
-set -eu
+#!/usr/bin/env python3
+"""The weather glyph beside the clock — and nothing, while a notification has
+the centre.
 
-# .json suffix keeps a cache written by the old plain-text version of
-# this script from being replayed as (invalid) waybar JSON.
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather.json"
-mkdir -p "$(dirname "$CACHE")"
+Notifications take the clock's slot (see waybar-clock), and this module sits
+right next to it, so it steps out of the way at the same moment with the same
+fade: the message then owns the whole centre instead of shoving the glyph
+aside. Both modules read the file orchard-notifications writes, so they agree
+without talking to each other.
 
-emit_cached() {
-    if [ -s "$CACHE" ]; then
-        cat "$CACHE"
-    else
-        printf '%s\n' '{"text": "--"}'
-    fi
-}
+Continuous (no `interval` in config.jsonc) for the same reason as the clock —
+a fade is frames at particular times. The weather itself is fetched by
+weather-now every ten minutes on a background thread; a failed fetch (offline,
+wttr.in down) retries after a minute while the last result holds the slot.
+"""
+import json
+import os
+import subprocess
+import threading
+import time
+from pathlib import Path
 
-raw=$(curl -s --max-time 5 'https://wttr.in/?u&format=%C|%t|%S|%s' 2>/dev/null || true)
+SHOWING = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "orchard/notification.json"
+FETCH = os.path.expanduser("~/.local/bin/weather-now")
+REFRESH_SECONDS = 600
+RETRY_SECONDS = 60
+FADE_SECONDS = 0.25  # keep in step with the transition in waybar's style.css
+SETTLE_SECONDS = 0.03
+TICK_SECONDS = 0.05
 
-if [ -z "$raw" ] || echo "$raw" | grep -qiE 'unknown|error|<html'; then
-    emit_cached
-    exit 0
-fi
+weather = {"text": "", "tooltip": ""}
 
-IFS='|' read -r condition temp sunrise sunset <<<"$raw"
-condition=${condition%"${condition##*[![:space:]]}"}    # wttr.in pads %C with a trailing space
-temp=${temp#+}    # strip the leading "+" from "+71°F"
 
-now=$(date +%s)
-sunrise_epoch=$(date -d "$sunrise" +%s 2>/dev/null || true)
-sunset_epoch=$(date -d "$sunset" +%s 2>/dev/null || true)
-have_sun_times=0
-if [ -n "$sunrise_epoch" ] && [ -n "$sunset_epoch" ]; then
-    have_sun_times=1
-fi
+def say(text, tooltip="", classes=()):
+    print(json.dumps({"text": text, "tooltip": tooltip, "class": list(classes)}), flush=True)
 
-# Use night glyph for clear-sky conditions outside daylight hours —
-# by the real sun times when wttr.in gave us parseable ones, by fixed
-# hours otherwise.
-is_night=0
-if [ "$have_sun_times" -eq 1 ]; then
-    if [ "$now" -lt "$sunrise_epoch" ] || [ "$now" -ge "$sunset_epoch" ]; then
-        is_night=1
-    fi
-else
-    hour=$(date +%H)
-    if [ "$hour" -lt 6 ] || [ "$hour" -ge 20 ]; then
-        is_night=1
-    fi
-fi
 
-# Phosphor weather glyphs (matches the rest of the right-side icon
-# row's font for consistent stroke / baseline). Codepoints in the
-# Unicode PUA range; bash $'\uXXXX' literals embed them inline.
-icon=$'\ue472'  # sun
-case "$condition" in
-    Sunny|Clear)
-        if [ "$is_night" -eq 1 ]; then icon=$'\ue58e'; else icon=$'\ue472'; fi
-        ;;
-    'Partly cloudy'|'Partly Cloudy')
-        if [ "$is_night" -eq 1 ]; then icon=$'\ue53e'; else icon=$'\ue540'; fi
-        ;;
-    Cloudy|Overcast)              icon=$'\ue1aa' ;;
-    Mist|Fog|Haze)                icon=$'\ue53c' ;;
-    *Rain*|Drizzle*|*Shower*)     icon=$'\ue1b4' ;;
-    *Snow*|Blizzard*|Sleet*)      icon=$'\ue1b8' ;;
-    *Thunder*|*Storm*)            icon=$'\ue1b2' ;;
-esac
+def notification_showing():
+    try:
+        return bool(json.loads(SHOWING.read_text()))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
 
-# The tooltip shows whichever sun event comes next. wttr.in only gives
-# today's times, so after sunset the tomorrow line reuses today's
-# sunrise — off by the minute or two the sunrise drifts per day.
-tooltip=''
-if [ "$have_sun_times" -eq 1 ]; then
-    sunrise_pretty=$(date -d "@$sunrise_epoch" +'%-I:%M %p')
-    sunset_pretty=$(date -d "@$sunset_epoch" +'%-I:%M %p')
-    if [ "$now" -lt "$sunrise_epoch" ]; then
-        tooltip="Sunrise $sunrise_pretty"
-    elif [ "$now" -lt "$sunset_epoch" ]; then
-        tooltip="Sunset $sunset_pretty"
-    else
-        tooltip="Sunrise $sunrise_pretty tomorrow"
-    fi
-fi
 
-# Just the glyph: the temperature lives in the tooltip with the sun times.
-# Wrapped in Pango markup to shift it down. Phosphor's weather glyphs (moon,
-# sun, cloud-sun) occupy the upper half of their em-square, sitting visibly
-# above the rest of the row. rise is in 1/10000 of em — negative pushes
-# down; -1200 centers the glyph against the clock beside it. The custom
-# module needs markup=pango (set in config.jsonc).
-tooltip="$temp${tooltip:+ · $tooltip}"
-text=$(printf '<span rise="-1200">%s</span>' "$icon")
-jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}' | tee "$CACHE"
+def keep_fresh():
+    while True:
+        try:
+            result = subprocess.run([FETCH], capture_output=True, text=True, timeout=15)
+            weather.update(json.loads(result.stdout))
+            if not notification_showing():
+                say(weather["text"], weather["tooltip"])
+            delay = REFRESH_SECONDS
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            delay = RETRY_SECONDS
+        time.sleep(delay)
+
+
+def main():
+    threading.Thread(target=keep_fresh, daemon=True).start()
+    hidden = False
+    while True:
+        showing = notification_showing()
+        if showing and not hidden:
+            say(weather["text"], weather["tooltip"], ["faded"])
+            time.sleep(FADE_SECONDS)
+            say("", "", ["faded"])
+            hidden = True
+        elif not showing and hidden:
+            # The clock is spending this quarter second fading the message out;
+            # it swaps its text back only at the end. Putting the glyph back any
+            # sooner lands it beside the still-visible message, and it jumps
+            # left when the clock shrinks. Wait it out, then swap while both
+            # are invisible and fade in together.
+            time.sleep(FADE_SECONDS)
+            say(weather["text"], weather["tooltip"], ["faded"])
+            time.sleep(SETTLE_SECONDS)
+            say(weather["text"], weather["tooltip"])
+            hidden = False
+        time.sleep(TICK_SECONDS)
+
+
+if __name__ == "__main__":
+    main()

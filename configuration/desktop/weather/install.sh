@@ -4,8 +4,8 @@
 # are. The script explains why it has to resolve the town itself rather than
 # letting the browser do it.
 #
-# The bar's temperature readout is a waybar module (waybar-weather) and lives
-# with the other bar modules, in the waybar feature.
+# The bar's weather glyph is a waybar module (waybar-weather) and lives with
+# the other bar modules, in the waybar feature.
 # Idempotent.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
