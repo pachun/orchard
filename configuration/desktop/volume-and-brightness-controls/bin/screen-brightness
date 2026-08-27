@@ -4,9 +4,30 @@
 # leaves a visible glow. macOS turns the backlight power off entirely at
 # minimum; we replicate that via Hyprland's DPMS dispatch.
 #
-# Usage: screen-brightness up|down [STEP%]   (STEP defaults to 5%)
-# 5% pairs well with Hyprland's `binde` at the default 25 Hz repeat rate:
-# a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
+# A tap moves STEP percent from wherever the panel is — the same distance up
+# or down, however you got there (a hold can leave it anywhere). The bottom
+# of the range is special: going down never skips the dimmest level, one
+# percent above off, and from there one more tap turns the panel off.
+#
+# A hold ramps the way the volume keys do — a small step every few
+# milliseconds — and the ramp is run here, not by the compositor. On the XPS
+# the brightness keys are ACPI hotkeys: the firmware sends an instant press
+# and release, then re-sends the pair about four times a second while the key
+# is down, so Hyprland never sees a hold and never repeats it. Each tick
+# records its time, and a hold is recognised by the firmware's rhythm rather
+# than by any two ticks landing close together — two quick deliberate taps
+# must stay two taps. The first repeat of a real hold lands about 490ms after
+# the press and the rest every ~240ms, so a tick inside FIRST_REPEAT_MS of
+# the last starts a background ramp, a tick inside NEXT_REPEAT_MS keeps a
+# running one going, and the ramp stops itself as soon as the ticks stop
+# arriving. Held all the way down, the ramp rests on the dimmest rung for a
+# beat and then turns the panel off.
+#
+# From off, an up tick only ever turns the panel on at the dimmest rung. It
+# is never treated as a hold — the tick before it may have been the one that
+# turned the panel off — so the first thing you see is always the dim one.
+#
+# Usage: screen-brightness up|down [STEP%]   (STEP defaults per machine)
 set -euo pipefail
 
 # The one backlight device this machine exposes: apple-panel-bl on Asahi
@@ -14,49 +35,201 @@ set -euo pipefail
 # the same script drives both.
 DEVICE="$(ls /sys/class/backlight | head -n1)"
 
-# Step per keypress. The Mac's brightness keys autorepeat at Hyprland's
-# full rate when held, so 5% ramps the whole range in ~0.8s. The Dell's
-# keys repeat more slowly, so at 5% a single hold barely moves — a bigger
-# step there matches the pace of the fast-repeating volume keys.
-if grep -qa apple /proc/device-tree/compatible 2>/dev/null; then
-  STEP="${2:-5%}"
-else
-  STEP="${2:-10%}"
-fi
+STEP_PERCENT="${2:-5}"
+STEP_PERCENT="${STEP_PERCENT%\%}"
+DIMMEST_PERCENT=1
+
+FIRST_REPEAT_MS="420 580"   # where the firmware's first repeat lands after a press (measured ~490ms)
+NEXT_REPEAT_MS=320          # later repeats come every ~240ms; a gap past this means the key was released
+MOVE_MS_PER_TICK=180        # each tick buys this much motion, so a hold barely pauses and a release stops within a beat
+OSD_RENEW_MS=600            # how often a ramp goes through the osd script to keep the square's closer from firing mid-hold
+RAMP_PERCENT_PER_SECOND=80  # near the volume keys' pace; a shade slower so a release overshoots less
+RAMP_INTERVAL_MS=30         # the volume keys' repeat interval
+OFF_AFTER_MS_AT_DIMMEST=500 # how long a held ramp rests on the dimmest rung before going off
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+LAST_TICK_FILE="$RUNTIME_DIR/orchard-screen-brightness.last-tick"
+RAMP_PID_FILE="$RUNTIME_DIR/orchard-screen-brightness.ramp-pid"
+
+now_ms() { date +%s%3N; }
+level()  { brightnessctl --device "$DEVICE" get; }
+max_level() { brightnessctl --device "$DEVICE" max; }
+set_level() { brightnessctl --device "$DEVICE" --min-value=0 set "$1" >/dev/null; }
+percent_of_max() { awk -v max="$(max_level)" -v p="$1" 'BEGIN { v = int(max * p / 100 + 0.5); if (v < 1) v = 1; print v }'; }
 
 show_osd() {
-  local val max fraction
-  val=$(brightnessctl --device "$DEVICE" get)
-  max=$(brightnessctl --device "$DEVICE" max)
-  fraction=$(awk -v v="$val" -v m="$max" 'BEGIN { printf "%.3f", v/m }')
+  local fraction
+  fraction=$(awk -v v="$1" -v m="$(max_level)" 'BEGIN { printf "%.3f", v/m }')
   "$HOME/.local/bin/osd" "$fraction" screen-brightness
 }
 
-cur="$(brightnessctl --device "$DEVICE" get)"
+# Moves the square's bar without going through the osd script: the window is
+# already up, so this is one cheap eww call, fast enough to run every ramp
+# iteration. The osd script's job — opening the square, arming its closer —
+# is done once at the start and renewed every OSD_RENEW_MS.
+move_osd_bar() {
+  local percent
+  percent=$(awk -v v="$1" -v m="$(max_level)" 'BEGIN { printf "%d", v * 100 / m }')
+  timeout 1 eww update osd_level="$percent" >/dev/null 2>&1 || true
+}
 
-case "${1:-}" in
-  down)
-    if [ "$cur" = "0" ]; then
-      hyprctl dispatch dpms off >/dev/null
+# One tap's worth up, clamped to full.
+step_up_from() {
+  awk -v cur="$1" -v max="$(max_level)" -v step="$STEP_PERCENT" 'BEGIN {
+    v = cur + int(max * step / 100 + 0.5); if (v > max) v = max; print v }'
+}
+
+# One tap's worth down, never past the dimmest level; empty from the
+# dimmest level itself, which means off.
+step_down_from() {
+  awk -v cur="$1" -v max="$(max_level)" -v step="$STEP_PERCENT" -v dimmest="$DIMMEST_PERCENT" 'BEGIN {
+    dim = int(max * dimmest / 100 + 0.5); if (dim < 1) dim = 1
+    if (cur <= dim) exit
+    v = cur - int(max * step / 100 + 0.5); if (v < dim) v = dim; print v }'
+}
+
+# Whether this tick is the firmware repeating a held key: the first repeat
+# after a press lands in FIRST_REPEAT_MS; once a ramp is running, any tick
+# inside NEXT_REPEAT_MS continues it. Records this tick either way.
+record_tick_and_check_hold() {
+  local now last gap first_min first_max
+  now=$(now_ms)
+  last=$(cat "$LAST_TICK_FILE" 2>/dev/null || echo 0)
+  echo "$now" > "$LAST_TICK_FILE"
+  gap=$((now - last))
+  read -r first_min first_max <<<"$FIRST_REPEAT_MS"
+  if ramp_running; then
+    [ "$gap" -lt "$NEXT_REPEAT_MS" ]
+  else
+    [ "$gap" -ge "$first_min" ] && [ "$gap" -le "$first_max" ]
+  fi
+}
+forget_ticks() { rm -f "$LAST_TICK_FILE"; }
+
+ramp_running() {
+  local pid
+  pid=$(cat "$RAMP_PID_FILE" 2>/dev/null || true)
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+stop_ramp() {
+  local pid
+  pid=$(cat "$RAMP_PID_FILE" 2>/dev/null || true)
+  [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+  rm -f "$RAMP_PID_FILE"
+}
+ms_since_last_tick() {
+  local last
+  last=$(cat "$LAST_TICK_FILE" 2>/dev/null || echo 0)
+  echo $(( $(now_ms) - last ))
+}
+ticks_still_arriving() { [ "$(ms_since_last_tick)" -lt "$NEXT_REPEAT_MS" ]; }
+tick_still_paying_for_motion() { [ "$(ms_since_last_tick)" -lt "$MOVE_MS_PER_TICK" ]; }
+
+# Moves toward the top or the dimmest rung at RAMP_PERCENT_PER_SECOND while
+# the ticks keep coming. Each tick pays for MOVE_MS_PER_TICK of motion; past
+# that the ramp idles until the next tick, and gives up entirely once the
+# hold window has passed without one. So a release stops the panel within a
+# beat rather than after the whole window. The distance per iteration comes
+# from the clock, not a fixed step, so the pace holds whatever each iteration
+# costs. Held at the dimmest rung, it waits OFF_AFTER_MS_AT_DIMMEST and turns
+# the panel off.
+ramp() {
+  local direction="$1" floor top interval cur next rested_since last_iteration now last_osd
+  floor=$(percent_of_max "$DIMMEST_PERCENT")
+  top=$(max_level)
+  interval=$(awk -v ms="$RAMP_INTERVAL_MS" 'BEGIN { printf "%.3f", ms / 1000 }')
+  cur=$(level)
+  rested_since=""
+  last_iteration=$(now_ms)
+  show_osd "$cur"
+  last_osd=$(now_ms)
+  while ticks_still_arriving; do
+    now=$(now_ms)
+    if ! tick_still_paying_for_motion; then
+      last_iteration=$now
+      sleep "$interval"
+      continue
+    fi
+    next=$(awk -v cur="$cur" -v max="$top" -v rate="$RAMP_PERCENT_PER_SECOND" -v ms="$((now - last_iteration))" -v dir="$direction" \
+      'BEGIN { d = max * rate / 100 * ms / 1000; if (d < 1) d = 1; printf "%d", (dir == "up") ? cur + d : cur - d }')
+    last_iteration=$now
+    if [ "$direction" = up ]; then
+      [ "$cur" -ge "$top" ] && exit 0
+      [ "$next" -gt "$top" ] && next=$top
     else
-      brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}-" >/dev/null
-      if [ "$(brightnessctl --device "$DEVICE" get)" = "0" ]; then
-        hyprctl dispatch dpms off >/dev/null
+      if [ "$cur" -le "$floor" ]; then
+        rested_since="${rested_since:-$now}"
+        if [ $((now - rested_since)) -ge "$OFF_AFTER_MS_AT_DIMMEST" ]; then
+          set_level 0
+          hyprctl dispatch dpms off >/dev/null
+          forget_ticks
+          exit 0
+        fi
+        sleep "$interval"
+        continue
       fi
+      [ "$next" -lt "$floor" ] && next=$floor
     fi
-    show_osd
-    ;;
-  up)
-    if [ "$cur" = "0" ]; then
-      hyprctl dispatch dpms on >/dev/null
-      brightnessctl --device "$DEVICE" set "$STEP" >/dev/null
+    cur=$next
+    set_level "$cur"
+    move_osd_bar "$cur"
+    if [ $((now - last_osd)) -ge "$OSD_RENEW_MS" ]; then
+      show_osd "$cur" &
+      last_osd=$now
+    fi
+    sleep "$interval"
+  done
+  show_osd "$cur"
+}
+start_ramp() {
+  stop_ramp
+  ramp "$1" &
+  echo $! > "$RAMP_PID_FILE"
+}
+
+turn_on_at_dimmest() {
+  stop_ramp
+  forget_ticks
+  hyprctl dispatch dpms on >/dev/null
+  set_level "$(percent_of_max "$DIMMEST_PERCENT")"
+  show_osd "$(level)"
+}
+
+tap() {
+  local direction="$1" cur target
+  stop_ramp
+  cur=$(level)
+  if [ "$direction" = up ]; then
+    set_level "$(step_up_from "$cur")"
+  else
+    target=$(step_down_from "$cur")
+    if [ -n "$target" ]; then
+      set_level "$target"
     else
-      brightnessctl --device "$DEVICE" --min-value=0 set "${STEP}+" >/dev/null
+      set_level 0
+      hyprctl dispatch dpms off >/dev/null
+      forget_ticks
     fi
-    show_osd
-    ;;
-  *)
-    echo "usage: $(basename "$0") up|down [STEP%]" >&2
-    exit 2
-    ;;
-esac
+  fi
+  show_osd "$(level)"
+}
+
+main() {
+  local direction="${1:-}"
+  case "$direction" in up|down) ;; *) echo "usage: $(basename "$0") up|down [STEP%]" >&2; exit 2 ;; esac
+
+  if [ "$direction" = up ] && [ "$(level)" = 0 ]; then
+    turn_on_at_dimmest
+    exit 0
+  fi
+
+  if record_tick_and_check_hold; then
+    ramp_running || start_ramp "$direction"
+  else
+    tap "$direction"
+  fi
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi
