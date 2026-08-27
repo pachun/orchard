@@ -67,19 +67,23 @@ fi
 # Phosphor weather glyphs (matches the rest of the right-side icon
 # row's font for consistent stroke / baseline). Codepoints in the
 # Unicode PUA range; bash $'\uXXXX' literals embed them inline.
-icon=$'\ue472'  # sun
-case "$condition" in
-    Sunny|Clear)
-        if [ "$is_night" -eq 1 ]; then icon=$'\ue58e'; else icon=$'\ue472'; fi
-        ;;
-    'Partly cloudy'|'Partly Cloudy')
-        if [ "$is_night" -eq 1 ]; then icon=$'\ue53e'; else icon=$'\ue540'; fi
-        ;;
-    Cloudy|Overcast)              icon=$'\ue1aa' ;;
-    Mist|Fog|Haze)                icon=$'\ue53c' ;;
-    *Rain*|Drizzle*|*Shower*)     icon=$'\ue1b4' ;;
-    *Snow*|Blizzard*|Sleet*)      icon=$'\ue1b8' ;;
-    *Thunder*|*Storm*)            icon=$'\ue1b2' ;;
+#
+# Weather first, sky second: anything falling from the sky wins over
+# whether the sun is up. wttr.in's phrases are free text with mixed case
+# ("Patchy rain nearby", "Light rain shower", "Thundery outbreaks
+# possible"), so they're lowercased and matched on the word that
+# matters. Only a clear or unrecognised sky gets the sun — and at night
+# that's the moon, never a sun after sunset.
+if [ "$is_night" -eq 1 ]; then clear_sky=$'\ue58e'; else clear_sky=$'\ue472'; fi
+if [ "$is_night" -eq 1 ]; then some_cloud=$'\ue53e'; else some_cloud=$'\ue540'; fi
+case "${condition,,}" in
+    *thunder*|*storm*)                        icon=$'\ue1b2' ;;
+    *snow*|*blizzard*|*sleet*|*ice*)          icon=$'\ue1b8' ;;
+    *rain*|*drizzle*|*shower*)                icon=$'\ue1b4' ;;
+    *mist*|*fog*|*haze*)                      icon=$'\ue53c' ;;
+    *overcast*|cloudy)                        icon=$'\ue1aa' ;;
+    *partly*|*cloud*)                         icon=$some_cloud ;;
+    *)                                        icon=$clear_sky ;;
 esac
 
 # The tooltip shows whichever sun event comes next. wttr.in only gives
