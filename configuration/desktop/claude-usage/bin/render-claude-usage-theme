@@ -21,7 +21,6 @@ ink_rgb=$(as_rgb "$ink_hex")
 mkdir -p "$HOME/.config/claude-usage/eww"
 cat > "$HOME/.config/claude-usage/eww/colors.scss" <<SCSS
 \$panel:  rgba($panel_rgb, 0.80);
-\$edge:   rgba($ink_rgb, 0.12);
 \$track:  rgba($ink_rgb, 0.15);
 \$ink:    $ink_hex;
 \$dim:    rgba($ink_rgb, 0.60);

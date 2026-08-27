@@ -1,5 +1,5 @@
 // The dropdown: a frosted panel matching the OSD square, blurred by Hyprland's
-// layerrule on this window's namespace. Colours ($panel / $edge / $track /
+// layerrule on this window's namespace. Colours ($panel / $track /
 // $ink / $dim / $accent) are regenerated from the active theme's palette by
 // render-claude-usage-theme into colors.scss.
 @import "colors";
@@ -15,22 +15,24 @@ window,
   box-shadow: none;
 }
 
+// The border is fuzzel's — 2px of the theme accent, radius 10 — so this
+// reads as one family with the menus.
 .panel {
   background-color: $panel;
-  border: 1px solid $edge;
+  border: 2px solid $accent;
   border-radius: 10px;
   padding: 14px 16px 10px;
   color: $ink;
 }
 
 .title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   margin-bottom: 8px;
 }
 
 .empty {
-  font-size: 13px;
+  font-size: 15px;
   color: $dim;
   margin-bottom: 6px;
 }
@@ -40,16 +42,16 @@ window,
 }
 
 .row-label {
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .row-percent {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .row-resets {
-  font-size: 11px;
+  font-size: 13px;
   color: $dim;
   margin-top: 3px;
 }

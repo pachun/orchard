@@ -27,7 +27,7 @@
 (defwindow usage
   :monitor 0
   :namespace "claude-usage"
-  :geometry (geometry :x "10px" :y "10px" :width "320px" :anchor "top right")
+  :geometry (geometry :x "10px" :y "10px" :width "360px" :anchor "top right")
   :stacking "overlay"
   :exclusive false
   :focusable false
