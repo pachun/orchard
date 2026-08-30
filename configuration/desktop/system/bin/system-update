@@ -50,12 +50,12 @@ CLASS=system-update
 #                      the next reboot regardless — nothing to indicate,
 #                      nothing to wait on.
 #
-# After packages and firmware, the waybar update cache is wiped and waybar
-# signaled so the badge clears immediately instead of waiting for the next
-# refresh window.
+# After packages and firmware, the waybar update cache is wiped and the
+# badge told to refresh so it clears immediately instead of waiting for the
+# next refresh window.
 LOG="$HOME/.local/state/system-update.log"
 mkdir -p "$(dirname "$LOG")"
-UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; pkill -RTMIN+10 waybar 2>/dev/null"
+UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; $HOME/.local/bin/refresh-updates-badge"
 CMD="tmux new-session -A -s system-update 'sh -c \"$UPGRADE\" 2>&1 | tee $LOG; echo; echo --- Done. Log: $LOG. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \

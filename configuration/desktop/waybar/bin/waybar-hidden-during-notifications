@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""A bar module that steps aside for notifications.
+
+Usage: waybar-hidden-during-notifications <command> <seconds>
+
+Runs <command> every <seconds> (and again whenever waybar forwards a
+SIGRTMIN+n signal — a refresh request) and relays the JSON it prints to the
+bar. The weather glyph and the updates badge both sit in the centre, beside
+the clock — and a notification takes the clock's slot (see waybar-clock), so
+they have to step out of the way at the same moment with the same fade, or
+the message shoves them sideways. All three modules read the file
+orchard-notifications writes, so they agree without talking to each other.
+
+Continuous (no `interval` in config.jsonc) for the same reason as the clock:
+a fade is frames at particular times. A command that fails or prints
+something that isn't JSON is retried after a minute, and whatever it last
+printed holds the slot meanwhile.
+"""
+import json
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+SHOWING = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "orchard/notification.json"
+RETRY_SECONDS = 60
+FADE_SECONDS = 0.25  # keep in step with the transition in waybar's style.css
+SETTLE_SECONDS = 0.03
+TICK_SECONDS = 0.05
+
+command, refresh_seconds = sys.argv[1], float(sys.argv[2])
+latest = {"text": "", "tooltip": "", "class": []}
+refresh_now = threading.Event()
+
+
+def say(text, tooltip="", classes=()):
+    print(json.dumps({"text": text, "tooltip": tooltip, "class": list(classes)}), flush=True)
+
+
+def say_latest(extra_classes=()):
+    base = latest.get("class") or []
+    base = base if isinstance(base, list) else [base]
+    say(latest.get("text", ""), latest.get("tooltip", ""), [*base, *extra_classes])
+
+
+def notification_showing():
+    try:
+        return bool(json.loads(SHOWING.read_text()))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+
+
+def keep_fresh():
+    while True:
+        try:
+            result = subprocess.run([os.path.expanduser(f"~/.local/bin/{command}")], capture_output=True, text=True, timeout=60)
+            latest.update(json.loads(result.stdout))
+            if not notification_showing():
+                say_latest()
+            delay = refresh_seconds
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            delay = RETRY_SECONDS
+        refresh_now.wait(delay)
+        refresh_now.clear()
+
+
+def main():
+    for n in range(signal.SIGRTMIN, signal.SIGRTMAX + 1):
+        signal.signal(n, lambda *_: refresh_now.set())
+    threading.Thread(target=keep_fresh, daemon=True).start()
+    hidden = False
+    while True:
+        showing = notification_showing()
+        if showing and not hidden:
+            say_latest(["faded"])
+            time.sleep(FADE_SECONDS)
+            say("", "", ["faded"])
+            hidden = True
+        elif not showing and hidden:
+            # The clock spends this quarter second fading the message out and
+            # swaps its text back only at the end; reappearing any sooner
+            # lands beside the still-visible message and jumps when the clock
+            # shrinks. Wait it out, then swap while invisible and fade in
+            # together.
+            time.sleep(FADE_SECONDS)
+            say_latest(["faded"])
+            time.sleep(SETTLE_SECONDS)
+            say_latest()
+            hidden = False
+        time.sleep(TICK_SECONDS)
+
+
+if __name__ == "__main__":
+    main()

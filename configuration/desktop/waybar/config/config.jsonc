@@ -65,19 +65,21 @@
     },
 
     "custom/updates": {
-        // Pending pacman + AUR update count. Sits between the wifi
-        // icon and the clock — only relevant when we're actually
-        // online (otherwise yay -Syu would fail anyway), so the
-        // script gates display on NM connectivity. Hidden when no
-        // updates or offline. Click runs system-update directly.
-        // The script caches the count for 15 min and signals
-        // SIGRTMIN+10 when a background refresh completes;
-        // system-update wipes the cache and re-signals after a
-        // successful upgrade so the badge clears immediately.
-        "exec": "$HOME/.local/bin/waybar-updates",
+        // Pending pacman + AUR update count, just left of the clock. Only
+        // relevant when we're actually online (otherwise yay -Syu would fail
+        // anyway), so updates-now gates display on NM connectivity; hidden
+        // when no updates or offline. Continuous: the wrapper runs
+        // updates-now every minute and fades the badge out with the clock
+        // while a notification holds the centre. updates-now caches the
+        // count for 15 min; when a background refresh lands, and when
+        // system-update finishes an upgrade, refresh-updates-badge signals
+        // the wrapper to rerun it so the count changes at once. No `signal`
+        // key here on purpose: waybar treats signal-without-interval as
+        // "run the command once per signal and wait for it to exit", which
+        // a continuous script never does — the module would never draw.
+        // Click runs system-update directly.
+        "exec": "$HOME/.local/bin/waybar-hidden-during-notifications updates-now 60",
         "return-type": "json",
-        "interval": 60,
-        "signal": 10,
         "on-click": "$HOME/.local/bin/system-update"
     },
 
@@ -138,12 +140,12 @@
     },
 
     "custom/weather": {
-        // The sky glyph beside the clock. waybar-weather is continuous (no
-        // interval): it fetches through weather-now every 10 minutes on its
-        // own, and it watches the notification file so it fades out with the
-        // clock while a message holds the centre — see #custom-weather.faded.
-        // Click opens the weather app; the temperature is in the tooltip.
-        "exec": "$HOME/.local/bin/waybar-weather",
+        // The sky glyph beside the clock. Continuous (no interval): the
+        // wrapper runs weather-now every 10 minutes and fades the glyph out
+        // with the clock while a notification holds the centre — see
+        // #custom-weather.faded. Click opens the weather app; the temperature
+        // is in the tooltip.
+        "exec": "$HOME/.local/bin/waybar-hidden-during-notifications weather-now 600",
         "return-type": "json",
         "markup": "pango",
         "on-click": "$HOME/.local/bin/focus-or-launch chrome-www.google.com__search-Default $HOME/.local/bin/weather"

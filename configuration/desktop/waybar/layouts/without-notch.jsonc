@@ -3,15 +3,16 @@
 // symlinked to ~/.config/waybar/layout.jsonc; config.jsonc includes that path.
 //
 // The clock sits dead centre, which is where a clock wants to be and where
-// macOS can't put one, with the weather glyph just to its right. A
-// notification takes the whole centre: the glyph fades out with the clock.
+// macOS can't put one, with the weather glyph just to its right and the
+// updates badge, when there is one, just to its left. A notification takes
+// the whole centre: badge and glyph fade out with the clock.
 //
 // Do-not-disturb moves to the head of the right-hand group. It lived in the
 // centre on the Mac purely to sit beside the notch; with no notch to sit
 // beside, the leftmost right-hand slot is the same idea — the most visible
 // spot that isn't the clock.
 {
-    "modules-center": ["custom/clock", "custom/weather"],
+    "modules-center": ["custom/updates", "custom/clock", "custom/weather"],
 
     // Battery last, hard against the screen edge. It's the one module you
     // look for rather than notice, so it earns the corner — the place your
@@ -24,7 +25,6 @@
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
-        "custom/updates",
         "custom/claude-usage",
         "battery"
     ]

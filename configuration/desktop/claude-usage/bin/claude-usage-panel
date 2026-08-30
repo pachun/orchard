@@ -7,8 +7,11 @@ set -eu
 config="$HOME/.config/claude-usage/eww"
 eww_cmd() { timeout 2 eww --config "$config" "$@"; }
 
+# Open and closed each come with a submap switch: while the panel is up,
+# Escape (bound in hyprland.conf's claude-usage submap) closes it.
 if eww_cmd active-windows 2>/dev/null | grep -q '^usage'; then
     eww_cmd close usage >/dev/null 2>&1 || true
+    hyprctl dispatch submap reset >/dev/null 2>&1 || true
     exit 0
 fi
 
@@ -17,4 +20,5 @@ eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-claude-usage"
 record=$("$HOME/.local/bin/claude-usage" --force)
 eww_cmd update usage="$record" >/dev/null 2>&1 || true
 eww_cmd open usage >/dev/null 2>&1 || true
+hyprctl dispatch submap claude-usage >/dev/null 2>&1 || true
 pkill -RTMIN+12 waybar 2>/dev/null || true

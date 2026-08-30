@@ -29,9 +29,9 @@
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
-        "custom/updates",
         "custom/claude-usage",
         "battery",
+        "custom/updates",
         "custom/clock",
         "custom/weather"
     ]

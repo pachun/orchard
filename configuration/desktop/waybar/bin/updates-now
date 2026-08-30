@@ -1,17 +1,19 @@
 #!/bin/sh
-# waybar-updates: surface pending pacman + AUR package updates and
-# available device firmware, emitting a JSON blob for waybar's custom
-# module. Renders the module empty (effectively hidden) when there's
-# nothing to do, when offline, or while the very first refresh is still
-# running. Package count is exact; firmware is a boolean (present or
-# not). Clicking the badge runs system-update, which applies both.
+# updates-now: pending pacman + AUR package updates and available device
+# firmware, as one JSON blob for the bar. Empty (effectively hidden) when
+# there's nothing to do, when offline, or while the very first refresh is
+# still running. Package count is exact; firmware is a boolean (present or
+# not). waybar-hidden-during-notifications runs this on a schedule (and on
+# SIGRTMIN+10) and owns the bar slot; clicking the badge runs system-update,
+# which applies both.
 #
 # Architecture: stale-while-revalidate.
 #   - Waybar polls every minute; the script reads /tmp/waybar-updates.cache
 #     and prints it in <10ms.
 #   - If the cache is older than $MAX_AGE, a background refresh kicks
 #     off (checkupdates + yay -Qua + fwupdmgr get-updates, ~1-2s total)
-#     and signals SIGRTMIN+10 to waybar when done.
+#     and calls refresh-updates-badge when done, so the bar reruns this
+#     and shows the new count at once.
 #   - A flag file at /tmp/waybar-updates.refreshing dedupes concurrent
 #     refresh runs. If the flag's older than $LOCK_TTL the prior runner
 #     was killed (e.g. a waybar restart took out the subshell with
@@ -24,9 +26,9 @@
 # rendered until the next 60s poll. Emitting {"text":""} for the
 # hidden state forces waybar to re-render an empty module immediately.
 #
-# system-update wipes the cache + signals waybar after a successful
-# upgrade so the badge clears instantly rather than waiting on the
-# next refresh window.
+# system-update wipes the cache + calls refresh-updates-badge after a
+# successful upgrade so the badge clears instantly rather than waiting on
+# the next refresh window.
 #
 # Phosphor download-simple (U+E20C) is the entire visible text — the
 # count goes in the tooltip, not the bar, so it doesn't visually collide
@@ -80,7 +82,7 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
             printf '{"text":"","tooltip":"%s"}\n' \
                 "$tooltip" > "$CACHE"
         fi
-        pkill -RTMIN+10 waybar 2>/dev/null || true
+        "$HOME/.local/bin/refresh-updates-badge"
     ) >/dev/null 2>&1 &
 fi
 

@@ -110,8 +110,8 @@ writes a `colors.scss`; `set-theme` re-runs it and restarts the daemon.
 A module is: a `bin/waybar-<name>` script printing one JSON line
 (`{"text","tooltip","class"}`), a `"custom/<name>": {…}` block in
 `config/config.jsonc` (`exec`, `return-type: json`, `interval` or
-continuous, a dedicated `signal` number — 7 dnd, 9 network/weather, 10
-updates, 11 bluetooth, 12 claude-usage — and `on-click`), a padding rule
+continuous, a dedicated `signal` number — 7 dnd, 9 network, 11
+bluetooth, 12 claude-usage — and `on-click`), a padding rule
 plus any state classes in `config/style.css` (icon modules join the
 `Phosphor-Fill` font-family list), and an entry in **both**
 `layouts/with-notch.jsonc` and `layouts/without-notch.jsonc` (the Mac's
@@ -121,8 +121,17 @@ by codepoint, listed in the script header as `name  U+XXXX`; look
 codepoints up in
 `https://raw.githubusercontent.com/phosphor-icons/web/master/src/fill/style.css`.
 Scripts must never block on the network — cache and serve stale.
-Apply live: `pkill -SIGUSR2 -x waybar` for config/layout changes;
-`pkill -RTMIN+<n> waybar` to refresh one module.
+Anything that sits in the centre beside the clock (weather glyph, updates
+badge) runs through `waybar-hidden-during-notifications <command>
+<seconds>`, which polls the command and fades the module out while a
+notification holds the clock's slot; the command itself is a one-shot
+`<thing>-now` script. **Never give a continuous module a `signal` key**:
+waybar reads signal-without-interval as "run the command once per signal
+and wait for it to exit", so a looping script never draws. Continuous
+modules that need a nudge get signalled directly by process
+(`refresh-updates-badge`). Apply live: `pkill -SIGUSR2 -x waybar` for
+config/layout changes; `pkill -RTMIN+<n> waybar` to refresh a polled
+module.
 
 ## Hyprland (`configuration/desktop/hyprland/config/hyprland.conf`)
 

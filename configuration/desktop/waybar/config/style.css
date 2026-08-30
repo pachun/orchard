@@ -84,9 +84,11 @@
  * 250ms matches FADE_SECONDS in waybar-clock. If you change one, change both,
  * or the text will swap while it's still visible. */
 #custom-clock,
-#custom-weather        { transition: opacity 250ms ease; }
+#custom-weather,
+#custom-updates        { transition: opacity 250ms ease; }
 #custom-clock.faded,
-#custom-weather.faded  { opacity: 0; }
+#custom-weather.faded,
+#custom-updates.faded  { opacity: 0; }
 
 /* Per-module icon-weight overrides. Default font-family chain (set
  * on the global * rule) uses Phosphor regular (outlined) — kept for

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Ask the updates badge to rerun updates-now right now. The badge is a
+# continuous module (waybar-hidden-during-notifications), and waybar only
+# forwards SIGRTMIN+n to modules it polls, so the signal goes to the wrapper
+# process itself. Called by updates-now when a background refresh lands and by
+# system-update after an upgrade, so the count never waits on the next poll.
+pkill -RTMIN+10 -f "waybar-hidden-during-notifications updates-now" 2>/dev/null || true
