@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Apply the Dell XPS OLED white-balance correction, held for the session.
-# No-op on Apple panels (their factory calibration is already right), so the
-# shared Hyprland exec-once is safe on the Mac too.
+# No-op wherever gammawb wasn't built (Apple panels are factory-calibrated;
+# non-Dell x86 panels have their own balance), so the shared Hyprland
+# exec-once is safe on every machine.
 #
 # Values were hand-matched to a MacBook Air's Liquid Retina display: neutral
 # gains, with green pulled out of the shadows (exponent 1.08) to cancel the
 # panel's near-black green cast — dark blues read blue instead of green,
 # white left untouched. Retune live with `wb`; if you land on new values,
 # update the numbers below.
-grep -qa apple /proc/device-tree/compatible 2>/dev/null && exit 0
+[ -x "$HOME/.local/bin/gammawb" ] || exit 0
 exec "$HOME/.local/bin/gammawb" 1.0 1.0 1.0 1.0 1.08 1.0

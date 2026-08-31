@@ -16,8 +16,8 @@
 # power-saver on battery (which biases the CPU to its efficient EPP), balanced
 # on AC — because PPD ships without that behaviour. The rule file carries the
 # measured reasoning.
-# Intel/x86 only — these are all Intel-specific, and the Apple-silicon Mac
-# manages its own power and thermals.
+# The Apple-silicon Mac manages its own power and thermals and skips all
+# of this.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,8 +25,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 is_apple_silicon && exit 0
 
-sudo pacman -S --needed --noconfirm thermald power-profiles-daemon intel-lpmd
-sudo systemctl enable --now thermald.service power-profiles-daemon.service intel_lpmd.service
+# thermald and intel-lpmd are Intel-only; AMD's amd-pstate driver and
+# firmware handle the same jobs, so an AMD machine gets just the profile
+# switch and the AC/battery udev rule.
+packages=(power-profiles-daemon)
+services=(power-profiles-daemon.service)
+if ! is_amd_cpu; then
+  packages+=(thermald intel-lpmd)
+  services+=(thermald.service intel_lpmd.service)
+fi
+sudo pacman -S --needed --noconfirm "${packages[@]}"
+sudo systemctl enable --now "${services[@]}"
 
 sudo install -Dm644 "$HERE/99-orchard-power-profile.rules" \
     /etc/udev/rules.d/99-orchard-power-profile.rules

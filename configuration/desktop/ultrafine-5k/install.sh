@@ -6,6 +6,9 @@
 # Idempotent.
 set -euo pipefail
 
+. "$TOOLS/machine.sh"
+is_dell || { echo "ultrafine-5k: workaround for the XPS's Thunderbolt link training; skipping."; exit 0; }
+
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo install -m 755 "$here/ultrafine-bringup.sh" /usr/local/bin/ultrafine-bringup

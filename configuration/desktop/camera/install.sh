@@ -13,9 +13,8 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# This camera only exists on the Dell; Apple-silicon Macs skip it entirely.
 . "$TOOLS/machine.sh"
-is_apple_silicon && { echo "camera: IPU7 is Dell-only; skipping on Apple silicon."; exit 0; }
+is_dell || { echo "camera: IPU7 is Dell-only; skipping."; exit 0; }
 
 # --- Phase 1: make the sensor bind ---------------------------------------
 # Build tooling for the DKMS modules, then intel_cvs itself (Intel's own

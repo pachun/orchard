@@ -15,13 +15,20 @@
 #   intel-gpu-tools — intel_gpu_top, to watch GPU engine load live
 #     (including the video-decode engine).
 #
-# Intel-only. The sole aarch64 target is an Apple-silicon Mac, whose
-# graphics userspace comes from the Asahi base install, so skip there.
+# The Apple-silicon Mac skips this entirely: its graphics userspace
+# comes from the Asahi base install.
 set -euo pipefail
 
 . "$TOOLS/machine.sh"
 
 is_apple_silicon && exit 0
 
-packages=(intel-media-driver vulkan-intel libva-utils intel-gpu-tools)
+# The AMD equivalents (Framework 13): radeonsi's VA-API decode lives in
+# libva-mesa-driver, Vulkan in vulkan-radeon; no intel-gpu-tools analogue
+# is needed.
+if is_amd_cpu; then
+  packages=(libva-mesa-driver vulkan-radeon libva-utils)
+else
+  packages=(intel-media-driver vulkan-intel libva-utils intel-gpu-tools)
+fi
 sudo pacman -S --needed --noconfirm "${packages[@]}"

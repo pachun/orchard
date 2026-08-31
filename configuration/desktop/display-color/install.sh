@@ -17,7 +17,7 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 # The gamma client is only needed on the Dell OLED. Build it from source so
 # there's no committed binary and it matches the running libs. Runs before
 # the hyprland feature, so pull the build deps in explicitly.
-if ! is_apple_silicon; then
+if is_dell; then
   sudo pacman -S --needed --noconfirm gcc wayland
 
   build="$(mktemp -d)"
