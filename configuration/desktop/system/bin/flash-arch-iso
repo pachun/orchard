@@ -97,6 +97,18 @@ write_iso_to_stick() {
   echo "manual's install chapter."
 }
 
+# Arch removes the old kernel's module tree when it upgrades the kernel, so
+# after an update the running kernel can't load anything not already loaded
+# — including the USB storage driver this needs. Without this check that
+# surfaces as a baffling "No USB drive found" with the stick plugged in.
+require_loadable_kernel_modules() {
+  [ -d "/lib/modules/$(uname -r)" ] && return 0
+  echo "The kernel was upgraded since boot (running $(uname -r); installed $(ls /lib/modules | tail -1))." >&2
+  echo "The USB storage driver can't load until you reboot. Reboot and rerun." >&2
+  exit 1
+}
+
+require_loadable_kernel_modules
 download_current_iso
 verify_iso_signature
 pick_usb_stick
