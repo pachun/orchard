@@ -26,6 +26,7 @@
 #     the phone's unread count clears the way it would on a real Mac.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 replace_the_packaged_beta() {

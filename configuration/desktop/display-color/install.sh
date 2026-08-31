@@ -7,6 +7,7 @@
 # apply-display-color runs it at login (no-op on Apple panels), and `wb`
 # is the live tuning + snapshot tool used to find the values. Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 

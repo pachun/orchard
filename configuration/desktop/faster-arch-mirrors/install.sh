@@ -8,6 +8,7 @@
 # x86 Arch only; the Apple-silicon Mac is on Arch Linux ARM, a separate
 # mirror system reflector doesn't cover.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 . "$TOOLS/machine.sh"
 

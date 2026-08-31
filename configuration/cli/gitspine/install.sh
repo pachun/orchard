@@ -18,6 +18,7 @@
 # you want push access:
 #   git -C ~/code/gitspine remote set-url origin git@github.com:pachun/gitspine.git
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../rust/install.sh"

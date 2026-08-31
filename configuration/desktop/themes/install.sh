@@ -20,6 +20,7 @@
 # Fonts used to live here; they moved to the fonts/ component.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Qt theming runtime + sassc for the everforest from-source build.

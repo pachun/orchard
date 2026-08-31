@@ -13,6 +13,7 @@
 # config; this feature only provides the scripts and the panel.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The panel's colours are rendered from the active orchard theme, so the

@@ -53,9 +53,9 @@ creating the folder; removing one is deleting it. A feature folder holds:
 - Per-machine variants of a config (e.g. waybar's bar layout) live
   outside `config/` in their own directory and `install.sh` links only
   the chosen one.
-- `$TOOLS` is exported by `configure`; a standalone
-  `./configuration/desktop/<feature>/install.sh` run needs
-  `TOOLS=$PWD/tools` in the environment. Users run install scripts
+- `$TOOLS` is exported by `configure`, and every install.sh defaults
+  it from its own location, so a standalone
+  `./configuration/desktop/<feature>/install.sh` run just works. Users run install scripts
   themselves (they contain `sudo`); Claude never runs `sudo`.
 - No comments explaining *what* — names do that. Comments carry *why*:
   the constraint, the upstream bug, the "this looks wrong, here's why it

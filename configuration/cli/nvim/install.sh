@@ -17,6 +17,7 @@
 # Node-LSPs (typescript-language-server, etc.) need `node` on PATH at
 # install time — mise provides it, hence the prerequisite + PATH export.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Deps for Mason's downstream installers (run via the pre-warm

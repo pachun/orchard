@@ -6,6 +6,7 @@
 # (name + email) on first run only. Idempotent — re-runs are no-ops
 # once ~/.gitconfig.local exists.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source prompts so GIT_COMMIT_NAME/EMAIL are set. Idempotent — no-op

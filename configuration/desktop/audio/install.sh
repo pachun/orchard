@@ -10,6 +10,7 @@
 # device list only knows about Spotify Connect and Google Cast — so choosing
 # an output has to happen at the OS.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$TOOLS/machine.sh"

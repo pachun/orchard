@@ -18,6 +18,7 @@
 # The Apple-silicon Mac skips this entirely: its graphics userspace
 # comes from the Asahi base install.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 . "$TOOLS/machine.sh"
 

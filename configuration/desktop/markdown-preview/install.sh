@@ -17,6 +17,7 @@
 # here and is not in this repo — settings.py asks the gh CLI for one at startup.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$TOOLS/install-yay.sh"

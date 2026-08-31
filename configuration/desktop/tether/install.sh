@@ -21,6 +21,7 @@
 # up so a fresh install can be paired without logging out.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bluetoothd_drop_in=/etc/systemd/system/bluetooth.service.d/tether-experimental.conf

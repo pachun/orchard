@@ -14,6 +14,7 @@
 # (anthropics/claude-plugins-official → claude-plugins-official).
 # Enabling is also recorded in enabledPlugins in settings.json.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # claude installs to ~/.local/bin/claude. zshrc adds that to PATH at

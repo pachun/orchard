@@ -19,6 +19,7 @@
 #      registered handler it goes nowhere and the login has to be finished
 #      by pasting the link into `nordvpn login --callback`.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$TOOLS/install-yay.sh"

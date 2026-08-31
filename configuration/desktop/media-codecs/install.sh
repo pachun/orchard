@@ -12,6 +12,7 @@
 #     why the driver itself lives there (hardware-specific) and not here.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 . "$TOOLS/machine.sh"
 

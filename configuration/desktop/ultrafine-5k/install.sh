@@ -5,6 +5,7 @@
 # well, keeping the desktop calm between attempts. See README.md.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 . "$TOOLS/machine.sh"
 is_dell || { echo "ultrafine-5k: workaround for the XPS's Thunderbolt link training; skipping."; exit 0; }

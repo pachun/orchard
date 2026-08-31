@@ -5,6 +5,7 @@
 # which regressed on us once (broken background rendering after a commit).
 # Re-running picks up a newer stable tag automatically.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 

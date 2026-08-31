@@ -21,6 +21,7 @@
 # The images under wallpapers/ are symlinked into
 # ~/.local/share/wallpapers/ so they can be referenced by a stable path.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # python-gobject is orchard-wallpaper-portal's only dependency — it talks

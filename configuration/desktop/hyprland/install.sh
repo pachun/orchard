@@ -8,6 +8,7 @@
 # Config is dropped at ~/.config/hypr/ via the per-file linker.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm hyprland xdg-desktop-portal-hyprland
