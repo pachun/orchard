@@ -131,6 +131,16 @@ after, reach for `(x?.length ?? 0) > 0` — never the implicit
 `!!x?.length`. (`x?.length === 0` is fine for the empty check — equality
 tolerates `undefined` where relational operators don't.)
 
+## `.at()` over bracket indexing
+
+Read array elements with `.at(index)`, never `array[index]` —
+`failures.at(0)`, `messages.at(-1)`, not `failures[0]`. `.at()` is
+honest about possibly returning `undefined` (bracket indexing's type
+lies unless `noUncheckedIndexedAccess` is on), reads uniformly for
+negative indexes, and chains cleanly with `!` or `?.` at the call
+site when the element is known to exist. Bracket syntax stays for
+*writing* (building new arrays) and for tuple destructuring.
+
 ## Type design
 
 - **Make impossible states impossible.** Model data so invalid
