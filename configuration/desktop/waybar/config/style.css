@@ -60,7 +60,11 @@
 #custom-nordvpn     { padding: 0 8px; }
 #custom-wifi-status { padding: 0 8px; }
 #custom-network     { padding: 0 8px; }
-#custom-music-levels { padding: 0 8px 0 10px; }
+/* The visualizer settles then fades: waybar-music-levels flags the last
+ * frames of an exit (and the first of an entrance) with `fading`, and the
+ * opacity transition carries the module in and out instead of it popping. */
+#custom-music-levels { padding: 0 8px 0 10px; transition: opacity 350ms ease-out; }
+#custom-music-levels.fading { opacity: 0; }
 #custom-audio       { padding: 0 8px; }
 #custom-bluetooth   { padding: 0 8px; }
 /* Active scan: the bluetooth glyph itself pulses. No separate

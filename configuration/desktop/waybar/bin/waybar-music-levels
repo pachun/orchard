@@ -24,7 +24,14 @@
 # Drawing borrows what makes canvas visualizers read well at this size:
 # six bands mirrored center-out (bass in the middle), monstercat-smoothed,
 # a hair space apart, each faded by its level, with a slowly sinking peak
-# shown as a taller dimmer ghost. Hides after ~2s of silence.
+# shown as a taller dimmer ghost.
+#
+# Leaving follows the motion rules that keep an exit from feeling broken:
+# settle, then fade, never freeze-and-vanish. When the sound stops (or the
+# verdict flips to not-music) the bars keep drawing while their levels and
+# ghosts sink to the floor, then the module cross-fades out through the
+# `fading` CSS class before its text is finally cleared. Entering is the
+# mirror: the first frame lands at zero opacity and fades in.
 #
 # Continuous exec: no signal key — waybar reads signal-without-interval as
 # "run once per signal" and a looping script never draws. restart-interval
@@ -87,23 +94,41 @@ function drawn_band(i,   glyph_level, alpha) {
     }
     return sprintf("<span alpha=\x27%d%%\x27>%s</span>", alpha, block_for_level[glyph_level + 1])
 }
+function emit(class_name) {
+    printf "{\"text\":\"%s\",\"class\":\"%s\",\"tooltip\":\"Music levels\"}\n", drawn_bars(), class_name
+    fflush()
+}
 function show_nothing() {
     if (displaying) { print "{\"text\":\"\"}"; fflush(); displaying = 0 }
+}
+function drawn_bars(   i, bars) {
+    bars = ""
+    for (i = band_count; i >= 1; i--) bars = bars drawn_band(i) hair_space
+    for (i = 1; i <= band_count; i++) bars = bars drawn_band(i) (i < band_count ? hair_space : "")
+    return bars
+}
+function peaks_have_settled(   i) {
+    for (i = 1; i <= band_count; i++) if (peak[i] > 0) return 0
+    return 1
 }
 BEGIN {
     split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", block_for_level, " ")
     hair_space = "\xe2\x80\x8a"
-    peak_sink_per_frame = 0.16
+    peak_sink_per_frame = 0.16; settling_sink_per_frame = 0.30
+    fade_frames = int(0.35 * fps); settle_starts_after_silent = int(0.5 * fps)
     window_frames = 4 * fps
-    verdict_every = 2 * fps; show_after = 2 * fps; hide_after = 20 * fps; hide_after_silent = 2 * fps
+    verdict_every = 2 * fps; show_after = 2 * fps; hide_after = 20 * fps
     source = "ambiguous"; shown = 0; displaying = 0
 }
 {
     frame_total = 0
     band_count = split($0, level, ";") - 1
+    for (i = 1; i <= band_count; i++) frame_total += level[i]
+    silent_frames = (frame_total == 0) ? silent_frames + 1 : 0
+    settling = (silent_frames >= settle_starts_after_silent)
+    sink = settling ? settling_sink_per_frame : peak_sink_per_frame
     for (i = 1; i <= band_count; i++) {
-        frame_total += level[i]
-        peak[i] = (level[i] > peak[i]) ? level[i] : peak[i] - peak_sink_per_frame
+        peak[i] = (level[i] > peak[i]) ? level[i] : peak[i] - sink
         if (peak[i] < 0) peak[i] = 0
     }
     duty_sum        = remember("duty", frame_total > 0)
@@ -116,16 +141,14 @@ BEGIN {
         if (++pending >= (wants_shown ? show_after : hide_after)) { shown = wants_shown; pending = 0 }
     } else pending = 0
 
-    if (frame_total == 0) {
-        if (++silent_frames >= hide_after_silent) show_nothing()
-        next
+    leaving = !shown || settling
+    if (!leaving) {
+        if (!displaying) { emit("fading"); displaying = 1; fading_frames_left = 0; next }
+        emit(""); next
     }
-    silent_frames = 0
-    if (!shown) { show_nothing(); next }
-
-    bars = ""
-    for (i = band_count; i >= 1; i--) bars = bars drawn_band(i) hair_space
-    for (i = 1; i <= band_count; i++) bars = bars drawn_band(i) (i < band_count ? hair_space : "")
-    printf "{\"text\":\"%s\",\"tooltip\":\"Music levels\"}\n", bars
-    fflush(); displaying = 1
+    if (!displaying) next
+    if (!peaks_have_settled()) { emit(""); next }
+    if (fading_frames_left == 0) { fading_frames_left = fade_frames; emit("fading"); next }
+    if (--fading_frames_left > 0) next
+    show_nothing()
 }'
