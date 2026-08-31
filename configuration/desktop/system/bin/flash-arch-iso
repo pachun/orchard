@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Download the current Arch ISO, verify Arch's signature on it, and write it
+# to a USB stick — the "make install media" step of bringing up a new
+# machine. Everything it uses (curl, lsblk, dd, pacman-key) is on the base
+# system; the pacman keyring already trusts Arch's release signing key, so
+# the signature check costs nothing and catches a corrupted or tampered
+# download before it becomes a boot drive.
+set -euo pipefail
+
+mirror=https://geo.mirror.pkgbuild.com/iso/latest
+iso_name=archlinux-x86_64.iso
+download_directory="$HOME/.cache/arch-iso"
+iso="$download_directory/$iso_name"
+
+download_current_iso() {
+  mkdir -p "$download_directory"
+  echo "Downloading $iso_name..."
+  curl -fL -C - -o "$iso" "$mirror/$iso_name"
+  curl -fsL -o "$iso.sig" "$mirror/$iso_name.sig"
+}
+
+verify_iso_signature() {
+  echo "Verifying Arch's signature..."
+  sudo pacman-key --verify "$iso.sig"
+}
+
+pick_usb_stick() {
+  mapfile -t sticks < <(lsblk -d -p -n -o NAME,TRAN | awk '$2 == "usb" {print $1}')
+
+  if [ "${#sticks[@]}" -eq 0 ]; then
+    echo "No USB drive found. Plug the stick in and rerun." >&2
+    exit 1
+  fi
+
+  if [ "${#sticks[@]}" -eq 1 ]; then
+    TARGET="${sticks[0]}"
+  else
+    echo
+    echo "Pick the USB stick by index:"
+    for i in "${!sticks[@]}"; do
+      echo "  $i: ${sticks[$i]}  $(lsblk -d -n -o SIZE,MODEL "${sticks[$i]}")"
+    done
+    read -rp "Index: " index
+    TARGET="${sticks[$index]}"
+  fi
+
+  echo
+  echo "=========================================================="
+  echo "  WILL WIPE AND FLASH: $TARGET"
+  echo "  $(lsblk -d -n -o SIZE,MODEL "$TARGET")"
+  echo "  Every byte on this device will be destroyed."
+  echo "=========================================================="
+  read -rp "Type 'yes' to continue: " confirm
+  [ "$confirm" = "yes" ] || { echo "Aborted."; exit 1; }
+}
+
+unmount_stick_partitions() {
+  local partition
+  for partition in "$TARGET"?*; do
+    findmnt -n "$partition" >/dev/null 2>&1 && sudo umount "$partition"
+  done
+  return 0
+}
+
+write_iso_to_stick() {
+  sudo dd if="$iso" of="$TARGET" bs=4M oflag=direct conv=fsync status=progress
+  sync
+  echo
+  echo "Done. Boot the new machine with the stick in, press F2 for BIOS"
+  echo "(secure boot off, USB first in boot order), and follow the"
+  echo "manual's install chapter."
+}
+
+download_current_iso
+verify_iso_signature
+pick_usb_stick
+unmount_stick_partitions
+write_iso_to_stick
