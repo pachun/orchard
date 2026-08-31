@@ -1,13 +1,20 @@
 #!/bin/sh
 # Emits JSON for waybar's custom/music-levels module: a tiny live spectrum
 # of whatever is playing. Real levels — cava runs an FFT over the PipeWire
-# monitor and streams bar heights 0-7; awk draws them as block glyphs.
+# monitor and streams six band heights 0-7; awk draws them as block glyphs.
 #
-# The rendering borrows what makes the QML bar visualizers read well at
-# this size without their canvas: monstercat smoothing so neighboring bars
-# flow instead of jittering, a hair space between glyphs so bars read as
-# discrete pills rather than a blob, and per-bar pango alpha so quiet bars
-# sit back and loud ones come forward. Hides after ~2s of silence.
+# The rendering borrows what makes canvas visualizers read well at this
+# size, translated to text:
+#   mirror    — six bands drawn center-out, bass blooming from the middle,
+#               treble at the edges, so the whole thing dances symmetrically.
+#   ghosts    — a per-band peak that rises instantly and sinks slowly. When
+#               it stands above the live level the band shows the peak as a
+#               taller, dimmer glyph: bright bars say now, ghosts say what
+#               just happened.
+#   depth     — live bars fade with their own level, so quiet bands sit
+#               back and loud ones come forward.
+#   smoothing — monstercat, so neighboring bands flow instead of jittering.
+# Hides after ~2s of silence.
 #
 # Continuous exec: no signal key — waybar reads signal-without-interval as
 # "run once per signal" and a looping script never draws. restart-interval
@@ -18,37 +25,47 @@ command -v cava >/dev/null 2>&1 || exit 0
 cava_config="${XDG_RUNTIME_DIR:-/tmp}/waybar-music-levels.cava"
 cat > "$cava_config" <<CONF
 [general]
-bars = 12
+bars = 6
 framerate = 24
 [input]
 method = pipewire
 source = auto
-[smoothing]
-monstercat = 1
-noise_reduction = 66
 [output]
 method = raw
 raw_target = /dev/stdout
 data_format = ascii
 ascii_max_range = 7
+channels = mono
+mono_option = average
+[smoothing]
+monstercat = 1
+noise_reduction = 66
 CONF
 
 silent_frames_before_hiding=48
 exec cava -p "$cava_config" 2>/dev/null | awk -v hide_after="$silent_frames_before_hiding" '
+function drawn_band(i,   glyph_level, alpha) {
+    glyph_level = level[i]
+    alpha = 45 + level[i] * 7
+    if (peak[i] > level[i] + 0.5) {
+        glyph_level = int(peak[i] + 0.5)
+        alpha = 32
+    }
+    return sprintf("<span alpha=\x27%d%%\x27>%s</span>", alpha, block_for_level[glyph_level + 1])
+}
 BEGIN {
     split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", block_for_level, " ")
     hair_space = "\xe2\x80\x8a"
+    peak_sink_per_frame = 0.16
     silent_frames = hide_after; hidden = 1
 }
 {
     frame_total = 0
-    bars = ""
-    bar_count = split($0, level, ";")
-    for (i = 1; i < bar_count; i++) {
+    band_count = split($0, level, ";") - 1
+    for (i = 1; i <= band_count; i++) {
         frame_total += level[i]
-        faded_in = 45 + level[i] * 7
-        bars = bars sprintf("<span alpha=\x27%d%%\x27>%s</span>", faded_in, block_for_level[level[i] + 1])
-        if (i < bar_count - 1) bars = bars hair_space
+        peak[i] = (level[i] > peak[i]) ? level[i] : peak[i] - peak_sink_per_frame
+        if (peak[i] < 0) peak[i] = 0
     }
     if (frame_total == 0) {
         silent_frames++
@@ -56,6 +73,9 @@ BEGIN {
         next
     }
     silent_frames = 0; hidden = 0
+    bars = ""
+    for (i = band_count; i >= 1; i--) bars = bars drawn_band(i) hair_space
+    for (i = 1; i <= band_count; i++) bars = bars drawn_band(i) (i < band_count ? hair_space : "")
     printf "{\"text\":\"%s\",\"tooltip\":\"Music levels\"}\n", bars
     fflush()
 }'
