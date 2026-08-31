@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Pair the BlueBubbles client with the Mac mini's iMessage server.
+#
+# The client needs the server's URL and password typed into its own setup
+# screen — they're per-machine secrets living in BlueBubbles' preferences,
+# so this can't be unattended. What can be checked is everything the pairing
+# depends on: the tailnet (the server is only reachable through it) and the
+# server actually answering. Then the app opens and the URL is on screen to
+# copy in. The password is in BlueBubbles Server on the Mac mini itself:
+# API & Webhooks > Server Password.
+#
+# Idempotent: safe to re-run; it just re-checks and re-opens the app.
+set -euo pipefail
+
+# The full MagicDNS name, not the bare "mac-mini" the tailnet would also
+# resolve: BlueBubbles' setup screen rejects a URL whose host has no dot
+# as invalid before ever trying to connect to it.
+magicdns_suffix="$(tailscale status --json 2>/dev/null | jq -r '.MagicDNSSuffix // empty' 2>/dev/null || true)"
+server_url="http://mac-mini${magicdns_suffix:+.$magicdns_suffix}:1234"
+
+if ! command -v bluebubbles >/dev/null 2>&1; then
+    echo "bluebubbles isn't installed — run ./configure first." >&2
+    exit 1
+fi
+
+tailnet_state="$(tailscale status --json 2>/dev/null | jq -r '.BackendState // empty' 2>/dev/null || true)"
+if [ "$tailnet_state" != "Running" ]; then
+    echo "This machine isn't on the tailnet, and the iMessage server is only" >&2
+    echo "reachable through it. Run ./connect tailscale first, then re-run this." >&2
+    exit 1
+fi
+
+if ! curl -fsS -m 5 -o /dev/null "$server_url"; then
+    echo "The tailnet is up but $server_url isn't answering — the Mac mini is" >&2
+    echo "asleep, off, or BlueBubbles Server isn't running on it." >&2
+    exit 1
+fi
+
+cat <<MSG
+
+──────────────────────────────────────────────────────────────────────
+bluebubbles — pair with the iMessage server
+──────────────────────────────────────────────────────────────────────
+
+Server URL:      $server_url
+Server password: on the Mac mini, in BlueBubbles Server under
+                 API & Webhooks > Server Password
+
+Opening the app — enter both in its setup screen. After pairing,
+re-run ./configure once so the preferred client settings apply.
+
+MSG
+setsid bluebubbles >/dev/null 2>&1 &
