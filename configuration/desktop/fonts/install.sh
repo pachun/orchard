@@ -22,7 +22,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm noto-fonts noto-fonts-cjk noto-fonts-emoji
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm --mflags "--skipinteg" apple-fonts
+bash "$TOOLS/aur-install.sh" --mflags "--skipinteg" apple-fonts
 
 # The system UI font. Doesn't vary per theme (always SF Pro), so it's set
 # here rather than by the orchard-themes switcher.

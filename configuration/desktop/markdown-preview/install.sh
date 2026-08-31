@@ -20,7 +20,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm python-grip
+bash "$TOOLS/aur-install.sh" python-grip
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.grip"

@@ -34,7 +34,10 @@ creating the folder; removing one is deleting it. A feature folder holds:
 
 - Packages: `sudo pacman -S --needed --noconfirm …` for repo packages.
   AUR: `bash "$TOOLS/install-yay.sh"` first, then
-  `yay -S --needed --noconfirm …`. `install-yay.sh` also owns the
+  `bash "$TOOLS/aur-install.sh" …` (never bare `yay -S`: the helper
+  fetches each PKGBUILD's signing keys from whichever keyserver has
+  them before yay runs, since no single keyserver serves them all).
+  `install-yay.sh` also owns the
   per-user gpg keyserver and `MAKEFLAGS` — don't duplicate those.
 - Linking: `bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"` and
   `bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"`. `link.sh`

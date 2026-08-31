@@ -26,7 +26,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm kvantum qt6ct sassc
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm \
+bash "$TOOLS/aur-install.sh" \
     catppuccin-gtk-theme-frappe \
     catppuccin-gtk-theme-macchiato \
     kvantum-theme-catppuccin-git

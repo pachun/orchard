@@ -29,7 +29,7 @@ adapter=hci0
 
 install_packages() {
   bash "$TOOLS/install-yay.sh"
-  yay -S --needed --noconfirm tether-bin
+  bash "$TOOLS/aur-install.sh" tether-bin
 }
 
 enable_mdns_discovery() {

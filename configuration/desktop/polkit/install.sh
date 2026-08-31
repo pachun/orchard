@@ -14,6 +14,6 @@ bash "$HERE/../fuzzel/install.sh"
 sudo pacman -S --needed --noconfirm jq
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm cmd-polkit-git
+bash "$TOOLS/aur-install.sh" cmd-polkit-git
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

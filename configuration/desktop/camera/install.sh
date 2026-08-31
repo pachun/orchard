@@ -20,7 +20,7 @@ is_dell || { echo "camera: IPU7 is Dell-only; skipping."; exit 0; }
 # Build tooling for the DKMS modules, then intel_cvs itself (Intel's own
 # vision driver, not yet upstreamed) from the AUR.
 sudo pacman -S --needed --noconfirm linux-headers dkms clang llvm
-yay -S --needed --noconfirm intel-vision-drivers-dkms-git
+bash "$TOOLS/aur-install.sh" intel-vision-drivers-dkms-git
 
 # The sensor's i2c bus sits behind the usbio bridge, and intel_cvs must
 # claim INTC10E1 before intel_ipu7 probes or the sensor never attaches.

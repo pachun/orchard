@@ -18,7 +18,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm nordvpn-bin
+bash "$TOOLS/aur-install.sh" nordvpn-bin
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 

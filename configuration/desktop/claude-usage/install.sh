@@ -22,7 +22,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bash "$HERE/../themes/install.sh"
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm eww
+bash "$TOOLS/aur-install.sh" eww
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"

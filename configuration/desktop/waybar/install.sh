@@ -14,7 +14,7 @@ sudo pacman -S --needed --noconfirm \
     waybar ttf-nerd-fonts-symbols-mono pacman-contrib
 
 bash "$TOOLS/install-yay.sh"
-yay -S --needed --noconfirm ttf-phosphor-icons
+bash "$TOOLS/aur-install.sh" ttf-phosphor-icons
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/waybar"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

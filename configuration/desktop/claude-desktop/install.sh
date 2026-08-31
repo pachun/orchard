@@ -24,7 +24,7 @@ TOOLS="${TOOLS:-$(cd "$HERE/../../../tools" && pwd)}"
 
 bash "$TOOLS/install-yay.sh"
 
-yay -S --needed --noconfirm claude-desktop
+bash "$TOOLS/aur-install.sh" claude-desktop
 
 # Keep the session signed in through a claude:// link or any launcher, the same
 # way the Cmd+Shift+O keybind already does. Chromium picks its credential
