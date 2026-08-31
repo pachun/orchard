@@ -42,6 +42,21 @@ set_dns() {
     nordvpn set dns 1.1.1.1 8.8.8.8 2>&1
 }
 
+# Let the tailnet's CGNAT range bypass the tunnel and Nord's firewall.
+# Without it, connecting NordVPN black-holes the whole network on a
+# machine where Tailscale owns /etc/resolv.conf: every DNS query goes to
+# MagicDNS at 100.100.100.100, which routes over tailscale0, which Nord's
+# firewall drops — nothing resolves until one of the two is turned off.
+set_tailnet_allowlist() {
+    nordvpn allowlist add subnet 100.64.0.0/10 2>&1
+}
+
+if ! out=$(set_tailnet_allowlist) && ! printf '%s' "$out" | grep -qi 'already'; then
+    echo "Could not allowlist the tailnet subnet — likely the nordvpn group" >&2
+    echo "isn't active in this shell yet. After a fresh login run:" >&2
+    echo "    nordvpn allowlist add subnet 100.64.0.0/10" >&2
+fi
+
 if ! out=$(set_dns); then
     if printf '%s' "$out" | grep -qi 'already'; then
         :  # already configured, nothing to do
