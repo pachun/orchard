@@ -5,6 +5,13 @@
 # system; the pacman keyring already trusts Arch's release signing key, so
 # the signature check costs nothing and catches a corrupted or tampered
 # download before it becomes a boot drive.
+#
+# The mirror is Arch's own geo-routed one, so it picks a nearby official
+# mirror by itself, and iso/latest/ tracks each monthly release. The
+# checksum comparison before downloading is what keeps the cached copy
+# honest across releases — without it a complete old ISO in the cache
+# would be flashed forever. Freshness comes from the checksum; trust
+# comes from the signature.
 set -euo pipefail
 
 mirror=https://geo.mirror.pkgbuild.com/iso/latest
@@ -12,10 +19,29 @@ iso_name=archlinux-x86_64.iso
 download_directory="$HOME/.cache/arch-iso"
 iso="$download_directory/$iso_name"
 
+current_release_sha256() {
+  curl -fsL "$mirror/sha256sums.txt" | awk -v name="$iso_name" '$2 == name {print $1}'
+}
+
+cached_iso_is_current_release() {
+  [ -f "$iso" ] && printf '%s  %s\n' "$1" "$iso" | sha256sum -c --status
+}
+
 download_current_iso() {
   mkdir -p "$download_directory"
+
+  local release_sha256
+  release_sha256="$(current_release_sha256)"
+  [ -n "$release_sha256" ] || { echo "Couldn't read the current release checksum from $mirror." >&2; exit 1; }
+
+  if cached_iso_is_current_release "$release_sha256"; then
+    echo "Cached ISO is the current release; skipping download."
+    return 0
+  fi
+
+  rm -f "$iso" "$iso.sig"
   echo "Downloading $iso_name..."
-  curl -fL -C - -o "$iso" "$mirror/$iso_name"
+  curl -fL -o "$iso" "$mirror/$iso_name"
   curl -fsL -o "$iso.sig" "$mirror/$iso_name.sig"
 }
 
