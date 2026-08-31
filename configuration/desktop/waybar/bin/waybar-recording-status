@@ -1,11 +1,16 @@
 #!/bin/sh
-# Emits JSON for waybar's custom/recording module. Shows a stop icon
-# (mdi-stop, in Frappé red via the css class) while wf-recorder is
-# running; emits empty text otherwise so the module is invisible.
-if pgrep -x wf-recorder >/dev/null; then
-    # U+F04DB = mdi-stop. printf %b expands the \u escape into UTF-8.
-    icon=$(printf '\xf3\xb0\x93\x9b')
-    printf '{"text":"%s","class":"recording","tooltip":"Click to stop recording"}\n' "$icon"
+# Emits JSON for waybar's custom/recording module: Phosphor record glyph
+# plus elapsed time while wf-recorder runs, in the theme's red with a slow
+# pulse (style.css); empty text otherwise so the module is invisible.
+#
+# Icon (Phosphor fill):
+#   record  U+E3EE  \356\217\256
+recorder_pid=$(pgrep -x wf-recorder | head -1)
+if [ -n "$recorder_pid" ]; then
+    icon=$(printf '\356\217\256')
+    elapsed_seconds=$(ps -o etimes= -p "$recorder_pid" | tr -d ' ')
+    elapsed=$(printf '%d:%02d' $((elapsed_seconds / 60)) $((elapsed_seconds % 60)))
+    printf '{"text":"%s %s","class":"recording","tooltip":"Recording — click to stop"}\n' "$icon" "$elapsed"
 else
     printf '{"text":""}\n'
 fi

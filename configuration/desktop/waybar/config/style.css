@@ -46,6 +46,14 @@
 
 /* Right-side modules. Padding only — colors come from the theme. */
 #custom-recording   { padding: 0 8px; }
+/* The classic REC pulse: while a recording runs, the dot and its timer
+ * breathe. Same trick as the bluetooth scan pulse below — opacity
+ * oscillation at compositor framerate, independent of the 1s poll. */
+#custom-recording.recording { animation: rec-pulse 1.4s ease-in-out infinite alternate; }
+@keyframes rec-pulse {
+    from { opacity: 0.55; }
+    to   { opacity: 1.00; }
+}
 /* Battery holds the right-hand corner (on the notchless layout, where the
  * clock is centred), so it carries the screen-edge breathing room. */
 #battery            { padding: 0 14px 0 8px; }

@@ -25,7 +25,7 @@ window#waybar {
 
 /* Right-side ambient modules are dim by default; the ones that go
  * bright are actively demanding attention. */
-#custom-recording           { color: #a9b1d6; }
+#custom-recording           { color: #f7768e; }
 #custom-weather              { color: #b4bee6; }
 #battery                     { color: #b4bee6; }
 #custom-nordvpn              { color: #b4bee6; }

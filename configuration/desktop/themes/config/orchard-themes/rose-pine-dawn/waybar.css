@@ -40,7 +40,7 @@ window#waybar {
 
 /* Right-side ambient modules are off-black by default; the ones
  * that go bright are actively demanding attention. */
-#custom-recording           { color: #ff5501; }                     /* deliberately off-palette — recording is the rare loud signal */
+#custom-recording           { color: #b4637a; }                     /* deliberately off-palette — recording is the rare loud signal */
 #custom-weather             { color: #333333; }
 #battery                    { color: #333333; }
 #custom-nordvpn             { color: #333333; }
