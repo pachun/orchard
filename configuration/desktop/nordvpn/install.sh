@@ -14,6 +14,10 @@
 #      defaults occasionally miss records for individual hosts; 1.1.1.1
 #      + 8.8.8.8 trade a small bit of metadata privacy for a much
 #      better hit rate.
+#   5. Make the package's nordvpn.desktop the handler for nordvpn:// links.
+#      The browser login's "Continue" button is one of those; without a
+#      registered handler it goes nowhere and the login has to be finished
+#      by pasting the link into `nordvpn login --callback`.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -23,6 +27,8 @@ bash "$TOOLS/aur-install.sh" nordvpn-bin
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 sudo systemctl enable --now nordvpnd.service
+
+xdg-mime default nordvpn.desktop x-scheme-handler/nordvpn
 
 if ! id -nG "$USER" | tr ' ' '\n' | grep -qx nordvpn; then
     sudo usermod -aG nordvpn "$USER"

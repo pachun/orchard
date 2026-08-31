@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Log in to NordVPN — the browser sign-in the nordvpn feature can't do unattended.
+#
+# `nordvpn login` prints a sign-in URL and opens it. After you sign in, the
+# page's "Continue" button is a nordvpn:// link that hands the session back
+# to the daemon — the nordvpn feature registers the package's handler for
+# that scheme, so clicking it is enough. If the browser won't hand it over,
+# paste the button's link at the prompt and it's completed with --callback.
+#
+# Idempotent: prints the account and exits when already logged in.
+set -euo pipefail
+
+if ! command -v nordvpn >/dev/null 2>&1; then
+    echo "nordvpn isn't installed — run ./configure first." >&2
+    exit 1
+fi
+
+if ! systemctl is-active --quiet nordvpnd.service; then
+    sudo systemctl enable --now nordvpnd.service
+fi
+
+if ! id -nG | tr ' ' '\n' | grep -qx nordvpn; then
+    echo "This shell isn't in the nordvpn group yet — log out and back in, then re-run." >&2
+    exit 1
+fi
+
+logged_in() {
+    ! nordvpn account 2>&1 | grep -qi "not logged in"
+}
+
+if logged_in; then
+    printf "Already logged in to NordVPN:\n\n"
+    nordvpn account
+    exit 0
+fi
+
+cat <<'MSG'
+
+──────────────────────────────────────────────────────────────────────
+nordvpn — log in
+──────────────────────────────────────────────────────────────────────
+
+`nordvpn login` will print a URL and open your browser. Sign in there,
+then click "Continue" on the page that follows — that hands the login
+back to this machine.
+
+Press Enter to continue.
+MSG
+read -r _
+
+nordvpn login
+
+cat <<'MSG'
+
+Finish signing in in the browser. Once you've clicked "Continue", press
+Enter here. If the browser wouldn't open the link, right-click the
+"Continue" button, copy its link, and paste it here instead.
+
+MSG
+read -r -p "> " callback
+if [ -n "$callback" ]; then
+    nordvpn login --callback "$callback"
+fi
+
+if logged_in; then
+    printf "\nDone. Logged in as:\n\n"
+    nordvpn account
+else
+    echo "Still not logged in — re-run ./connect nordvpn to try again." >&2
+    exit 1
+fi
