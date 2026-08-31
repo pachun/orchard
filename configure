@@ -29,6 +29,29 @@ if [[ "$MODE" == "desktop" ]]; then
   done
 fi
 
+# One password prompt for the whole run, and a mistyped one just asks
+# again. Left to the features' own sudo calls, the first prompt lands
+# somewhere in the middle of the output, and a wrong answer there — or at
+# the re-prompt sudo issues once its timestamp lapses during a long AUR
+# build — aborts the entire run under set -e.
+authenticate_sudo() {
+  until sudo -v; do
+    echo "Wrong password. Try again."
+  done
+}
+
+keep_sudo_alive_until_done() {
+  while true; do
+    sudo -n true || true
+    sleep 60
+  done 2>/dev/null &
+  local keepalive_pid=$!
+  trap 'kill "$keepalive_pid" 2>/dev/null' EXIT
+}
+
+authenticate_sudo
+keep_sudo_alive_until_done
+
 # Phase 2: run the actual installs unattended.
 for d in "$HERE/configuration/cli"/*/; do
   bash "$d/install.sh"
