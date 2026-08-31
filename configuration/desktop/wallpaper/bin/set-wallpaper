@@ -14,10 +14,10 @@
 #
 # One idempotent operation: work out which image ought to be up, and put
 # it up. Naming an image changes the answer first; naming none just
-# reasserts it. That's why login (hyprland.conf's exec-once, where swaybg
-# starts from nothing) and set-theme (where the answer may have just
-# changed underneath us) both call it with no argument — they aren't
-# choosing anything, they just need the desktop to be correct.
+# reasserts it. That's why login (hyprland.conf's exec-once, where the
+# wallpaper daemon starts from nothing) and set-theme (where the answer may
+# have just changed underneath us) both call it with no argument — they
+# aren't choosing anything, they just need the desktop to be correct.
 #
 # A choice belongs to the theme that was active when you made it, kept at
 # ~/.local/state/orchard/wallpapers/<theme>.<ext>. Switch themes and you
@@ -71,13 +71,43 @@ chosen_for_active_theme() {
     first_match "$chosen_wallpapers/$(theme_name)"
 }
 
-# swaybg has no IPC to swap images, so a change means a fresh process.
-# Start the new one *before* killing the old: reversing the order leaves
-# a frame where the default Hyprland background shows through. Pair with
-# `layerrule = no_anim, match:namespace wallpaper` in hyprland.conf so the
-# new surface doesn't slide in via the global layersIn animation. `setsid`
-# detaches swaybg from the caller's session so it outlives this script —
-# which matters most for set-theme, itself short-lived.
+# awww (swww, renamed upstream) holds the wallpaper as a persistent daemon
+# with IPC, so a change is one `awww img` and the daemon animates the new
+# image over the old in its own surface — no process swap, no overlap dance,
+# no frame where Hyprland's default background shows through. The animation
+# is the point: `center` grows the new image out of the middle of the screen
+# to the edges, omarchy-style, and set-theme leans on that half second to
+# make a whole theme switch read as one sweep across the desktop. awww's
+# default 30fps looks choppy; both machines' panels run at 120Hz.
+sweep_in_new_wallpaper() {
+    awww img "$1" \
+        --transition-type center \
+        --transition-duration 0.5 \
+        --transition-fps 120 \
+        >/dev/null 2>&1
+}
+
+# First paint of a session: start the daemon, wait for its socket, and paint
+# instantly — at that point there is no old image, and a half-second sweep
+# out of the daemon's black clear color is a flash, not a transition.
+# `setsid` detaches the daemon from the caller so it outlives this script.
+start_wallpaper_daemon_showing() {
+    setsid awww-daemon --quiet </dev/null >/dev/null 2>&1 &
+
+    waited_tenths=0
+    until wallpaper_daemon_is_up; do
+        waited_tenths=$((waited_tenths + 1))
+        [ "$waited_tenths" -lt 50 ] || give_up "awww-daemon never came up"
+        sleep 0.1
+    done
+
+    awww img "$1" --transition-type none >/dev/null 2>&1
+}
+
+wallpaper_daemon_is_up() {
+    awww query >/dev/null 2>&1
+}
+
 repaint() {
     wallpaper=$(chosen_for_active_theme)
     [ -n "$wallpaper" ] || wallpaper=$(first_match "$active_theme/wallpaper")
@@ -90,28 +120,16 @@ repaint() {
     mkdir -p "$chosen_wallpapers"
     ln -sfn "$wallpaper" "$chosen_wallpapers/current"
 
-    previous_swaybg=$(pgrep -x swaybg 2>/dev/null || true)
-    setsid swaybg -i "$wallpaper" -m fill </dev/null >/dev/null 2>&1 &
-
-    if [ -n "$previous_swaybg" ]; then
-        # Hold the old wallpaper up until the new one is certainly painting,
-        # then drop it. Kill it too early and there is a moment with nothing
-        # painting the background at all, and Hyprland's default shows through.
-        #
-        # This used to wait 0.3s, which was a guess, and the guess was wrong by
-        # a millisecond. swaybg has its layer surface up in ~30ms but cannot
-        # paint until it has decoded the image, and decoding an 8K PNG takes
-        # ~300ms — so the old wallpaper was being killed fractionally before the
-        # new one could draw. Hence a flash that came and went depending on
-        # nothing more than the page cache.
-        #
-        # The overlap is free: the new surface is on top from the moment it
-        # paints, so the old one underneath costs a few MB for a moment and is
-        # never seen. There is no reason to be stingy with it. A second is many
-        # times the worst decode this has to survive.
-        sleep 1
-        kill $previous_swaybg 2>/dev/null || true
+    if wallpaper_daemon_is_up; then
+        sweep_in_new_wallpaper "$wallpaper"
+    else
+        start_wallpaper_daemon_showing "$wallpaper"
     fi
+
+    # The swaybg era ends the first time this runs on a machine still painting
+    # with one; awww's surface already sits above it, so no flash. Deletable
+    # once every machine has rebooted past the migration.
+    pkill -x swaybg 2>/dev/null || true
 }
 
 # How hard --recolor pulls an image toward the theme. This is lutgen's
@@ -165,7 +183,7 @@ fi
 
 # Sniff the content rather than trust the extension — a browser download
 # is as likely to be named `download` or `.jpg?width=2880` as anything
-# swaybg would recognise.
+# awww would recognise.
 mime=$(file --brief --mime-type "$image")
 case "$mime" in
     image/png)  extension=png ;;

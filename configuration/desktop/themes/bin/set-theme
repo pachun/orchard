@@ -80,6 +80,17 @@ for sock in "$runtime_dir"/nvim.*.0; do
         </dev/null >/dev/null 2>&1 &
 done
 
+# Wallpaper next, because it's the show: set-wallpaper sweeps the new image
+# out of the center of the screen over half a second (awww's `center`
+# transition), and every reload below lands inside that window, so the whole
+# theme switch reads as one motion instead of a dozen repaints. The theme
+# owns a wallpaper, so the switch may have changed which image ought to be
+# up — say so, and let set-wallpaper work it out. Note that won't
+# necessarily be *this* theme's wallpaper: an image chosen with
+# set-wallpaper deliberately outranks the theme and survives theme
+# switches, so trying a wallpaper on isn't undone by the next set-theme.
+"$HOME/.local/bin/set-wallpaper" || true
+
 # Ghostty reloads on SIGUSR2 specifically. Sending any other signal
 # crashes it, so the explicit -SIGUSR2 + -x are both load-bearing.
 pkill -SIGUSR2 -x ghostty 2>/dev/null || true
@@ -169,13 +180,6 @@ if [ -f "$nvim_lua" ]; then
         light) gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true ;;
     esac
 fi
-
-# Wallpaper. The theme owns one, so a switch may have changed which image
-# ought to be up — say so, and let set-wallpaper work it out. Note that
-# won't necessarily be *this* theme's wallpaper: an image chosen with
-# set-wallpaper deliberately outranks the theme and survives theme
-# switches, so trying a wallpaper on isn't undone by the next set-theme.
-"$HOME/.local/bin/set-wallpaper" || true
 
 # Tmux: re-source the active theme partial in the running server.
 # Status bar / pane borders / window tabs all live in that file —

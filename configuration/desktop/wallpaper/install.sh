@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Wallpaper. Owns:
-#   - swaybg, the wallpaper daemon. Invoked with `-i <image> -m fill`; no
-#     config file. Chosen over hyprpaper because hyprpaper 0.8.x crashes
-#     on Asahi (empty EDID/monitor description → null std::string deref in
-#     the hyprtoolkit rewrite). swaybg is the Hyprland wiki's recommended
-#     simple alternative and just calls into wlr-layer-shell, no monitor
-#     introspection.
+#   - awww, the wallpaper daemon (upstream's rename of swww; the Arch
+#     package Provides/Replaces swww). A persistent daemon with IPC, so
+#     set-wallpaper can swap images with an animated transition — the
+#     center-outward theme sweep — instead of swapping swaybg processes
+#     the way this feature used to. Like swaybg it draws through
+#     wlr-layer-shell with no monitor introspection, so it dodges the
+#     hyprpaper-on-Asahi crash (empty EDID → null std::string deref) that
+#     ruled hyprpaper out in the first place.
 #   - set-wallpaper, which works out which image ought to be up and puts
 #     it up. A choice made there outranks the active theme's own
 #     wallpaper and survives theme switches — for trying an image on
@@ -23,7 +25,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # python-gobject is orchard-wallpaper-portal's only dependency — it talks
 # D-Bus through Gio.
-sudo pacman -S --needed --noconfirm swaybg python-gobject
+sudo pacman -S --needed --noconfirm awww python-gobject
+
+# swaybg is what this feature installed before awww; nothing references it
+# anymore. set-wallpaper kills any still-running instance on its next run.
+if pacman -Q swaybg >/dev/null 2>&1; then
+    sudo pacman -Rns --noconfirm swaybg
+fi
 
 bash "$TOOLS/link.sh" "$HERE/wallpapers" "$HOME/.local/share/wallpapers"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
