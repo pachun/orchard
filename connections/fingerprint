@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Enroll a fingerprint — the one part of fingerprint unlock that can't be
+# unattended, because it's ten taps of your finger on the reader. The
+# fingerprint feature installs fprintd and hyprlock is already wired to it;
+# after this, a matched finger opens the lock screen.
+#
+# Idempotent: lists what's enrolled and exits when a finger is on file.
+# More fingers: fprintd-enroll -f left-index-finger (see fprintd-enroll(1)).
+set -euo pipefail
+
+if ! cat /sys/bus/usb/devices/*/product 2>/dev/null | grep -qi fingerprint; then
+    echo "No fingerprint reader on this machine." >&2
+    exit 1
+fi
+
+# The fingerprint feature installs fprintd during configure; install it here
+# too so running this connection standalone just works.
+if ! command -v fprintd-enroll >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm fprintd
+fi
+
+if fprintd-list "$USER" 2>/dev/null | grep -q "^ - "; then
+    printf "Already enrolled:\n\n"
+    fprintd-list "$USER"
+    exit 0
+fi
+
+cat <<'MSG'
+
+──────────────────────────────────────────────────────────────────────
+fingerprint — enroll a finger
+──────────────────────────────────────────────────────────────────────
+
+Rest your right index finger on the reader (the power button), lifting
+and re-placing it each time it asks — about ten taps, shifting the
+finger slightly between taps so it maps the edges too.
+
+Press Enter to begin.
+MSG
+read -r _
+
+fprintd-enroll
+
+printf "\nDone. Enrolled:\n\n"
+fprintd-list "$USER"
+printf "\nThe lock screen now opens with that finger.\n"
