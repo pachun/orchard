@@ -33,13 +33,17 @@
     // No distro logo. It was a launcher for the system menu and nothing else,
     // and that menu is on Cmd+comma — so the icon was pure decoration, sitting
     // in the one spot on the bar your eye lands on first.
-    "modules-left": ["hyprland/workspaces"],
+    // The music visualizer rides at the right end of the left group: that is
+    // the edge the group grows from, so it can appear and vanish with the
+    // music without shoving a single status icon. In the right group it sat
+    // beside the speaker and pushed everything left of it around.
+    "modules-left": ["hyprland/workspaces", "custom/music-levels"],
 
     "custom/music-levels": {
         // A live spectrum of whatever is playing (cava over the PipeWire
-        // monitor — real FFT levels, not decoration). Visible only while
-        // sound plays; the script hides it after ~2s of silence. Continuous
-        // exec, so no interval and deliberately no signal.
+        // monitor — real FFT levels). Visible only while sound plays; the
+        // script hides it after ~2s of silence. Placed in modules-left above.
+        // Continuous exec, so no interval and deliberately no signal.
         "exec": "$HOME/.local/bin/waybar-music-levels",
         "return-type": "json",
         "restart-interval": 5

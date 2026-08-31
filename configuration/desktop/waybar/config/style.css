@@ -60,7 +60,7 @@
 #custom-nordvpn     { padding: 0 8px; }
 #custom-wifi-status { padding: 0 8px; }
 #custom-network     { padding: 0 8px; }
-#custom-music-levels { padding: 0 8px; }
+#custom-music-levels { padding: 0 8px 0 10px; }
 #custom-audio       { padding: 0 8px; }
 #custom-bluetooth   { padding: 0 8px; }
 /* Active scan: the bluetooth glyph itself pulses. No separate
