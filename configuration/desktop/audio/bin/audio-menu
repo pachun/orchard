@@ -29,7 +29,10 @@ set -eu
 ACTIVE_DOT='●'
 
 current=$(audio_current_sink)
-outputs=$(audio_outputs)
+# The pipe sink itself never belongs in the picker — choosing it would send
+# audio to whatever OwnTone last had enabled, or nowhere. The speakers it
+# feeds are listed individually.
+outputs=$(audio_outputs | awk -F'\t' '$1 != "airplay_sink"')
 
 # Current output first (the 0/1 sort key), then alphabetical.
 rows=$(
@@ -49,6 +52,45 @@ esac
 
 sink=$(printf '%s\n' "$outputs" | awk -F'\t' -v l="$label" '$2 == l { print $1; exit }')
 [ -n "$sink" ] || exit 0
+
+# An AirPlay speaker is an OwnTone output, not a PipeWire sink: enable it
+# there, walk through device verification if the speaker wants it (the PIN
+# appears on its screen), and then route audio into the pipe sink OwnTone
+# reads from.
+case "$sink" in
+    owntone:*)
+        id=${sink#owntone:}
+        curl -fsS -m 3 -X PUT "$OWNTONE_API/outputs/set" \
+            --data "{\"outputs\":[\"$id\"]}" >/dev/null 2>&1 || true
+
+        # Verification is demanded lazily: the flags flip only once OwnTone
+        # has actually tried to connect, a beat after the PUT above.
+        sleep 1
+        needs_pin=$(owntone_airplay_outputs | awk -F'\t' -v id="$id" \
+            '$1 == id { print ($3 == "false" && $4 == "true") ? "yes" : "no"; exit }')
+        if [ "$needs_pin" = "yes" ]; then
+            notify-send 'Output' "$label wants to verify this computer — read the PIN off its screen" >/dev/null 2>&1 || true
+            pin=$(printf '' | fuzzel --dmenu --prompt "PIN on $label: " --lines 0) || exit 0
+            [ -n "$pin" ] || exit 0
+            curl -fsS -m 5 -X PUT "$OWNTONE_API/outputs/$id" \
+                --data "{\"pin\":\"$pin\"}" >/dev/null 2>&1 || true
+            curl -fsS -m 3 -X PUT "$OWNTONE_API/outputs/set" \
+                --data "{\"outputs\":[\"$id\"]}" >/dev/null 2>&1 || true
+            if ! owntone_airplay_outputs | awk -F'\t' -v id="$id" \
+                '$1 == id && $3 == "true" { found = 1 } END { exit !found }'; then
+                notify-send --urgency=critical 'Output' "$label did not accept the PIN — pick it again for a fresh one" >/dev/null 2>&1 || true
+                exit 1
+            fi
+        fi
+        sink="airplay_sink"
+        ;;
+    *)
+        # Leaving AirPlay: the pipe going quiet stops the stream anyway, but
+        # deselecting is immediate where autostop takes a few seconds.
+        curl -fsS -m 1 -X PUT "$OWNTONE_API/outputs/set" \
+            --data '{"outputs":[]}' >/dev/null 2>&1 || true
+        ;;
+esac
 
 pactl set-default-sink "$sink"
 

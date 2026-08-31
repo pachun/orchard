@@ -31,8 +31,29 @@ ICON_APPLE_TV=$(printf '\356\235\224')
 ICON_HOMEPOD=$(printf '\356\200\204')
 ICON_MAC=$(printf '\356\226\206')
 
+OWNTONE_API="http://localhost:3689/api"
+
+# OwnTone's AirPlay outputs, one "owntone:<id>\tname\tselected\tneeds_pin"
+# row per speaker. OwnTone is local, so the timeout only ever bites when it
+# isn't running — in which case there are no AirPlay speakers to offer.
+owntone_airplay_outputs() {
+    curl -fsS -m 0.4 "$OWNTONE_API/outputs" 2>/dev/null | jq -r '
+        .outputs[] | select(.type | startswith("AirPlay"))
+        | [.id, .name, (.selected|tostring),
+           ((.requires_auth or .needs_auth_key)|tostring)]
+        | @tsv' 2>/dev/null || true
+}
+
 audio_current_sink() {
-    pactl get-default-sink 2>/dev/null || true
+    _sink=$(pactl get-default-sink 2>/dev/null || true)
+    # Sound going to the AirPlay pipe is really going to whichever speaker
+    # OwnTone has enabled — that's the row that should wear the dot and name
+    # the tooltip.
+    if [ "$_sink" = "airplay_sink" ]; then
+        _enabled=$(owntone_airplay_outputs | awk -F'\t' '$3 == "true" { print $1; exit }')
+        [ -n "$_enabled" ] && _sink="owntone:$_enabled"
+    fi
+    printf '%s\n' "$_sink"
 }
 
 # "<sink>\t<label>\t<icon>" for every output worth offering, in one pass.
@@ -98,18 +119,32 @@ audio_outputs() {
         function flush(   label) {
             if (name == "" || (ports > 0 && usable == 0)) return
             label = (nick != "" ? nick : description)
-            if (name ~ /^alsa_output/ && label == "Speaker") label = "This Computer"
+            # The built-in speakers are "This Computer" whatever the codec
+            # calls them: some machines nick the sink "Speaker" (XPS), others
+            # after the codec ("ALC285 Analog", Framework) — the profile
+            # description says Speaker on both.
+            if (name ~ /^alsa_output/ && (label == "Speaker" || profile == "Speaker")) label = "This Computer"
             print name "\t" label "\t" icon_for(name)
         }
-        /^Sink #/              { flush(); name=""; nick=""; description=""; ports=0; usable=0; in_ports=0 }
+        /^Sink #/              { flush(); name=""; nick=""; description=""; profile=""; ports=0; usable=0; in_ports=0 }
         /^\tName: /            { name = $2 }
         /^\tDescription: /     { $1=""; sub(/^ /,""); description = $0 }
         /node\.nick = "/       { nick = $0; sub(/^.*node\.nick = "/,"",nick); sub(/".*$/,"",nick) }
+        /device\.profile\.description = "/ { profile = $0; sub(/^.*device\.profile\.description = "/,"",profile); sub(/".*$/,"",profile) }
         /^\tPorts:/            { in_ports = 1; next }
         in_ports && /^\t\t/    { ports++; if ($0 !~ /not available/) usable++; next }
         in_ports && /^\t[^\t]/ { in_ports = 0 }
         END                    { flush() }
     '
+
+    owntone_airplay_outputs | awk -F'\t' \
+        -v i_appletv="$ICON_APPLE_TV" -v i_homepod="$ICON_HOMEPOD" -v i_mac="$ICON_MAC" '
+        {
+            icon = i_homepod
+            if ($2 ~ /TV/)                 icon = i_appletv
+            if ($2 ~ /[Mm]ac|[Bb]ook/)     icon = i_mac
+            print "owntone:" $1 "\t" $2 "\t" icon
+        }'
 }
 
 # The bar shows a speaker, always — not the icon of whatever device is playing.
