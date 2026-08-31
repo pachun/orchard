@@ -12,7 +12,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm \
-    waybar ttf-nerd-fonts-symbols-mono pacman-contrib
+    waybar cava ttf-nerd-fonts-symbols-mono pacman-contrib
 
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" ttf-phosphor-icons

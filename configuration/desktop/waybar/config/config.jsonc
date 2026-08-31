@@ -35,6 +35,16 @@
     // in the one spot on the bar your eye lands on first.
     "modules-left": ["hyprland/workspaces"],
 
+    "custom/music-levels": {
+        // A live spectrum of whatever is playing (cava over the PipeWire
+        // monitor — real FFT levels, not decoration). Visible only while
+        // sound plays; the script hides it after ~2s of silence. Continuous
+        // exec, so no interval and deliberately no signal.
+        "exec": "$HOME/.local/bin/waybar-music-levels",
+        "return-type": "json",
+        "restart-interval": 5
+    },
+
     "custom/audio": {
         // Volume, and a way into the output picker. Always a speaker glyph —
         // it gains an arc as the level climbs and wears a slash when muted.
