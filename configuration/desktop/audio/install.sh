@@ -21,8 +21,12 @@ fi
 sudo pacman -S --needed --noconfirm "${packages[@]}"
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 
 systemctl --user enable --now wireplumber.service pipewire-pulse.service
+# Re-runs must apply wireplumber.conf.d changes; a restart of the session
+# manager alone leaves pipewire and active streams running.
+systemctl --user try-restart wireplumber.service
 if is_apple_silicon; then
   sudo systemctl enable --now speakersafetyd.service
 fi
