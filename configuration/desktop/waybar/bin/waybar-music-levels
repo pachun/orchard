@@ -1,20 +1,30 @@
 #!/bin/sh
 # Emits JSON for waybar's custom/music-levels module: a tiny live spectrum
-# of whatever is playing. Real levels — cava runs an FFT over the PipeWire
-# monitor and streams six band heights 0-7; awk draws them as block glyphs.
+# of whatever is playing — but only when it sounds like music. Real levels:
+# cava runs an FFT over the PipeWire monitor and streams six band heights
+# 0-7; awk decides whether to draw them and draws them as block glyphs.
 #
-# The rendering borrows what makes canvas visualizers read well at this
-# size, translated to text:
-#   mirror    — six bands drawn center-out, bass blooming from the middle,
-#               treble at the edges, so the whole thing dances symmetrically.
-#   ghosts    — a per-band peak that rises instantly and sinks slowly. When
-#               it stands above the live level the band shows the peak as a
-#               taller, dimmer glyph: bright bars say now, ghosts say what
-#               just happened.
-#   depth     — live bars fade with their own level, so quiet bands sit
-#               back and loud ones come forward.
-#   smoothing — monstercat, so neighboring bands flow instead of jittering.
-# Hides after ~2s of silence.
+# Music or not is inferred two ways, in order:
+#   who is playing — MPRIS, polled every ~2s through playerctl. A known music
+#     app or music site is music; a title that says podcast/interview/episode
+#     is speech. Browsers are ambiguous (Chromium exposes no URL, only a
+#     title), and so is audio with no MPRIS player at all.
+#   what it sounds like — for the ambiguous cases, a ~4s rolling picture of
+#     the spectrum: music holds near-continuous energy with the bass band
+#     regularly strong and the top band alive; conversation is bursty, mid-
+#     heavy, mostly dead at both ends. Measured against real playback here;
+#     tune the three thresholds together. Unsure defaults to hidden — the
+#     bar should stay quiet for two people talking into mics.
+# A "music" verdict has to hold for ~2s before the module shows; a "not
+# music" verdict has to hold for ~20s before it hides. Asymmetric on
+# purpose: an established track's breakdown or quiet intro shouldn't drop
+# it, while speech never establishes in the first place — a podcast's
+# opening sting shows briefly and is gone.
+#
+# Drawing borrows what makes canvas visualizers read well at this size:
+# six bands mirrored center-out (bass in the middle), monstercat-smoothed,
+# a hair space apart, each faded by its level, with a slowly sinking peak
+# shown as a taller dimmer ghost. Hides after ~2s of silence.
 #
 # Continuous exec: no signal key — waybar reads signal-without-interval as
 # "run once per signal" and a looping script never draws. restart-interval
@@ -42,8 +52,32 @@ monstercat = 1
 noise_reduction = 66
 CONF
 
-silent_frames_before_hiding=48
-exec cava -p "$cava_config" 2>/dev/null | awk -v hide_after="$silent_frames_before_hiding" '
+frames_per_second=24
+exec cava -p "$cava_config" 2>/dev/null | awk -v fps="$frames_per_second" '
+function who_is_playing(   command, line, field, verdict) {
+    verdict = "ambiguous"
+    command = "playerctl -a metadata --format \x27{{status}}|{{playerName}}|{{xesam:url}}|{{xesam:title}}\x27 2>/dev/null"
+    while ((command | getline line) > 0) {
+        split(line, field, "|")
+        if (field[1] != "Playing") continue
+        if (tolower(field[4]) ~ /podcast|interview|episode|(^| )ep\.? ?[0-9]/) { verdict = "speech"; break }
+        if (tolower(field[2]) ~ /spotify|mpd|rhythmbox|elisa|amberol|lollypop|tidal|cider|deezer|strawberry|tauon|quodlibet/ \
+            || tolower(field[3]) ~ /music\.youtube\.com|open\.spotify\.com|soundcloud\.com|bandcamp\.com|tidal\.com|deezer\.com|music\.apple\.com/)
+            verdict = "music"
+    }
+    close(command)
+    return verdict
+}
+function sounds_like_music() {
+    if (NR < window_frames) return 0
+    return duty_sum / window_frames >= 0.90 && strong_bass_sum / window_frames >= 0.45 && treble_sum / window_frames >= 0.70
+}
+function remember(name, value,   slot) {
+    slot = NR % window_frames
+    sums[name] += value - window[name, slot]
+    window[name, slot] = value
+    return sums[name]
+}
 function drawn_band(i,   glyph_level, alpha) {
     glyph_level = level[i]
     alpha = 45 + level[i] * 7
@@ -53,11 +87,16 @@ function drawn_band(i,   glyph_level, alpha) {
     }
     return sprintf("<span alpha=\x27%d%%\x27>%s</span>", alpha, block_for_level[glyph_level + 1])
 }
+function show_nothing() {
+    if (displaying) { print "{\"text\":\"\"}"; fflush(); displaying = 0 }
+}
 BEGIN {
     split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", block_for_level, " ")
     hair_space = "\xe2\x80\x8a"
     peak_sink_per_frame = 0.16
-    silent_frames = hide_after; hidden = 1
+    window_frames = 4 * fps
+    verdict_every = 2 * fps; show_after = 2 * fps; hide_after = 20 * fps; hide_after_silent = 2 * fps
+    source = "ambiguous"; shown = 0; displaying = 0
 }
 {
     frame_total = 0
@@ -67,15 +106,26 @@ BEGIN {
         peak[i] = (level[i] > peak[i]) ? level[i] : peak[i] - peak_sink_per_frame
         if (peak[i] < 0) peak[i] = 0
     }
+    duty_sum        = remember("duty", frame_total > 0)
+    strong_bass_sum = remember("strong bass", level[1] >= 3)
+    treble_sum      = remember("treble", level[band_count] >= 1)
+
+    if (NR % verdict_every == 1) source = who_is_playing()
+    wants_shown = (source == "music") || (source == "ambiguous" && sounds_like_music())
+    if (wants_shown != shown) {
+        if (++pending >= (wants_shown ? show_after : hide_after)) { shown = wants_shown; pending = 0 }
+    } else pending = 0
+
     if (frame_total == 0) {
-        silent_frames++
-        if (silent_frames >= hide_after && !hidden) { print "{\"text\":\"\"}"; hidden = 1; fflush() }
+        if (++silent_frames >= hide_after_silent) show_nothing()
         next
     }
-    silent_frames = 0; hidden = 0
+    silent_frames = 0
+    if (!shown) { show_nothing(); next }
+
     bars = ""
     for (i = band_count; i >= 1; i--) bars = bars drawn_band(i) hair_space
     for (i = 1; i <= band_count; i++) bars = bars drawn_band(i) (i < band_count ? hair_space : "")
     printf "{\"text\":\"%s\",\"tooltip\":\"Music levels\"}\n", bars
-    fflush()
+    fflush(); displaying = 1
 }'
