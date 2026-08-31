@@ -85,7 +85,9 @@ repaint() {
 
     # Publish what we settled on. Which image is up takes a theme, a per-theme
     # override and two fallbacks to work out, and the lock screen needs the
-    # answer, not the algorithm.
+    # answer, not the algorithm. On a fresh install nothing has been chosen
+    # yet, so the directory doesn't exist until this creates it.
+    mkdir -p "$chosen_wallpapers"
     ln -sfn "$wallpaper" "$chosen_wallpapers/current"
 
     previous_swaybg=$(pgrep -x swaybg 2>/dev/null || true)
