@@ -26,6 +26,11 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# The restart at the bottom needs the PipeWire stack present, and audio/
+# sorts after this feature alphabetically, so on a fresh machine it would
+# not be yet.
+bash "$HERE/../audio/install.sh"
+
 sudo pacman -S --needed --noconfirm pipewire-zeroconf avahi
 sudo systemctl enable --now avahi-daemon.service
 
