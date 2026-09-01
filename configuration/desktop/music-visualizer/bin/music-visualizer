@@ -1,7 +1,9 @@
 #!/bin/sh
-# Toggle the full-screen music visualizer (projectM). One press opens it
-# over whatever is playing; the next press closes it. Clicking the bar's
-# music levels runs this.
+# Take me to the full-screen music visualizer (projectM). Clicking the
+# bar's music levels runs this: not running, it launches; running on some
+# other desktop, it focuses it — switching you there; running and already
+# in front of you, it closes. Close rather than minimize on that last
+# press because a hidden projectM keeps rendering at 60fps for nobody.
 #
 # projectMSDL 3.x takes no flags, so its settings are written to its config
 # file on every launch: fullscreen, 60fps, and a preset rotation a little slower than
@@ -13,9 +15,16 @@
 # actually coming out of the speakers, not the room. PipeWire's stream
 # restore remembers that routing for the application, so later launches
 # start on the monitor and the move is a no-op.
-if pgrep -x projectMSDL >/dev/null; then
+looking_at_the_visualizer() {
+    hyprctl activewindow -j 2>/dev/null | grep -q '"class": "projectMSDL"'
+}
+
+if looking_at_the_visualizer; then
     pkill -x projectMSDL
     exit 0
+fi
+if pgrep -x projectMSDL >/dev/null; then
+    exec hyprctl dispatch focuswindow 'class:^(projectMSDL)$' >/dev/null
 fi
 
 mkdir -p "$HOME/.projectM"
