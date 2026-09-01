@@ -1,0 +1,54 @@
+#!/bin/sh
+# Toggle the full-screen music visualizer (projectM). One press opens it
+# over whatever is playing; the next press closes it. Clicking the bar's
+# music levels runs this.
+#
+# projectMSDL 3.x takes no flags, so its settings are written to its config
+# file on every launch: fullscreen, 60fps, and a preset rotation a little slower than
+# projectM's own so a good one gets to breathe.
+#
+# It captures audio through SDL, which opens the first capture device it
+# finds — on this desktop, the microphone — and ignores PULSE_SOURCE. So once
+# its stream exists, it is moved to the default sink's monitor: the sound
+# actually coming out of the speakers, not the room. PipeWire's stream
+# restore remembers that routing for the application, so later launches
+# start on the monitor and the move is a no-op.
+if pgrep -x projectMSDL >/dev/null; then
+    pkill -x projectMSDL
+    exit 0
+fi
+
+mkdir -p "$HOME/.projectM"
+cat > "$HOME/.projectM/config.inp" <<CONF
+Mesh X = 220
+Mesh Y = 125
+FPS = 60
+Fullscreen = true
+Window Width = 1920
+Window Height = 1200
+Smooth Transition Duration = 5
+Preset Duration = 30
+Easter Egg Parameter = 1
+Hard Cut Sensitivity = 10
+Aspect Correction = true
+Preset Path = /usr/share/projectM/presets
+Title Font = /usr/share/projectM/fonts/Vera.ttf
+Menu Font = /usr/share/projectM/fonts/VeraMono.ttf
+CONF
+
+SDL_VIDEODRIVER=wayland SDL_AUDIODRIVER=pulseaudio \
+    setsid projectMSDL </dev/null >/dev/null 2>&1 &
+
+listen_to_the_speakers() {
+    speaker_monitor="$(pactl get-default-sink).monitor"
+    waited_tenths=0
+    until capture_stream=$(pactl list source-outputs \
+            | awk '/^Source Output #/{id=substr($3,2)} /application.name = "projectMSDL"/{print id; exit}') \
+          && [ -n "$capture_stream" ]; do
+        waited_tenths=$((waited_tenths + 1))
+        [ "$waited_tenths" -lt 50 ] || return 0
+        sleep 0.1
+    done
+    pactl move-source-output "$capture_stream" "$speaker_monitor"
+}
+listen_to_the_speakers

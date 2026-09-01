@@ -46,7 +46,8 @@
         // Continuous exec, so no interval and deliberately no signal.
         "exec": "$HOME/.local/bin/waybar-music-levels",
         "return-type": "json",
-        "restart-interval": 5
+        "restart-interval": 5,
+        "on-click": "$HOME/.local/bin/music-visualizer"
     },
 
     "custom/audio": {
