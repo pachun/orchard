@@ -4,6 +4,12 @@ becomes empty as the result of a window closing or moving, switch focus
 to the closest workspace that *still has windows*. If no other populated
 workspace exists, stay put rather than warp to another empty one.
 
+Only a window leaving the workspace you are looking at counts. A window
+closing somewhere else — the music visualizer toggled off from the bar, a
+download dialog finishing on another desktop — must not move you, even if
+the desktop you are on happens to be empty. Each window's workspace is
+remembered from its open/move events so a close can be attributed.
+
 Hyprland's `workspace previous` dispatcher only knows the last-used
 workspace, not whether it still has content — so chained closes (close,
 close, close) would just walk back through a trail of empty workspaces.
@@ -31,8 +37,12 @@ def hyprctl_json(*args):
     return json.loads(out) if out else None
 
 
+def active_workspace():
+    return hyprctl_json("activeworkspace") or {}
+
+
 def jump_back_if_empty():
-    ws = hyprctl_json("activeworkspace") or {}
+    ws = active_workspace()
     ws_id = ws.get("id")
     if ws_id is None:
         return
@@ -56,6 +66,17 @@ def jump_back_if_empty():
     subprocess.run(["hyprctl", "dispatch", "workspace", str(target)], check=False)
 
 
+workspace_of_window = {
+    c["address"].removeprefix("0x"): c["workspace"]["name"]
+    for c in (hyprctl_json("clients") or [])
+    if c.get("address") and c.get("workspace")
+}
+
+
+def window_left_the_active_workspace(address):
+    return workspace_of_window.get(address) == active_workspace().get("name")
+
+
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect(sock_path)
 buf = b""
@@ -67,8 +88,21 @@ while True:
     while b"\n" in buf:
         line, buf = buf.split(b"\n", 1)
         event = line.decode(errors="replace")
-        # closewindow fires when any window dies; movewindow when one
-        # changes workspace (could empty its old one). Both are cheap
-        # to react to.
-        if event.startswith("closewindow") or event.startswith("movewindow"):
-            jump_back_if_empty()
+        name, _, payload = event.partition(">>")
+        fields = payload.split(",")
+        address = fields[0]
+        # openwindow>>ADDRESS,WORKSPACENAME,CLASS,TITLE
+        # movewindow>>ADDRESS,WORKSPACENAME
+        # closewindow>>ADDRESS
+        if name == "openwindow":
+            workspace_of_window[address] = fields[1]
+        elif name == "movewindow":
+            came_from_here = window_left_the_active_workspace(address)
+            workspace_of_window[address] = fields[1]
+            if came_from_here:
+                jump_back_if_empty()
+        elif name == "closewindow":
+            came_from_here = window_left_the_active_workspace(address)
+            workspace_of_window.pop(address, None)
+            if came_from_here:
+                jump_back_if_empty()
