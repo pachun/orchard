@@ -40,6 +40,7 @@
     "modules-left": ["hyprland/workspaces", "custom/music-levels"],
 
     "custom/music-levels": {
+        "cursor": false,
         // A live spectrum of whatever is playing (cava over the PipeWire
         // monitor — real FFT levels). Visible only while sound plays; the
         // script hides it after ~2s of silence. Placed in modules-left above.
@@ -51,6 +52,7 @@
     },
 
     "custom/audio": {
+        "cursor": false,
         // Volume, and a way into the output picker. Always a speaker glyph —
         // it gains an arc as the level climbs and wears a slash when muted.
         // Which *device* is playing is a slower fact and lives in the tooltip;
@@ -67,6 +69,7 @@
     },
 
     "custom/bluetooth": {
+        "cursor": false,
         // Always visible. Grey when nothing is connected (or service is
         // off / adapter missing); white via .connected class when ≥1
         // device is connected. Click opens the bluetooth-menu fuzzel
@@ -80,6 +83,7 @@
     },
 
     "custom/updates": {
+        "cursor": false,
         // Pending pacman + AUR update count, just left of the clock. Only
         // relevant when we're actually online (otherwise yay -Syu would fail
         // anyway), so updates-now gates display on NM connectivity; hidden
@@ -99,6 +103,7 @@
     },
 
     "custom/claude-usage": {
+        "cursor": false,
         // Claude Code plan usage. A robot glyph; the numbers live in the
         // tooltip and the panel. The script serves a 5-minute cache so the
         // poll never blocks on the network; click (or Cmd+Shift+U) drops the
@@ -121,6 +126,7 @@
     },
 
     "custom/dnd": {
+        "cursor": false,
         // Bell icon (bell-off when DND is on). Wants the most visible slot on
         // the bar that isn't the clock, which is a different slot per machine
         // — see waybar/layouts/. Polled every 30s as a safety net, but
@@ -134,6 +140,7 @@
     },
 
     "custom/recording": {
+        "cursor": false,
         // Visible only while wf-recorder is running. Click stops the
         // recording (the screenrecord script detects an existing
         // wf-recorder and pkills it as its toggle-off behavior).
@@ -144,6 +151,7 @@
     },
 
     "hyprland/workspaces": {
+        "cursor": false,
         // Always show 1..5 even when empty. Click to switch. Each
         // workspace shows its number; the active one is replaced by
         // a rounded square via CSS (color: transparent + filled bg).
@@ -155,6 +163,7 @@
     },
 
     "custom/weather": {
+        "cursor": false,
         // The sky glyph beside the clock. Continuous (no interval): the
         // wrapper runs weather-now every 10 minutes and fades the glyph out
         // with the clock while a notification holds the centre — see
@@ -191,6 +200,7 @@
     },
 
     "custom/nordvpn": {
+        "cursor": false,
         // Shield icon. Filled+check when connected, off-outline when
         // not. Click → fuzzel picker (Disconnect / Dedicated IP /
         // Quickest / countries → cities). Polled every 10s; nordvpn-menu
@@ -216,6 +226,7 @@
     },
 
     "custom/network": {
+        "cursor": false,
         // Signal-strength wifi icon, driven by nmcli via waybar-network.
         // Replaces waybar's built-in `network` module: on the Broadcom
         // brcmfmac adapter (Apple silicon's FullMAC wifi) its nl80211
@@ -235,6 +246,7 @@
     },
 
     "custom/clock": {
+        "cursor": false,
         // The clock — and, when one arrives, the notification. They share this
         // slot: the clock fades out, the message fades in, and after its
         // timeout they swap back. The weather glyph next door fades with it
