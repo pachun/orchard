@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Pair this machine with the Apple TVs on the network — the half of
+# apple-tv-remote that can't be unattended: each TV shows a PIN and you
+# type it here. Companion credentials land in ~/.pyatv.conf (pyatv's own
+# storage, per machine, never committed); paired devices are recorded as
+# "id name" lines in ~/.config/orchard/apple-tvs, which apple-tv-remote
+# reads. Idempotent: already-recorded TVs are skipped.
+set -euo pipefail
+
+atvremote="$HOME/.local/bin/atvremote"
+if [ ! -x "$atvremote" ]; then
+    echo "atvremote isn't installed — run ./configure first (apple-tv-remote feature)." >&2
+    exit 1
+fi
+
+registry="$HOME/.config/orchard/apple-tvs"
+mkdir -p "$(dirname "$registry")"
+touch "$registry"
+
+echo "Scanning for Apple TVs..."
+apple_tvs="$("$atvremote" scan --scan-timeout 6 2>/dev/null | python3 -c '
+import re, sys
+for block in sys.stdin.read().split("\n\n"):
+    name = re.search(r"^ *Name: (.+)$", block, re.M)
+    model = re.search(r"^ *Model/SW: (.+)$", block, re.M)
+    mac = re.search(r"^ - ([0-9A-F]{2}(?::[0-9A-F]{2}){5})$", block, re.M)
+    companion = re.search(r"Protocol: Companion.*Pairing: Mandatory", block)
+    if name and model and mac and companion and "Apple TV" in model.group(1):
+        print(f"{mac.group(1)} {name.group(1)}")
+')"
+
+if [ -z "$apple_tvs" ]; then
+    echo "No pairable Apple TV found on this network." >&2
+    exit 1
+fi
+
+while IFS= read -r device; do
+    id="${device%% *}"
+    name="${device#* }"
+    if grep -q "^$id " "$registry"; then
+        echo "$name is already paired ✓"
+        continue
+    fi
+    read -rp "Pair with $name? A PIN will appear on that TV. [y/N] " answer </dev/tty
+    case "$answer" in
+        y|Y)
+            if "$atvremote" --id "$id" --protocol companion pair </dev/tty; then
+                echo "$id $name" >> "$registry"
+                echo "Paired with $name ✓"
+            else
+                echo "Pairing with $name failed; run ./connect apple-tv to retry." >&2
+            fi
+            ;;
+        *) echo "Skipped $name." ;;
+    esac
+done <<< "$apple_tvs"
