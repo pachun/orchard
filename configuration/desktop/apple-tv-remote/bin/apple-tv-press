@@ -1,8 +1,0 @@
-#!/bin/sh
-# Send one remote command to the Apple TV session apple-tv-mode opened.
-# The submap's binds in hyprland.conf call this with left/right/up/down/
-# select/menu/home/play_pause/volume_up/volume_down/next/previous.
-set -eu
-commands="${XDG_RUNTIME_DIR:-/tmp}/apple-tv-remote/commands"
-[ -p "$commands" ] || exit 0
-printf '%s\n' "$1" > "$commands"

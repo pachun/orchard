@@ -1,0 +1,323 @@
+#!/usr/bin/env python3
+"""Every key of Apple TV mode lands here (from hyprland.conf's appletv
+submap), and the card in the corner is redrawn to match. Three states:
+
+  picker   j/k move, Enter connects a paired TV or starts pairing an
+           unpaired one, Esc/q closes the mode.
+  pairing  the TV is showing a PIN; digits type it into the card,
+           Backspace edits, Enter submits, Esc cancels back to the picker.
+  remote   the vim keys drive the TV through one atvremote REPL that holds
+           the Companion connection open (a keypress is a FIFO write, not a
+           handshake). s switches device, Esc/q closes the mode.
+
+The picker's default is the TV you used last time you were *here*: choices
+are remembered per Wi-Fi BSSID — on a mesh, the laptop associates with the
+nearest node, so the BSSID stands in for the room the way the iPhone
+remote's BLE proximity does — with last-used as the fallback.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+RUNTIME = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "apple-tv-remote")
+REGISTRY = os.path.expanduser("~/.config/orchard/apple-tvs")
+DEFAULTS = os.path.expanduser("~/.local/state/orchard/apple-tv-defaults.json")
+ATVREMOTE = os.path.expanduser("~/.local/bin/atvremote")
+EWW_CONFIG = os.path.expanduser("~/.config/apple-tv-remote/eww")
+
+
+def eww(*args):
+    subprocess.run(["eww", "--config", EWW_CONFIG, *args],
+                   capture_output=True, timeout=2)
+
+
+def state_path(name):
+    return os.path.join(RUNTIME, name)
+
+
+def read_state():
+    try:
+        return json.load(open(state_path("state.json")))
+    except (OSError, ValueError):
+        return None
+
+
+def write_state(state):
+    with open(state_path("state.json"), "w") as f:
+        json.dump(state, f)
+
+
+def registry_devices():
+    devices = []
+    try:
+        for line in open(REGISTRY):
+            device_id, _, name = line.strip().partition(" ")
+            if device_id:
+                devices.append({"id": device_id, "name": name, "paired": True})
+    except OSError:
+        pass
+    return devices
+
+
+def scanned_devices():
+    devices = []
+    try:
+        for line in open(state_path("scan-results")):
+            device_id, _, name = line.strip().partition(" ")
+            if device_id:
+                devices.append({"id": device_id, "name": name, "paired": False})
+    except OSError:
+        pass
+    return devices
+
+
+def read_defaults():
+    try:
+        return json.load(open(DEFAULTS))
+    except (OSError, ValueError):
+        return {"bssids": {}, "last": None}
+
+
+def current_bssid():
+    try:
+        out = subprocess.run(
+            ["nmcli", "-t", "-f", "ACTIVE,BSSID", "dev", "wifi", "list", "--rescan", "no"],
+            capture_output=True, text=True, timeout=3).stdout
+        for line in out.splitlines():
+            if line.startswith("yes:"):
+                return line[4:].replace("\\:", ":")
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def remember_choice(device_id):
+    defaults = read_defaults()
+    defaults["last"] = device_id
+    bssid = current_bssid()
+    if bssid:
+        defaults["bssids"][bssid] = device_id
+    os.makedirs(os.path.dirname(DEFAULTS), exist_ok=True)
+    with open(DEFAULTS, "w") as f:
+        json.dump(defaults, f)
+
+
+def preferred_device_id():
+    defaults = read_defaults()
+    return defaults["bssids"].get(current_bssid() or "") or defaults.get("last")
+
+
+def merged_devices(state):
+    devices = registry_devices()
+    known = {d["id"] for d in devices}
+    devices.extend(d for d in scanned_devices() if d["id"] not in known)
+    return devices
+
+
+def show_picker(state):
+    devices = state["devices"]
+    rows = [{"name": d["name"],
+             "hint": "" if d["paired"] else "pair",
+             "selected": i == state["selection"]}
+            for i, d in enumerate(devices)]
+    eww("update", f"devices={json.dumps(rows)}",
+        f"scanning={'true' if state['scanning'] else 'false'}",
+        "mode=picker")
+
+
+def enter_picker(state):
+    state["mode"] = "picker"
+    state["devices"] = merged_devices(state)
+    preferred = preferred_device_id()
+    ids = [d["id"] for d in state["devices"]]
+    state["selection"] = ids.index(preferred) if preferred in ids else 0
+    write_state(state)
+    show_picker(state)
+
+
+def start_session(state, device):
+    commands = state_path("session-commands")
+    if not os.path.exists(commands):
+        os.mkfifo(commands, 0o600)
+    with open(state_path("session.log"), "wb") as log:
+        process = subprocess.Popen(
+            [ATVREMOTE, "--id", device["id"], "cli"],
+            stdin=open(commands, "r+b", buffering=0), stdout=log, stderr=log)
+    with open(state_path("session.pid"), "w") as f:
+        f.write(str(process.pid))
+    state["mode"] = "remote"
+    state["device"] = device
+    write_state(state)
+    remember_choice(device["id"])
+    eww("update", f"device_name={device['name']}", "mode=remote")
+
+
+def end_session():
+    try:
+        pid = int(open(state_path("session.pid")).read())
+        os.kill(pid, 15)
+    except (OSError, ValueError):
+        pass
+    for name in ("session.pid", "session-commands", "session.log"):
+        try:
+            os.remove(state_path(name))
+        except OSError:
+            pass
+
+
+def start_pairing(state, device):
+    pin_fifo = state_path("pairing-pin")
+    if not os.path.exists(pin_fifo):
+        os.mkfifo(pin_fifo, 0o600)
+    with open(state_path("pairing.log"), "wb") as log:
+        process = subprocess.Popen(
+            [ATVREMOTE, "--id", device["id"], "--protocol", "companion", "pair"],
+            stdin=open(pin_fifo, "r+b", buffering=0), stdout=log, stderr=log)
+    with open(state_path("pairing.pid"), "w") as f:
+        f.write(str(process.pid))
+    state["mode"] = "pairing"
+    state["device"] = device
+    state["pin"] = ""
+    state["pairing_error"] = ""
+    write_state(state)
+    eww("update", f"device_name={device['name']}", "pin=", "pairing_error=", "mode=pairing")
+
+
+def cancel_pairing(state):
+    try:
+        pid = int(open(state_path("pairing.pid")).read())
+        os.kill(pid, 15)
+    except (OSError, ValueError):
+        pass
+    for name in ("pairing.pid", "pairing-pin", "pairing.log"):
+        try:
+            os.remove(state_path(name))
+        except OSError:
+            pass
+
+
+def submit_pin(state):
+    device = state["device"]
+    with open(state_path("pairing-pin"), "w") as f:
+        f.write(state["pin"] + "\n")
+    pid = int(open(state_path("pairing.pid")).read())
+    deadline = time.time() + 25
+    exit_code = None
+    while time.time() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            exit_code = 0
+            break
+        time.sleep(0.3)
+    log = ""
+    try:
+        log = open(state_path("pairing.log"), errors="replace").read()
+    except OSError:
+        pass
+    paired = exit_code == 0 and "Pairing seems to have succeeded" in log
+    cancel_pairing(state)
+    if paired:
+        os.makedirs(os.path.dirname(REGISTRY), exist_ok=True)
+        with open(REGISTRY, "a") as f:
+            f.write(f"{device['id']} {device['name']}\n")
+        start_session(state, {**device, "paired": True})
+    else:
+        state["pairing_error"] = "That PIN didn't take — Esc, then try again"
+        state["pin"] = ""
+        write_state(state)
+        eww("update", "pin=", f"pairing_error={state['pairing_error']}")
+
+
+def press_remote(command):
+    try:
+        with open(state_path("session-commands"), "w") as f:
+            f.write(command + "\n")
+    except OSError:
+        pass
+
+
+REMOTE_COMMANDS = {
+    "h": "left", "j": "down", "k": "up", "l": "right",
+    "enter": "select", "space": "play_pause", "m": "menu",
+    "home": "home", "minus": "volume_down", "equal": "volume_up",
+    "previous": "previous", "next": "next",
+}
+
+
+def close_mode():
+    subprocess.run([os.path.expanduser("~/.local/bin/apple-tv-mode")],
+                   capture_output=True)
+
+
+def main():
+    if not os.path.isdir(RUNTIME):
+        sys.exit(0)
+    key = sys.argv[1]
+
+    if key == "open":
+        state = {"mode": "picker", "devices": [], "selection": 0,
+                 "scanning": True, "device": None, "pin": ""}
+        enter_picker(state)
+        return
+
+    state = read_state()
+    if state is None:
+        sys.exit(0)
+
+    if key == "scan-finished":
+        if state["mode"] == "picker":
+            state["scanning"] = False
+            state["devices"] = merged_devices(state)
+            state["selection"] = min(state["selection"], max(len(state["devices"]) - 1, 0))
+            write_state(state)
+            show_picker(state)
+        else:
+            state["scanning"] = False
+            write_state(state)
+        return
+
+    mode = state["mode"]
+    if mode == "picker":
+        if key in ("j", "k") and state["devices"]:
+            step = 1 if key == "j" else -1
+            state["selection"] = (state["selection"] + step) % len(state["devices"])
+            write_state(state)
+            show_picker(state)
+        elif key == "enter" and state["devices"]:
+            device = state["devices"][state["selection"]]
+            if device["paired"]:
+                start_session(state, device)
+            else:
+                start_pairing(state, device)
+        elif key in ("escape", "q"):
+            close_mode()
+    elif mode == "pairing":
+        if key.isdigit() and len(state["pin"]) < 6:
+            state["pin"] += key
+            write_state(state)
+            eww("update", f"pin={state['pin']}")
+        elif key == "backspace":
+            state["pin"] = state["pin"][:-1]
+            write_state(state)
+            eww("update", f"pin={state['pin']}")
+        elif key == "enter" and state["pin"]:
+            submit_pin(state)
+        elif key in ("escape", "q"):
+            cancel_pairing(state)
+            enter_picker(state)
+    elif mode == "remote":
+        if key == "s":
+            end_session()
+            enter_picker(state)
+        elif key in ("escape", "q"):
+            close_mode()
+        elif key in REMOTE_COMMANDS:
+            press_remote(REMOTE_COMMANDS[key])
+
+
+if __name__ == "__main__":
+    main()

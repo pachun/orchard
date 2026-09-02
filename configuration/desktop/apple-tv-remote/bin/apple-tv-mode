@@ -1,42 +1,32 @@
 #!/bin/sh
-# Toggle Apple TV mode: a which-key card in the bar's corner and a Hyprland
-# submap that hands the vim keys to the TV. Opening starts one atvremote
-# REPL that holds the Companion connection for the whole session, reading
-# commands from a FIFO — apple-tv-press writes to it, so each key is a pipe
-# write, not a per-button handshake. Closing (same toggle, or Escape/q via
-# the submap) tears all of it down.
+# Toggle Apple TV mode: a card in the bar's corner and a Hyprland submap
+# that hands every key to apple-tv-key. The card opens as a device picker
+# (paired TVs instantly, a scan filling in the rest), pairs unpaired ones
+# right there (the PIN typed into the card), and becomes the which-key
+# remote once connected. apple-tv-key owns all of that state; this script
+# only opens and tears down.
 set -eu
 
 runtime="${XDG_RUNTIME_DIR:-/tmp}/apple-tv-remote"
 config="$HOME/.config/apple-tv-remote/eww"
-registry="$HOME/.config/orchard/apple-tvs"
 eww_cmd() { timeout 2 eww --config "$config" "$@"; }
 
 if [ -d "$runtime" ]; then
     hyprctl dispatch submap reset >/dev/null 2>&1 || true
     eww_cmd close remote >/dev/null 2>&1 || true
-    [ -f "$runtime/pid" ] && kill "$(cat "$runtime/pid")" 2>/dev/null || true
+    for pidfile in "$runtime"/*.pid; do
+        [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
+    done
     rm -rf "$runtime"
     exit 0
 fi
 
-if [ ! -s "$registry" ]; then
-    notify-send "Apple TV remote" "No Apple TV is paired — run ./connect apple-tv" 2>/dev/null || true
-    exit 1
-fi
-
-device=$([ -n "${1:-}" ] && grep -i -- "$1" "$registry" | head -1 || head -1 "$registry")
-[ -n "$device" ] || { notify-send "Apple TV remote" "No paired Apple TV matches '$1'" 2>/dev/null || true; exit 1; }
-device_id="${device%% *}"
-device_name="${device#* }"
-
+mkdir -p "$runtime"
 eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-apple-tv-remote"
 
-mkdir -p "$runtime"
-mkfifo -m 600 "$runtime/commands"
-"$HOME/.local/bin/atvremote" --id "$device_id" cli < "$runtime/commands" >/dev/null 2>&1 &
-printf '%s\n' "$!" > "$runtime/pid"
+"$HOME/.local/bin/apple-tv-key" open
+"$HOME/.local/bin/apple-tv-scan" &
+printf '%s\n' "$!" > "$runtime/scan.pid"
 
-eww_cmd update device_name="$device_name" >/dev/null 2>&1 || true
 eww_cmd open remote >/dev/null 2>&1 || true
 hyprctl dispatch submap appletv >/dev/null 2>&1 || true

@@ -1,17 +1,49 @@
-; The Apple TV remote card: a which-key sheet for the appletv submap that
-; apple-tv-mode opens in the bar's corner. The keys themselves live in
-; hyprland.conf's submap; this card is the picture of them. Colours come
-; from colors.scss, regenerated per theme by render-apple-tv-remote-theme.
+; The Apple TV card: one window, three faces, driven by apple-tv-key
+; through the vars below. A device picker (paired TVs instantly, the scan
+; filling in unpaired ones), a PIN prompt while pairing, and the which-key
+; remote once connected. The keys live in hyprland.conf's appletv submap;
+; this card is the picture of the mode. Colours come from colors.scss,
+; regenerated per theme by render-apple-tv-remote-theme.
 
+(defvar mode "picker")
+(defvar devices "[]")
+(defvar scanning true)
 (defvar device_name "Apple TV")
+(defvar pin "")
+(defvar pairing_error "")
 
 (defwidget keyrow [keys action]
   (box :class "keyrow" :space-evenly false
     (label :class "keys" :halign "start" :text keys)
     (label :class "action" :halign "end" :hexpand true :text action)))
 
-(defwidget panel []
-  (box :class "panel" :orientation "v" :space-evenly false
+(defwidget picker []
+  (box :orientation "v" :space-evenly false :visible {mode == "picker"}
+    (label :class "title" :halign "start" :text "Apple TVs")
+    (label :class "hintline" :halign "start"
+           :visible {arraylength(devices) == 0 && !scanning}
+           :text "None found on this network")
+    (box :orientation "v" :space-evenly false
+      (for device in {devices}
+        (box :class "device ${device.selected ? "selected" : ""}" :space-evenly false
+          (label :class "device-name" :halign "start" :hexpand true :text {device.name})
+          (label :class "device-hint" :halign "end" :text {device.hint}))))
+    (label :class "hintline" :halign "start" :visible scanning :text "scanning…")
+    (keyrow :keys "j k" :action "choose")
+    (keyrow :keys "↵" :action "connect / pair")
+    (keyrow :keys "esc" :action "close")))
+
+(defwidget pairing []
+  (box :orientation "v" :space-evenly false :visible {mode == "pairing"}
+    (label :class "title" :halign "start" :text device_name)
+    (label :class "hintline" :halign "start" :text "Type the PIN on that screen")
+    (label :class "pin" :halign "center" :text "${pin == "" ? "· · · ·" : pin}")
+    (label :class "error" :halign "start" :visible {pairing_error != ""} :text pairing_error)
+    (keyrow :keys "↵" :action "pair")
+    (keyrow :keys "esc" :action "back")))
+
+(defwidget remote []
+  (box :orientation "v" :space-evenly false :visible {mode == "remote"}
     (box :class "head" :space-evenly false
       (label :class "title" :halign "start" :hexpand true :text device_name)
       (label :class "live" :halign "end" :text "●"))
@@ -22,14 +54,21 @@
     (keyrow :keys "space" :action "play / pause")
     (keyrow :keys "- =" :action "volume")
     (keyrow :keys "< >" :action "prev / next")
+    (keyrow :keys "s" :action "switch tv")
     (keyrow :keys "esc  q" :action "leave the remote")))
+
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (picker)
+    (pairing)
+    (remote)))
 
 ; Offsets match Hyprland's gaps_out and window rounding so the card's edges
 ; line up with a tiled window's outer border in that corner.
 (defwindow remote
   :monitor 0
   :namespace "apple-tv-remote"
-  :geometry (geometry :x "10px" :y "10px" :width "270px" :anchor "top right")
+  :geometry (geometry :x "10px" :y "10px" :width "280px" :anchor "top right")
   :stacking "overlay"
   :exclusive false
   :focusable false

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Find the Apple TVs. Paired ones (the registry) land in the picker
+# immediately; a network scan then fills in unpaired ones and confirms
+# which paired ones are reachable. Run in the background by apple-tv-mode;
+# apple-tv-key merges the result into the picker.
+set -eu
+runtime="${XDG_RUNTIME_DIR:-/tmp}/apple-tv-remote"
+[ -d "$runtime" ] || exit 0
+
+"$HOME/.local/bin/atvremote" scan --scan-timeout 6 2>/dev/null | python3 -c '
+import re, sys
+found = []
+for block in sys.stdin.read().split("\n\n"):
+    name = re.search(r"^ *Name: (.+)$", block, re.M)
+    model = re.search(r"^ *Model/SW: (.+)$", block, re.M)
+    mac = re.search(r"^ - ([0-9A-F]{2}(?::[0-9A-F]{2}){5})$", block, re.M)
+    companion = re.search(r"Protocol: Companion.*Pairing: Mandatory", block)
+    if name and model and mac and companion and "Apple TV" in model.group(1):
+        print(f"{mac.group(1)} {name.group(1)}")
+' > "$runtime/scan-results"
+
+[ -d "$runtime" ] && "$HOME/.local/bin/apple-tv-key" scan-finished
