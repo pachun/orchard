@@ -62,10 +62,13 @@ def registry_devices():
     return devices
 
 
+SCAN_RESULTS = os.path.expanduser("~/.local/state/orchard/apple-tv-scan-results")
+
+
 def scanned_devices():
     devices = []
     try:
-        for line in open(state_path("scan-results")):
+        for line in open(SCAN_RESULTS):
             device_id, _, name = line.strip().partition(" ")
             if device_id:
                 devices.append({"id": device_id, "name": name, "paired": False})
@@ -115,6 +118,10 @@ def merged_devices(state):
     known = {d["id"] for d in devices}
     devices.extend(d for d in scanned_devices() if d["id"] not in known)
     return devices
+
+
+def shown_pin(pin):
+    return " ".join(pin) if pin else "· · · ·"
 
 
 def show_picker(state):
@@ -183,7 +190,7 @@ def start_pairing(state, device):
     state["pin"] = ""
     state["pairing_error"] = ""
     write_state(state)
-    eww("update", f"device_name={device['name']}", "pin=", "pairing_error=", "mode=pairing")
+    eww("update", f"device_name={device['name']}", f"pin={shown_pin('')}", "pairing_error=", "mode=pairing")
 
 
 def cancel_pairing(state):
@@ -229,7 +236,7 @@ def submit_pin(state):
         state["pairing_error"] = "That PIN didn't take — Esc, then try again"
         state["pin"] = ""
         write_state(state)
-        eww("update", "pin=", f"pairing_error={state['pairing_error']}")
+        eww("update", f"pin={shown_pin('')}", f"pairing_error={state['pairing_error']}")
 
 
 def press_remote(command):
@@ -299,11 +306,11 @@ def main():
         if key.isdigit() and len(state["pin"]) < 6:
             state["pin"] += key
             write_state(state)
-            eww("update", f"pin={state['pin']}")
+            eww("update", f"pin={shown_pin(state['pin'])}")
         elif key == "backspace":
             state["pin"] = state["pin"][:-1]
             write_state(state)
-            eww("update", f"pin={state['pin']}")
+            eww("update", f"pin={shown_pin(state['pin'])}")
         elif key == "enter" and state["pin"]:
             submit_pin(state)
         elif key in ("escape", "q"):

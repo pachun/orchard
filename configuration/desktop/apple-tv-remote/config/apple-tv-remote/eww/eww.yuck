@@ -9,7 +9,7 @@
 (defvar devices "[]")
 (defvar scanning true)
 (defvar device_name "Apple TV")
-(defvar pin "")
+(defvar pin "· · · ·")
 (defvar pairing_error "")
 
 (defwidget keyrow [keys action]
@@ -37,7 +37,7 @@
   (box :orientation "v" :space-evenly false :visible {mode == "pairing"}
     (label :class "title" :halign "start" :text device_name)
     (label :class "hintline" :halign "start" :text "Type the PIN on that screen")
-    (label :class "pin" :halign "center" :text "${pin == "" ? "· · · ·" : pin}")
+    (label :class "pin" :halign "center" :text pin)
     (label :class "error" :halign "start" :visible {pairing_error != ""} :text pairing_error)
     (keyrow :keys "↵" :action "pair")
     (keyrow :keys "esc" :action "back")))
