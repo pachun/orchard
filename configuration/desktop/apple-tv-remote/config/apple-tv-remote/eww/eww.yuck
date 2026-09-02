@@ -1,0 +1,36 @@
+; The Apple TV remote card: a which-key sheet for the appletv submap that
+; apple-tv-mode opens in the bar's corner. The keys themselves live in
+; hyprland.conf's submap; this card is the picture of them. Colours come
+; from colors.scss, regenerated per theme by render-apple-tv-remote-theme.
+
+(defvar device_name "Apple TV")
+
+(defwidget keyrow [keys action]
+  (box :class "keyrow" :space-evenly false
+    (label :class "keys" :halign "start" :text keys)
+    (label :class "action" :halign "end" :hexpand true :text action)))
+
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (box :class "head" :space-evenly false
+      (label :class "title" :halign "start" :hexpand true :text device_name)
+      (label :class "live" :halign "end" :text "●"))
+    (keyrow :keys "h j k l" :action "navigate")
+    (keyrow :keys "↵" :action "select")
+    (keyrow :keys "m" :action "back")
+    (keyrow :keys "shift h" :action "home")
+    (keyrow :keys "space" :action "play / pause")
+    (keyrow :keys "- =" :action "volume")
+    (keyrow :keys "< >" :action "prev / next")
+    (keyrow :keys "esc  q" :action "leave the remote")))
+
+; Offsets match Hyprland's gaps_out and window rounding so the card's edges
+; line up with a tiled window's outer border in that corner.
+(defwindow remote
+  :monitor 0
+  :namespace "apple-tv-remote"
+  :geometry (geometry :x "10px" :y "10px" :width "270px" :anchor "top right")
+  :stacking "overlay"
+  :exclusive false
+  :focusable false
+  (panel))

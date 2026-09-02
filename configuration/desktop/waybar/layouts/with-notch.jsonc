@@ -23,6 +23,7 @@
     // sits as far right as it can without displacing it, rather than at the true
     // edge it gets on a machine whose clock lives in the middle.
     "modules-right": [
+        "custom/apple-tv",
         "custom/recording",
         "custom/nordvpn",
         "custom/wifi-status",

@@ -46,6 +46,7 @@
 
 /* Right-side modules. Padding only — colors come from the theme. */
 #custom-recording   { padding: 0 8px; }
+#custom-apple-tv    { padding: 0 8px; }
 /* The classic REC pulse: while a recording runs, the dot and its timer
  * breathe. Same trick as the bluetooth scan pulse below — opacity
  * oscillation at compositor framerate, independent of the 1s poll. */
@@ -116,6 +117,7 @@
 #custom-dnd,
 #custom-updates,
 #custom-claude-usage,
+#custom-apple-tv,
 #custom-audio,
 #custom-bluetooth {
     font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;

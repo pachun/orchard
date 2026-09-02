@@ -1,0 +1,56 @@
+// The remote card: a frosted panel in the family of the menus and the usage
+// dropdown — fuzzel's 2px accent border, radius 10, blurred by Hyprland's
+// layerrule on this window's namespace.
+@import "colors";
+
+* {
+  all: unset;
+  font-family: "SF Pro", sans-serif;
+}
+
+window,
+.background {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.panel {
+  background-color: $panel;
+  border: 2px solid $accent;
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  color: $ink;
+}
+
+.head {
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.live {
+  font-size: 11px;
+  color: $accent;
+}
+
+.keyrow {
+  margin-bottom: 6px;
+}
+
+.keys {
+  font-family: "SF Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: $accent;
+  background-color: $key;
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+.action {
+  font-size: 13px;
+  color: $dim;
+}

@@ -19,6 +19,7 @@
     // eye can find without reading the bar.
     "modules-right": [
         "custom/dnd",
+        "custom/apple-tv",
         "custom/recording",
         "custom/nordvpn",
         "custom/wifi-status",

@@ -39,6 +39,16 @@
     // beside the speaker and pushed everything left of it around.
     "modules-left": ["hyprland/workspaces", "custom/music-levels"],
 
+    "custom/apple-tv": {
+        // A TV glyph; click for the Apple TV remote card + submap (the
+        // apple-tv-remote feature's apple-tv-mode). Phosphor television
+        // U+E754.
+        "cursor": false,
+        "format": "",
+        "tooltip-format": "Apple TV remote",
+        "on-click": "$HOME/.local/bin/apple-tv-mode"
+    },
+
     "custom/music-levels": {
         "cursor": false,
         // A live spectrum of whatever is playing (cava over the PipeWire

@@ -122,6 +122,12 @@ if [ -x "$HOME/.local/bin/render-claude-usage-theme" ]; then
     "$HOME/.local/bin/restart-claude-usage" >/dev/null 2>&1 || true
 fi
 
+# Same for the Apple TV remote card, likewise guarded.
+if [ -x "$HOME/.local/bin/render-apple-tv-remote-theme" ]; then
+    "$HOME/.local/bin/render-apple-tv-remote-theme" >/dev/null 2>&1 || true
+    "$HOME/.local/bin/restart-apple-tv-remote" >/dev/null 2>&1 || true
+fi
+
 # Waybar hot-reloads CSS via its `reload_style_on_change` watcher
 # (set in config.jsonc). Modules keep state on this path, so the
 # weather module doesn't blank to refetch and the bar doesn't

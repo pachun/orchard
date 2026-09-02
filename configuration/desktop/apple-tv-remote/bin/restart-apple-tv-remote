@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Bring the remote card's eww daemon up clean and wait until it answers. Its
+# own daemon, on its own config dir, so set-theme can restart it for new
+# colours without touching the other eww surfaces.
+set -euo pipefail
+
+config="$HOME/.config/apple-tv-remote/eww"
+
+pkill -9 -f "eww --config $config" 2>/dev/null || true
+eww --config "$config" daemon >/dev/null 2>&1 || true
+
+for _ in $(seq 1 20); do
+  timeout 1 eww --config "$config" ping >/dev/null 2>&1 && exit 0
+  sleep 0.1
+done
