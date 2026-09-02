@@ -247,11 +247,22 @@ def press_remote(command):
         pass
 
 
+def fire_volume(device_id, direction):
+    # Companion volume presses send the HID key and then block five seconds
+    # waiting for a volume level the TV never reports (it hands volume to the
+    # HDMI-connected TV/AVR), which wedges the persistent REPL. The key is
+    # already out by the time it waits, so fire it as a throwaway one-shot:
+    # the volume moves, and the doomed wait dies in a process nobody joins.
+    subprocess.Popen(
+        [ATVREMOTE, "--id", device_id, f"volume_{direction}"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, start_new_session=True)
+
+
 REMOTE_COMMANDS = {
     "h": "left", "j": "down", "k": "up", "l": "right",
     "enter": "select", "space": "play_pause", "m": "menu",
-    "home": "home", "minus": "volume_down", "equal": "volume_up",
-    "previous": "previous", "next": "next",
+    "home": "home", "previous": "previous", "next": "next",
 }
 
 
@@ -322,6 +333,10 @@ def main():
             enter_picker(state)
         elif key in ("escape", "q"):
             close_mode()
+        elif key == "minus":
+            fire_volume(state["device"]["id"], "down")
+        elif key == "equal":
+            fire_volume(state["device"]["id"], "up")
         elif key in REMOTE_COMMANDS:
             press_remote(REMOTE_COMMANDS[key])
 
