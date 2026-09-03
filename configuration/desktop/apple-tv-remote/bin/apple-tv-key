@@ -142,10 +142,11 @@ def wake(state, device):
     state["device"] = device
     write_state(state)
     eww("update", f"device_name={device['name']}", "mode=waking",
-        "waking_note=Waking it up…")
+        "waking_note=Connecting…")
     current = power_state(device)
     if current == "on":
         return True
+    eww("update", "waking_note=Waking it up…")
     if current == "off":
         turn_on(device)
         deadline = time.time() + 20
@@ -189,9 +190,13 @@ def current_bssid():
     return None
 
 
+RECENT_SESSION_SECONDS = 3 * 60 * 60
+
+
 def remember_choice(device_id):
     defaults = read_defaults()
     defaults["last"] = device_id
+    defaults["last_connected_at"] = time.time()
     bssid = current_bssid()
     if bssid:
         defaults["bssids"][bssid] = device_id
@@ -203,6 +208,15 @@ def remember_choice(device_id):
 def preferred_device_id():
     defaults = read_defaults()
     return defaults["bssids"].get(current_bssid() or "") or defaults.get("last")
+
+
+def recently_used_device():
+    """The TV you were driving a moment ago — in, out to do something else,
+    back in — should not cost a trip through the picker."""
+    defaults = read_defaults()
+    if time.time() - defaults.get("last_connected_at", 0) > RECENT_SESSION_SECONDS:
+        return None
+    return next((d for d in registry_devices() if d["id"] == defaults.get("last")), None)
 
 
 def merged_devices(state):
@@ -398,6 +412,14 @@ def main():
     if key == "open":
         state = {"mode": "picker", "devices": [], "selection": 0,
                  "scanning": True, "device": None, "pin": ""}
+        recent = recently_used_device()
+        if recent:
+            state["devices"] = registry_devices()
+            write_state(state)
+            start_session(state, recent)
+            if state["mode"] == "remote":
+                return
+            state["picker_note"] = f"Couldn't reach {recent['name']}"
         enter_picker(state)
         return
 
