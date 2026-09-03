@@ -6,9 +6,18 @@ submap), and the card in the corner is redrawn to match. Three states:
            unpaired one, Esc/q closes the mode.
   pairing  the TV is showing a PIN; digits type it into the card,
            Backspace edits, Enter submits, Esc cancels back to the picker.
+  waking   the chosen TV was asleep; it is being woken and the remote
+           follows as soon as it answers.
   remote   the vim keys drive the TV through one atvremote REPL that holds
            the Companion connection open (a keypress is a FIFO write, not a
-           handshake). s switches device, Esc/q closes the mode.
+           handshake). p puts the TV to sleep, s switches device, Esc/q
+           closes the mode.
+
+Waking: an Apple TV in standby still answers on the network, and turn_on
+brings it (and, over HDMI-CEC, the TV and sound system) up. One that has
+gone fully dark answers nothing; the only handle left is Wake-on-LAN, so
+each TV's address and MAC are learned whenever it is seen awake and magic
+packets go to that MAC until it comes back.
 
 The picker's default is the TV you used last time you were *here*: choices
 are remembered per Wi-Fi BSSID — on a mesh, the laptop associates with the
@@ -63,18 +72,101 @@ def registry_devices():
 
 
 SCAN_RESULTS = os.path.expanduser("~/.local/state/orchard/apple-tv-scan-results")
+HARDWARE = os.path.expanduser("~/.local/state/orchard/apple-tv-hardware.json")
 
 
 def scanned_devices():
-    devices = []
     try:
-        for line in open(SCAN_RESULTS):
-            device_id, _, name = line.strip().partition(" ")
-            if device_id:
-                devices.append({"id": device_id, "name": name, "paired": False})
-    except OSError:
-        pass
-    return devices
+        return [{**d, "paired": False} for d in json.load(open(SCAN_RESULTS))]
+    except (OSError, ValueError):
+        return []
+
+
+def read_hardware():
+    try:
+        return json.load(open(HARDWARE))
+    except (OSError, ValueError):
+        return {}
+
+
+def remember_hardware(device_id, **facts):
+    hardware = read_hardware()
+    hardware[device_id] = {**hardware.get(device_id, {}), **{k: v for k, v in facts.items() if v}}
+    os.makedirs(os.path.dirname(HARDWARE), exist_ok=True)
+    with open(HARDWARE, "w") as f:
+        json.dump(hardware, f)
+
+
+def mac_for_ip(ip):
+    try:
+        out = subprocess.run(["ip", "neigh", "show", ip], capture_output=True, text=True, timeout=3).stdout
+        match = re.search(r"lladdr ([0-9a-f:]{17})", out)
+        return match.group(1) if match else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def power_state(device):
+    """'on', 'off' (standby, still on the network), or None when unreachable."""
+    ip = read_hardware().get(device["id"], {}).get("ip")
+    command = [ATVREMOTE] + (["-s", ip] if ip else []) + ["--id", device["id"], "power_state"]
+    try:
+        out = subprocess.run(command, capture_output=True, text=True, timeout=12).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if "PowerState.On" in out:
+        return "on"
+    if "PowerState.Off" in out:
+        return "off"
+    return None
+
+
+def send_magic_packets(mac):
+    import socket
+    payload = bytes.fromhex("ff" * 6 + mac.replace(":", "") * 16)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        for _ in range(3):
+            sock.sendto(payload, ("255.255.255.255", 9))
+
+
+def turn_on(device):
+    ip = read_hardware().get(device["id"], {}).get("ip")
+    command = [ATVREMOTE] + (["-s", ip] if ip else []) + ["--id", device["id"], "turn_on"]
+    subprocess.run(command, capture_output=True, timeout=20)
+
+
+def wake(state, device):
+    """Bring the TV up, whichever kind of asleep it is. Returns True when it answers."""
+    state["mode"] = "waking"
+    state["device"] = device
+    write_state(state)
+    eww("update", f"device_name={device['name']}", "mode=waking",
+        "waking_note=Waking it up…")
+    current = power_state(device)
+    if current == "on":
+        return True
+    if current == "off":
+        turn_on(device)
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            if power_state(device) == "on":
+                return True
+            time.sleep(1)
+        return False
+    mac = read_hardware().get(device["id"], {}).get("mac")
+    if not mac:
+        eww("update", "waking_note=It's off the network and I don't know its MAC yet — wake it with its own remote once so I can learn it")
+        return False
+    deadline = time.time() + 40
+    while time.time() < deadline:
+        send_magic_packets(mac)
+        time.sleep(4)
+        if power_state(device) is not None:
+            turn_on(device)
+            return True
+    eww("update", "waking_note=No answer to Wake-on-LAN — is it on Wi-Fi rather than Ethernet?")
+    return False
 
 
 def read_defaults():
@@ -146,6 +238,13 @@ def enter_picker(state):
 
 
 def start_session(state, device):
+    if not wake(state, device):
+        state["mode"] = "waking"
+        state["wake_failed"] = True
+        write_state(state)
+        return
+    ip = read_hardware().get(device["id"], {}).get("ip")
+    remember_hardware(device["id"], ip=ip, mac=mac_for_ip(ip) if ip else None)
     commands = state_path("session-commands")
     if not os.path.exists(commands):
         os.mkfifo(commands, 0o600)
@@ -287,6 +386,8 @@ def main():
         sys.exit(0)
 
     if key == "scan-finished":
+        for seen in scanned_devices():
+            remember_hardware(seen["id"], ip=seen["ip"], mac=mac_for_ip(seen["ip"]))
         if state["mode"] == "picker":
             state["scanning"] = False
             state["devices"] = merged_devices(state)
@@ -327,8 +428,17 @@ def main():
         elif key in ("escape", "q"):
             cancel_pairing(state)
             enter_picker(state)
+    elif mode == "waking":
+        if key in ("escape", "q"):
+            enter_picker(state)
     elif mode == "remote":
-        if key == "s":
+        if key == "p":
+            ip = read_hardware().get(state["device"]["id"], {}).get("ip")
+            subprocess.Popen(
+                [ATVREMOTE] + (["-s", ip] if ip else []) + ["--id", state["device"]["id"], "turn_off"],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, start_new_session=True)
+        elif key == "s":
             end_session()
             enter_picker(state)
         elif key in ("escape", "q"):

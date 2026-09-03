@@ -11,6 +11,7 @@
 (defvar device_name "Apple TV")
 (defvar pin "· · · ·")
 (defvar pairing_error "")
+(defvar waking_note "Waking it up…")
 
 (defwidget keyrow [keys action]
   (box :class "keyrow" :space-evenly false
@@ -42,6 +43,12 @@
     (keyrow :keys "↵" :action "pair")
     (keyrow :keys "esc" :action "back")))
 
+(defwidget waking []
+  (box :orientation "v" :space-evenly false :visible {mode == "waking"}
+    (label :class "title" :halign "start" :text device_name)
+    (label :class "hintline" :halign "start" :wrap true :text waking_note)
+    (keyrow :keys "esc" :action "back")))
+
 (defwidget remote []
   (box :orientation "v" :space-evenly false :visible {mode == "remote"}
     (box :class "head" :space-evenly false
@@ -54,6 +61,7 @@
     (keyrow :keys "space" :action "play / pause")
     (keyrow :keys "- =" :action "volume")
     (keyrow :keys "< >" :action "prev / next")
+    (keyrow :keys "p" :action "sleep the tv")
     (keyrow :keys "s" :action "switch tv")
     (keyrow :keys "esc  q" :action "leave the remote")))
 
@@ -61,6 +69,7 @@
   (box :class "panel" :orientation "v" :space-evenly false
     (picker)
     (pairing)
+    (waking)
     (remote)))
 
 ; Offsets match Hyprland's gaps_out and window rounding so the card's edges

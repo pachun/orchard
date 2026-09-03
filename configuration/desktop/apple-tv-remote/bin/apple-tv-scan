@@ -1,7 +1,9 @@
 #!/bin/sh
 # Find the Apple TVs. The previous scan's results are kept in state, so
 # the picker fills instantly on open; this rescan runs in the background
-# (started by apple-tv-mode) and refreshes the list when it lands.
+# (started by apple-tv-mode) and refreshes the list when it lands. Each
+# result carries the TV's address, which apple-tv-key remembers alongside
+# its MAC for waking it later.
 set -eu
 runtime="${XDG_RUNTIME_DIR:-/tmp}/apple-tv-remote"
 [ -d "$runtime" ] || exit 0
@@ -9,15 +11,17 @@ results="$HOME/.local/state/orchard/apple-tv-scan-results"
 mkdir -p "$(dirname "$results")"
 
 "$HOME/.local/bin/atvremote" scan --scan-timeout 6 2>/dev/null | python3 -c '
-import re, sys
+import json, re, sys
 found = []
 for block in sys.stdin.read().split("\n\n"):
     name = re.search(r"^ *Name: (.+)$", block, re.M)
     model = re.search(r"^ *Model/SW: (.+)$", block, re.M)
+    address = re.search(r"^ *Address: (.+)$", block, re.M)
     mac = re.search(r"^ - ([0-9A-F]{2}(?::[0-9A-F]{2}){5})$", block, re.M)
     companion = re.search(r"Protocol: Companion.*Pairing: Mandatory", block)
-    if name and model and mac and companion and "Apple TV" in model.group(1):
-        print(f"{mac.group(1)} {name.group(1)}")
+    if name and model and mac and address and companion and "Apple TV" in model.group(1):
+        found.append({"id": mac.group(1), "name": name.group(1), "ip": address.group(1)})
+json.dump(found, sys.stdout)
 ' > "$results.new"
 mv "$results.new" "$results"
 
