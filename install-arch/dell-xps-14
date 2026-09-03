@@ -168,7 +168,8 @@ remove_usb_then_reboot() {
   echo "  REMOVE THE USB DRIVE, then press Enter to reboot."
   echo "  After reboot: sign in, connect wifi with"
   echo "    nmcli device wifi connect \"SSID\" password \"PASS\""
-  echo "  then follow the 'Dell XPS 14' section of orchard's README."
+  echo "  then follow the Install chapter of the orchard manual:"
+  echo "    https://orchard-manual.netlify.app/install.html"
   echo "=========================================================="
   read -r -p "> " _ </dev/tty || true
   reboot

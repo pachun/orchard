@@ -1,6 +1,6 @@
 ---
 name: orchard
-description: How this repo (orchard, Nick's Arch/Hyprland dotfiles for the Dell XPS 14 and Apple-silicon Macs) is laid out and how to add or change a feature — feature folders, install.sh conventions, symlinking, the theme system, waybar modules, Hyprland wiring, eww panels, fuzzel menus, and how to verify a change live. Invoke before adding or modifying anything in orchard so the work lands in the right place without re-explaining the setup.
+description: How this repo (orchard, Nick's Arch/Hyprland dotfiles for the Dell XPS 14, the Framework Laptop 13, and Apple-silicon Macs) is laid out and how to add or change a feature — feature folders, install.sh conventions, symlinking, the theme system, waybar modules, Hyprland wiring, eww panels, fuzzel menus, and how to verify a change live. Invoke before adding or modifying anything in orchard so the work lands in the right place without re-explaining the setup.
 ---
 
 # Orchard
@@ -49,7 +49,12 @@ creating the folder; removing one is deleting it. A feature folder holds:
   explicitly — `bash "$HERE/../themes/install.sh"` — rather than relying
   on alphabetical order. Installers are idempotent, so this is cheap.
 - Hardware divergence: `source "$TOOLS/machine.sh"` and branch on
-  `is_apple_silicon`.
+  `is_apple_silicon`, `is_dell`, `is_framework`, or `is_amd_cpu` — pick
+  the axis the hardware actually varies on (the camera relay is Dell-only,
+  the GPU userspace is Intel-vs-AMD). Anything a laptop either has or
+  doesn't (a fingerprint reader) is gated on the device being present,
+  not the machine. Per-device Hyprland tuning (touchpad sensitivity) is
+  a `device {}` block keyed by device name, one per laptop.
 - Per-machine variants of a config (e.g. waybar's bar layout) live
   outside `config/` in their own directory and `install.sh` links only
   the chosen one.
