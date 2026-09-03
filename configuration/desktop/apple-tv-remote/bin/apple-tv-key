@@ -156,7 +156,7 @@ def wake(state, device):
         return False
     mac = read_hardware().get(device["id"], {}).get("mac")
     if not mac:
-        eww("update", "waking_note=It's off the network and I don't know its MAC yet — wake it with its own remote once so I can learn it")
+        eww("update", "waking_note=Off the network, and I haven't\nseen it awake yet. Wake it with its\nown remote once so I learn its MAC.")
         return False
     deadline = time.time() + 40
     while time.time() < deadline:
@@ -165,7 +165,7 @@ def wake(state, device):
         if power_state(device) is not None:
             turn_on(device)
             return True
-    eww("update", "waking_note=No answer to Wake-on-LAN — is it on Wi-Fi rather than Ethernet?")
+    eww("update", "waking_note=No answer to Wake-on-LAN.\nIs it on Wi-Fi rather than\nEthernet?")
     return False
 
 

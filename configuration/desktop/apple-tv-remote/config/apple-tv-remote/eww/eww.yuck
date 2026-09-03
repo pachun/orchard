@@ -22,7 +22,7 @@
 (defwidget picker []
   (box :orientation "v" :space-evenly false :visible {mode == "picker"}
     (label :class "title" :halign "start" :text "Apple TVs")
-    (label :class "hintline" :halign "start" :wrap true :visible {picker_note != ""} :text picker_note)
+    (label :class "hintline" :halign "start" :xalign 0 :wrap true :visible {picker_note != ""} :text picker_note)
     (label :class "hintline" :halign "start"
            :visible {arraylength(devices) == 0 && !scanning}
            :text "None found on this network")
@@ -48,7 +48,7 @@
 (defwidget waking []
   (box :orientation "v" :space-evenly false :visible {mode == "waking"}
     (label :class "title" :halign "start" :text device_name)
-    (label :class "hintline" :halign "start" :wrap true :text waking_note)
+    (label :class "hintline" :halign "start" :xalign 0 :wrap true :text waking_note)
     (keyrow :keys "esc" :action "back")))
 
 (defwidget remote []
