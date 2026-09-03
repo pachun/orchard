@@ -13,6 +13,11 @@
 (defvar pairing_error "")
 (defvar waking_note "Waking it up…")
 (defvar picker_note "")
+(defvar nudge false)
+; colors.yuck is written by render-apple-tv-remote-theme: the ink color, for
+; the nudge flash, which is set as inline style because eww never removes a
+; class it once added.
+(include "colors.yuck")
 
 (defwidget keyrow [keys action]
   (box :class "keyrow" :space-evenly false
@@ -68,7 +73,7 @@
     (keyrow :keys "esc  q" :action "leave the remote")))
 
 (defwidget panel []
-  (box :class "panel" :orientation "v" :space-evenly false
+  (box :class "panel" :style {nudge ? "border-color: ${ink};" : ""} :orientation "v" :space-evenly false
     (picker)
     (pairing)
     (waking)

@@ -25,3 +25,6 @@ cat > "$HOME/.config/apple-tv-remote/eww/colors.scss" <<SCSS
 \$dim:    rgba($ink_rgb, 0.60);
 \$accent: $accent_hex;
 SCSS
+cat > "$HOME/.config/apple-tv-remote/eww/colors.yuck" <<YUCK
+(defvar ink "$ink_hex")
+YUCK

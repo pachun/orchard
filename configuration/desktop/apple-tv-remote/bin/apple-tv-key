@@ -427,6 +427,15 @@ def main():
     if state is None:
         sys.exit(0)
 
+    if key == "unknown":
+        # The submap swallowed a key the current face has no use for. Flash
+        # the border — vim's beep — so the press is acknowledged as ignored
+        # rather than silently eaten.
+        eww("update", "nudge=true")
+        time.sleep(0.18)
+        eww("update", "nudge=false")
+        return
+
     if key == "scan-finished":
         for seen in scanned_devices():
             remember_hardware(seen["id"], ip=seen["ip"], mac=mac_for_ip(seen["ip"]))
