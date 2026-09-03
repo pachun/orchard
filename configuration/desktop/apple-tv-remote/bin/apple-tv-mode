@@ -11,13 +11,25 @@ runtime="${XDG_RUNTIME_DIR:-/tmp}/apple-tv-remote"
 config="$HOME/.config/apple-tv-remote/eww"
 eww_cmd() { timeout 2 eww --config "$config" "$@"; }
 
+card_is_still_up() {
+    hyprctl layers -j 2>/dev/null | grep -q '"namespace": "apple-tv-remote"'
+}
+
 if [ -d "$runtime" ]; then
     hyprctl dispatch submap reset >/dev/null 2>&1 || true
-    eww_cmd close remote >/dev/null 2>&1 || true
     for pidfile in "$runtime"/*.pid; do
         [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
     done
+    # A key handler still mid-wake, or wedged on a dead session's FIFO,
+    # must not outlive the mode.
+    pkill -f '^python3 .*/apple-tv-key' 2>/dev/null || true
     rm -rf "$runtime"
+    eww_cmd close remote >/dev/null 2>&1 || true
+    # eww can lose track of its own window; if the surface is still on
+    # screen, a fresh daemon is the one reliable way to take it down.
+    if card_is_still_up; then
+        "$HOME/.local/bin/restart-apple-tv-remote"
+    fi
     exit 0
 fi
 

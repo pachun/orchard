@@ -218,6 +218,7 @@ def shown_pin(pin):
 
 def show_picker(state):
     devices = state["devices"]
+    eww("update", f"picker_note={state.get('picker_note', '')}")
     rows = [{"name": d["name"],
              "hint": "" if d["paired"] else "pair",
              "selected": i == state["selection"]}
@@ -338,12 +339,31 @@ def submit_pin(state):
         eww("update", f"pin={shown_pin('')}", f"pairing_error={state['pairing_error']}")
 
 
-def press_remote(command):
+def session_alive():
     try:
-        with open(state_path("session-commands"), "w") as f:
-            f.write(command + "\n")
+        os.kill(int(open(state_path("session.pid")).read()), 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def press_remote(state, command):
+    # Opening a FIFO for writing blocks until a reader exists. If the REPL
+    # has died — the TV went to sleep and dropped the connection — a plain
+    # open() would hang this process forever and leave the card stuck. Open
+    # non-blocking: no reader means no session, so fall back to the picker.
+    try:
+        fd = os.open(state_path("session-commands"), os.O_WRONLY | os.O_NONBLOCK)
+        os.write(fd, (command + "\n").encode())
+        os.close(fd)
     except OSError:
-        pass
+        session_lost(state)
+
+
+def session_lost(state):
+    end_session()
+    state["picker_note"] = f"Lost {state['device']['name']} — did it go to sleep?"
+    enter_picker(state)
 
 
 def fire_volume(device_id, direction):
@@ -401,6 +421,7 @@ def main():
 
     mode = state["mode"]
     if mode == "picker":
+        state["picker_note"] = ""
         if key in ("j", "k") and state["devices"]:
             step = 1 if key == "j" else -1
             state["selection"] = (state["selection"] + step) % len(state["devices"])
@@ -430,9 +451,11 @@ def main():
             enter_picker(state)
     elif mode == "waking":
         if key in ("escape", "q"):
-            enter_picker(state)
+            close_mode()
     elif mode == "remote":
-        if key == "p":
+        if not session_alive():
+            session_lost(state)
+        elif key == "p":
             ip = read_hardware().get(state["device"]["id"], {}).get("ip")
             subprocess.Popen(
                 [ATVREMOTE] + (["-s", ip] if ip else []) + ["--id", state["device"]["id"], "turn_off"],
@@ -448,7 +471,7 @@ def main():
         elif key == "equal":
             fire_volume(state["device"]["id"], "up")
         elif key in REMOTE_COMMANDS:
-            press_remote(REMOTE_COMMANDS[key])
+            press_remote(state, REMOTE_COMMANDS[key])
 
 
 if __name__ == "__main__":

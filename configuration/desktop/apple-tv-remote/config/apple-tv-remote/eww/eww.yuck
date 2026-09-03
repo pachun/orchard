@@ -12,6 +12,7 @@
 (defvar pin "· · · ·")
 (defvar pairing_error "")
 (defvar waking_note "Waking it up…")
+(defvar picker_note "")
 
 (defwidget keyrow [keys action]
   (box :class "keyrow" :space-evenly false
@@ -21,6 +22,7 @@
 (defwidget picker []
   (box :orientation "v" :space-evenly false :visible {mode == "picker"}
     (label :class "title" :halign "start" :text "Apple TVs")
+    (label :class "hintline" :halign "start" :wrap true :visible {picker_note != ""} :text picker_note)
     (label :class "hintline" :halign "start"
            :visible {arraylength(devices) == 0 && !scanning}
            :text "None found on this network")
