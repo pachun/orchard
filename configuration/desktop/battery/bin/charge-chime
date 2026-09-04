@@ -12,6 +12,21 @@
 # 0.6s. It ships in the feature's sounds/ and is linked in by install.sh.
 chime="$HOME/.local/share/orchard/sounds/charge-chime.wav"
 
+# The chime plays at one fixed, lowish level no matter where the system
+# volume sits. A stream's volume is relative to the sink's, so the stream
+# is scaled by the inverse of the sink's — at 100% the chime is 35% of
+# full scale, at 50% the stream doubles to keep the same result, and below
+# 35% it simply plays at full stream volume. Muted stays silent.
+chime_level=0.35
+
+play_chime() {
+    pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | grep -q 'yes' && return 0
+    sink_percent=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | grep -oE '[0-9]+%' | head -1 | tr -d %)
+    [ -n "$sink_percent" ] && [ "$sink_percent" -gt 0 ] || sink_percent=100
+    stream_volume=$(awk -v level="$chime_level" -v sink="$sink_percent" 'BEGIN { v = level / (sink / 100); if (v > 1) v = 1; printf "%.3f", v }')
+    pw-play --volume "$stream_volume" "$chime" >/dev/null 2>&1 &
+}
+
 mains_online() {
     for supply in /sys/class/power_supply/*; do
         [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] || continue
@@ -25,7 +40,7 @@ mains_online && was_online=1 || was_online=0
 udevadm monitor --udev --subsystem-match=power_supply 2>/dev/null | while IFS= read -r _; do
     mains_online && now_online=1 || now_online=0
     if [ "$now_online" = 1 ] && [ "$was_online" = 0 ]; then
-        pw-play "$chime" >/dev/null 2>&1 &
+        play_chime
     fi
     was_online=$now_online
 done
