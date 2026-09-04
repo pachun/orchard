@@ -24,6 +24,12 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 
+# The charger chime (bin/charge-chime, started from hyprland.conf) is for
+# every laptop, Macs included; the freedesktop sound theme provides the
+# sound. Everything past this is x86 power management.
+sudo pacman -S --needed --noconfirm sound-theme-freedesktop
+bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+
 is_apple_silicon && exit 0
 
 # thermald and intel-lpmd are Intel-only; AMD's amd-pstate driver and

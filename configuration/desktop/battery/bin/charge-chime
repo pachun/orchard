@@ -1,0 +1,27 @@
+#!/bin/sh
+# The MagSafe chime: a short sound when the charger is plugged in. Listens
+# to udev's power_supply events for the session and plays on the moment
+# mains power goes from off to on — plugging in, not unplugging, not the
+# burst of events a single plug produces. Runs from hyprland.conf's
+# exec-once, so it plays through your own PipeWire and works with the lid
+# closed; it can't play while suspended, since plugging in doesn't wake
+# the machine.
+chime=/usr/share/sounds/freedesktop/stereo/power-plug.oga
+
+mains_online() {
+    for supply in /sys/class/power_supply/*; do
+        [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] || continue
+        [ "$(cat "$supply/online" 2>/dev/null)" = "1" ] && return 0
+    done
+    return 1
+}
+
+mains_online && was_online=1 || was_online=0
+
+udevadm monitor --udev --subsystem-match=power_supply 2>/dev/null | while IFS= read -r _; do
+    mains_online && now_online=1 || now_online=0
+    if [ "$now_online" = 1 ] && [ "$was_online" = 0 ]; then
+        pw-play "$chime" >/dev/null 2>&1 &
+    fi
+    was_online=$now_online
+done
