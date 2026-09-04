@@ -6,7 +6,11 @@
 # exec-once, so it plays through your own PipeWire and works with the lid
 # closed; it can't play while suspended, since plugging in doesn't wake
 # the machine.
-chime=/usr/share/sounds/freedesktop/stereo/power-plug.oga
+#
+# The sound is orchard's own, synthesized to sit close to Apple's
+# PowerChime: E then C a beat apart, ringing together as a soft pad,
+# 0.6s. It ships in the feature's sounds/ and is linked in by install.sh.
+chime="$HOME/.local/share/orchard/sounds/charge-chime.wav"
 
 mains_online() {
     for supply in /sys/class/power_supply/*; do

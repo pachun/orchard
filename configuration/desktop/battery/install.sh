@@ -25,10 +25,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 
 # The charger chime (bin/charge-chime, started from hyprland.conf) is for
-# every laptop, Macs included; the freedesktop sound theme provides the
-# sound. Everything past this is x86 power management.
-sudo pacman -S --needed --noconfirm sound-theme-freedesktop
+# every laptop, Macs included; its sound ships in sounds/. Everything past
+# this is x86 power management.
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/sounds" "$HOME/.local/share/orchard/sounds"
 
 is_apple_silicon && exit 0
 
