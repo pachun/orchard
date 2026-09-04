@@ -12,29 +12,24 @@
 # 0.6s. It ships in the feature's sounds/ and is linked in by install.sh.
 chime="$HOME/.local/share/orchard/sounds/charge-chime.wav"
 
-# The chime plays at 10% of full volume, always — wherever the system
-# volume sits, muted or not. A stream's volume is relative to the sink's,
-# so normally the stream is scaled by the inverse of the sink's volume to
-# land at 10%. When the sink is muted or already below 10%, no stream
-# volume can get there, so the sink is set to exactly 10% (and unmuted)
-# for the 0.6s of the chime and then put back as it was.
-chime_level=10
+# The chime plays at 20% of full volume, always — wherever the system
+# volume sits, muted or not. Not by scaling the stream: pactl's percent
+# scale is cubic and a stream's gain is linear, so any such arithmetic
+# tracks the system volume instead of cancelling it. Instead the sink is
+# set to exactly the 20% the volume keys mean, unmuted, for the chime's
+# 0.6s, then put back as it was.
+chime_level=20
 
 play_chime() {
     sink_percent=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | grep -oE '[0-9]+%' | head -1 | tr -d %)
     sink_muted=$(pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | grep -q 'yes' && echo yes || echo no)
-    [ -n "$sink_percent" ] || sink_percent=100
+    [ -n "$sink_percent" ] || return 0
 
-    if [ "$sink_muted" = yes ] || [ "$sink_percent" -lt "$chime_level" ]; then
-        pactl set-sink-mute @DEFAULT_SINK@ 0
-        pactl set-sink-volume @DEFAULT_SINK@ "${chime_level}%"
-        pw-play "$chime" >/dev/null 2>&1
-        pactl set-sink-volume @DEFAULT_SINK@ "${sink_percent}%"
-        [ "$sink_muted" = yes ] && pactl set-sink-mute @DEFAULT_SINK@ 1
-    else
-        stream_volume=$(awk -v level="$chime_level" -v sink="$sink_percent" 'BEGIN { printf "%.3f", level / sink }')
-        pw-play --volume "$stream_volume" "$chime" >/dev/null 2>&1
-    fi
+    pactl set-sink-mute @DEFAULT_SINK@ 0
+    pactl set-sink-volume @DEFAULT_SINK@ "${chime_level}%"
+    pw-play "$chime" >/dev/null 2>&1
+    pactl set-sink-volume @DEFAULT_SINK@ "${sink_percent}%"
+    [ "$sink_muted" = yes ] && pactl set-sink-mute @DEFAULT_SINK@ 1
 }
 
 mains_online() {
