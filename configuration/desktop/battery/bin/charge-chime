@@ -14,10 +14,10 @@ chime="$HOME/.local/share/orchard/sounds/charge-chime.wav"
 
 # The chime plays at one fixed, lowish level no matter where the system
 # volume sits. A stream's volume is relative to the sink's, so the stream
-# is scaled by the inverse of the sink's — at 100% the chime is 35% of
+# is scaled by the inverse of the sink's — at 100% the chime is 20% of
 # full scale, at 50% the stream doubles to keep the same result, and below
-# 35% it simply plays at full stream volume. Muted stays silent.
-chime_level=0.35
+# 20% it simply plays at full stream volume. Muted stays silent.
+chime_level=0.20
 
 play_chime() {
     pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | grep -q 'yes' && return 0
