@@ -40,11 +40,11 @@
     "modules-left": ["hyprland/workspaces", "custom/music-levels"],
 
     "custom/apple-tv": {
-        // A TV glyph; click for the Apple TV remote card + submap (the
-        // apple-tv-remote feature's apple-tv-mode). Phosphor television
-        // U+E754.
+        // A D-pad glyph; click for the Apple TV remote card + submap (the
+        // apple-tv-remote feature's apple-tv-mode). Phosphor
+        // arrows-out-cardinal U+E0A4.
         "cursor": false,
-        "format": "",
+        "format": "",
         "tooltip-format": "Apple TV remote",
         "on-click": "$HOME/.local/bin/apple-tv-mode"
     },
