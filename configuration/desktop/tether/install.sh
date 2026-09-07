@@ -10,7 +10,8 @@
 #   bluetooth.service drop-in — runs bluetoothd with --experimental, which
 #     exposes the per-transport Bearer.LE1 interface that ANCS notification
 #     mirroring rides on. Must be in place before pairing; a bond made without
-#     it has no LE half and has to be redone.
+#     it has no LE half and has to be redone. Carried in this folder since
+#     tether-bin 0.2.26 stopped shipping the file.
 #   tether-btclass@hci0.service — sets the adapter's Class of Device to
 #     A/V Hands-Free after every bluetoothd start, since bluetoothd resets it
 #     and the iPhone refuses MAP/PBAP to the default class.
@@ -25,7 +26,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bluetoothd_drop_in=/etc/systemd/system/bluetooth.service.d/tether-experimental.conf
-shipped_drop_in=/usr/share/tether/bluetooth-experimental.conf
+repo_drop_in="$HERE/tether-experimental.conf"
 adapter=hci0
 
 install_packages() {
@@ -38,11 +39,11 @@ enable_mdns_discovery() {
 }
 
 bluetoothd_drop_in_is_current() {
-  cmp -s "$shipped_drop_in" "$bluetoothd_drop_in"
+  cmp -s "$repo_drop_in" "$bluetoothd_drop_in"
 }
 
 apply_bluetoothd_drop_in() {
-  sudo install -Dm644 "$shipped_drop_in" "$bluetoothd_drop_in"
+  sudo install -Dm644 "$repo_drop_in" "$bluetoothd_drop_in"
   sudo systemctl daemon-reload
   sudo systemctl restart bluetooth.service
 }
