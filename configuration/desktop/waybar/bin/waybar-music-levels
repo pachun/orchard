@@ -33,6 +33,14 @@
 # `fading` CSS class before its text is finally cleared. Entering is the
 # mirror: the first frame lands at zero opacity and fades in.
 #
+# cava runs only while something is playing. Left running, it holds a
+# capture stream on the speaker's monitor around the clock, so the sink
+# never idles or suspends — and this XPS's SoundWire amps came back from
+# a suspend with a live pipeline wedged (cs35l56 parity errors, no more
+# periods, every stream stuck). Starting cava on the first uncorked stream
+# and stopping it after ten quiet seconds lets the sink sleep like it
+# used to, and saves the battery the FFT was burning while nothing played.
+#
 # Continuous exec: no signal key — waybar reads signal-without-interval as
 # "run once per signal" and a looping script never draws. restart-interval
 # revives this if cava dies, and doubles as the retry that brings the
@@ -60,7 +68,12 @@ noise_reduction = 66
 CONF
 
 frames_per_second=24
-exec cava -p "$cava_config" 2>/dev/null | awk -v fps="$frames_per_second" '
+something_is_playing() {
+    pactl list sink-inputs 2>/dev/null | grep -q 'Corked: no'
+}
+
+draw_levels_until_cava_exits() {
+    cava -p "$cava_config" 2>/dev/null | awk -v fps="$frames_per_second" '
 function who_is_playing(   command, line, field, verdict) {
     verdict = "ambiguous"
     command = "playerctl -a metadata --format \x27{{status}}|{{playerName}}|{{xesam:url}}|{{xesam:title}}\x27 2>/dev/null"
@@ -151,4 +164,22 @@ BEGIN {
     if (fading_frames_left == 0) { fading_frames_left = fade_frames; emit("fading"); next }
     if (--fading_frames_left > 0) next
     show_nothing()
-}'
+    }'
+    printf '{"text":""}\n'
+}
+
+quiet_seconds_before_stopping=10
+while true; do
+    if something_is_playing; then
+        draw_levels_until_cava_exits &
+        cava_pipeline=$!
+        quiet_seconds=0
+        while kill -0 "$cava_pipeline" 2>/dev/null; do
+            sleep 2
+            if something_is_playing; then quiet_seconds=0; else quiet_seconds=$((quiet_seconds + 2)); fi
+            [ "$quiet_seconds" -ge "$quiet_seconds_before_stopping" ] && pkill -P "$cava_pipeline" cava 2>/dev/null
+        done
+        wait "$cava_pipeline" 2>/dev/null
+    fi
+    sleep 2
+done
