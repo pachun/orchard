@@ -15,7 +15,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bash "$HERE/../themes/install.sh"
 
 sudo pacman -S --needed --noconfirm uv
-uv tool install --quiet pyatv
+# Pinned: pyatv 0.18.0 boots through asyncio.get_event_loop(), which
+# Python 3.14 removed, so atvremote built against 3.14 crashes at startup
+# and every scan comes back empty. Unpin when a pyatv release runs on 3.14.
+uv tool install --quiet --python 3.13 pyatv
 
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" eww
