@@ -54,3 +54,8 @@ case "$2" in
 esac
 EOF
 sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh
+
+# Waybar reads its config once at startup, so a bar that has been up since
+# before a re-run would keep drawing the old modules until the next login.
+# SIGUSR2 is waybar's live config reload; no-op when no session is up.
+pkill -SIGUSR2 -x waybar 2>/dev/null || true
