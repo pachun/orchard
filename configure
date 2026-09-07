@@ -46,7 +46,10 @@ keep_sudo_alive_until_done() {
     sleep 60
   done 2>/dev/null &
   local keepalive_pid=$!
-  trap 'kill "$keepalive_pid" 2>/dev/null' EXIT
+  # PID expanded into the trap now: it fires after this function returns,
+  # when the local is gone — referencing it then is unbound under set -u,
+  # and the loop it was meant to kill outlives the run.
+  trap "kill $keepalive_pid 2>/dev/null" EXIT
 }
 
 authenticate_sudo
