@@ -15,15 +15,30 @@
 # The lockfile is removed on EXIT/INT/TERM. SIGKILL leaves it stale,
 # which the next invocation cleans up via the kill -0 liveness check.
 
-__menu_lock="/tmp/$(basename "$0").lock"
+__menu_name=$(basename "$0")
+__menu_lock="/tmp/$__menu_name.lock"
 __menu_pid=$(cat "$__menu_lock" 2>/dev/null || true)
+
+# Liveness alone isn't enough: menus hand off to their action with
+# `exec` (system-menu → theme-menu → set-theme), which keeps the PID but
+# wipes the EXIT trap, so the lockfile outlives the menu and points at
+# whatever the chain became. Treating that PID as "menu still open"
+# both eats the keypress and kills the action mid-run. The process
+# counts as this menu only while the kernel still names it this menu —
+# exec renames /proc/<pid>/comm to the new program. comm is capped at
+# 15 bytes, so compare against the same truncation.
+__menu_comm=$(printf '%.15s' "$__menu_name")
+__menu_is_still_open() {
+    kill -0 "$__menu_pid" 2>/dev/null \
+        && [ "$(cat "/proc/$__menu_pid/comm" 2>/dev/null)" = "$__menu_comm" ]
+}
 
 # Skip self — `exec "$0"` from inside a menu (e.g. bluetooth-menu's
 # scan-refresh path) re-runs the script with the SAME pid, so the
 # lockfile we just wrote looks like "another instance" without this
 # guard, and we'd self-kill on every refresh.
 if [ -n "$__menu_pid" ] && [ "$__menu_pid" != "$$" ] \
-   && kill -0 "$__menu_pid" 2>/dev/null; then
+   && __menu_is_still_open; then
     # This menu is already open in a different process — toggle off.
     kill "$__menu_pid" 2>/dev/null
     pkill -x fuzzel 2>/dev/null   # backstop in case the shell dies before fuzzel
