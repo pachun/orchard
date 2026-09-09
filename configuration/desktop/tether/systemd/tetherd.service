@@ -1,0 +1,11 @@
+[Unit]
+Description=Tether iPhone bridge (clipboard and files over WiFi, messages and notifications over Bluetooth)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/tetherd
+Restart=on-failure
+RestartSec=2
+# A stuck tetherd (0.2.27 spun on a full core and never finished a SIGTERM
+# shutdown) should not hold a restart for systemd's default 90 s.
+TimeoutStopSec=10

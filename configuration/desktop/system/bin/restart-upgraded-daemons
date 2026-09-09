@@ -1,0 +1,50 @@
+#!/bin/sh
+# Restart every running user service whose executable has been replaced on
+# disk since it started — the state a package upgrade leaves a daemon in.
+# The old binary keeps running, invisibly, until something restarts it
+# (tetherd 0.2.27 ran for seven hours after its upgrade and then spun on a
+# full core). Run at the end of system-update.
+#
+# Only systemd user services are covered: they are the daemons this setup
+# can restart cleanly. A replaced system service or a desktop app is
+# reported so it isn't silently forgotten.
+set -eu
+
+running_user_services() {
+    systemctl --user list-units --type=service --state=running --plain --no-legend | awk '{print $1}'
+}
+
+main_pid_of() {
+    systemctl --user show -p MainPID --value "$1"
+}
+
+executable_was_replaced() {
+    case "$(readlink "/proc/$1/exe" 2>/dev/null)" in
+        *" (deleted)") return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+restart_replaced_user_services() {
+    for unit in $(running_user_services); do
+        pid=$(main_pid_of "$unit")
+        [ "$pid" -gt 0 ] 2>/dev/null || continue
+        executable_was_replaced "$pid" || continue
+        echo "restarting $unit (binary replaced on disk)"
+        systemctl --user restart "$unit"
+    done
+}
+
+report_other_replaced_programs() {
+    for proc in /proc/[0-9]*; do
+        pid=${proc#/proc/}
+        [ "$(stat -c %U "$proc" 2>/dev/null)" = "$(id -un)" ] || continue
+        executable_was_replaced "$pid" || continue
+        cat "$proc/comm"
+    done | sort -u | while read -r program; do
+        echo "still running an old binary, not a user service: $program"
+    done
+}
+
+restart_replaced_user_services
+report_other_replaced_programs

@@ -17,9 +17,13 @@
 #     and the iPhone refuses MAP/PBAP to the default class.
 # `tether --bt-setup` reports anything still missing.
 #
-# tetherd is a per-user daemon (socket under $XDG_RUNTIME_DIR), started from
-# hyprland.conf's exec-once; here it is only started if a session is already
-# up so a fresh install can be paired without logging out.
+# tetherd is a per-user daemon (socket under $XDG_RUNTIME_DIR). It runs as
+# the tetherd.service user unit so it restarts on failure and so
+# restart-upgraded-daemons can restart it after a package upgrade.
+# hyprland.conf starts the unit once the Wayland session env has been
+# imported into the user manager (the clipboard bridge needs it); here it
+# is only started if a session is already up so a fresh install can be
+# paired without logging out.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
@@ -52,14 +56,19 @@ enable_adapter_class_fix() {
   sudo systemctl enable --now "tether-btclass@${adapter}.service"
 }
 
+install_user_unit() {
+  bash "$TOOLS/link.sh" "$HERE/systemd" "$HOME/.config/systemd/user"
+  systemctl --user daemon-reload
+}
+
 start_daemon_in_current_session() {
   [ -n "${WAYLAND_DISPLAY:-}" ] || return 0
-  pgrep -x tetherd >/dev/null && return 0
-  setsid --fork tetherd >/dev/null 2>&1 </dev/null
+  systemctl --user start tetherd.service
 }
 
 install_packages
 enable_mdns_discovery
 bluetoothd_drop_in_is_current || apply_bluetoothd_drop_in
 enable_adapter_class_fix
+install_user_unit
 start_daemon_in_current_session

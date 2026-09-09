@@ -52,10 +52,12 @@ CLASS=system-update
 #
 # After packages and firmware, the waybar update cache is wiped and the
 # badge told to refresh so it clears immediately instead of waiting for the
-# next refresh window.
+# next refresh window, and restart-upgraded-daemons restarts every user
+# service whose binary the upgrade replaced, so no daemon keeps running
+# stale code until the next login.
 LOG="$HOME/.local/state/system-update.log"
 mkdir -p "$(dirname "$LOG")"
-UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; $HOME/.local/bin/refresh-updates-badge"
+UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --answerupgrade=N --noconfirm; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; $HOME/.local/bin/refresh-updates-badge; $HOME/.local/bin/restart-upgraded-daemons"
 CMD="tmux new-session -A -s system-update 'sh -c \"$UPGRADE\" 2>&1 | tee $LOG; echo; echo --- Done. Log: $LOG. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \
