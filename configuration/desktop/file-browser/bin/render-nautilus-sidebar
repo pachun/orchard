@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# Render the Nautilus sidebar from a places list: one `<place> <Label>
+# [<icon>-symbolic]` per line, where place is a ~ path or a URI. Writes
+# GTK's bookmarks file (the rows) and ~/.config/gtk-4.0/nautilus-sidebar.css
+# (which rows to hide and which icon each row shows).
+#
+# Nautilus hardcodes a first sidebar section of Home, Recent, Starred,
+# Network and Trash, then bookmarks and mounts in their own sections with a
+# separator between each. Nothing in org.gnome.nautilus touches the sidebar,
+# and the only supported lever, org.gnome.desktop.privacy
+# remember-recent-files, changes every app's recent-files list just to drop
+# one row. Bookmark icons are hardcoded too: an XDG folder gets its icon,
+# any other folder gets a plain folder, and a non-native location such as
+# trash:/// gets the remote-folder glyph; the custom-icon metadata Nautilus
+# honors elsewhere is ignored here.
+#
+# So the CSS collapses the built-in section and every separator, the places
+# come back as bookmarks in list order, and each row's icon is painted as a
+# background image on the row's icon widget. GTK4 CSS can't select a row by
+# its label, so rows are addressed by index: the built-in section is rows 1
+# through 5 (verified by coloring each index and looking), bookmarks start at
+# row 6 in list order, and separators are headers that don't count as
+# children. Rows 2 through 4 are hidden everywhere; rows 1 and 5 and the
+# icons only in the main window (`window.view`), because the file chooser
+# shares this sidebar without a Trash row. If a GNOME release adds or
+# reorders a built-in row, re-check the indices here.
+#
+# The hidden rows have to be collapsed, not just faded: GTK4 CSS has no
+# `display: none`, and an invisible row still takes space and takes clicks.
+import sys
+from pathlib import Path
+from urllib.parse import quote
+
+placesFile = Path(sys.argv[1])
+bookmarksFile = Path.home() / ".config/gtk-3.0/bookmarks"
+sidebarCssFile = Path.home() / ".config/gtk-4.0/nautilus-sidebar.css"
+
+builtInRowCount = 5
+firstBookmarkRow = builtInRowCount + 1
+rowsHiddenEverywhere = [2, 3, 4]
+rowsHiddenInMainWindow = [1, 5]
+iconSizePx = 16
+
+collapsed = """{
+    min-height: 0px;
+    min-width: 0px;
+    padding: 0px;
+    margin: 0px;
+    border: 0px;
+    opacity: 0;
+    font-size: 0px;
+    -gtk-icon-size: 0px;
+}"""
+
+
+def parsePlace(line):
+    tokens = line.split()
+    icon = tokens.pop() if tokens[-1].endswith("-symbolic") else None
+    label = tokens.pop()
+    place = " ".join(tokens)
+    uri = place if "://" in place else f"file://{quote(str(Path(place).expanduser()))}"
+    return uri, label, icon
+
+
+places = [parsePlace(line) for line in placesFile.read_text().splitlines() if line.strip()]
+
+bookmarksFile.parent.mkdir(parents=True, exist_ok=True)
+bookmarksFile.write_text("".join(f"{uri} {label}\n" for uri, label, _ in places))
+
+
+def rowSelector(index, scope=""):
+    return f"{scope}.navigation-sidebar row:nth-child({index})"
+
+
+hiddenSelectors = [rowSelector(i) for i in rowsHiddenEverywhere] + [rowSelector(i) + " *" for i in rowsHiddenEverywhere]
+hiddenSelectors += [rowSelector(i, "window.view ") for i in rowsHiddenInMainWindow] + [rowSelector(i, "window.view ") + " *" for i in rowsHiddenInMainWindow]
+
+iconRules = []
+for offset, (_, label, icon) in enumerate(places):
+    if icon is None:
+        continue
+    iconRules.append(f"""/* {label} */
+{rowSelector(firstBookmarkRow + offset, "window.view ")} box > image:first-child {{
+    -gtk-icon-size: 0px;
+    min-width: {iconSizePx}px;
+    min-height: {iconSizePx}px;
+    background-image: -gtk-icontheme("{icon}");
+    background-size: {iconSizePx}px {iconSizePx}px;
+    background-repeat: no-repeat;
+    background-position: center;
+}}""")
+
+sidebarCssFile.parent.mkdir(parents=True, exist_ok=True)
+sidebarCssFile.write_text(f"""/* Rendered by render-nautilus-sidebar from {placesFile}. Do not edit. */
+
+{",\n".join(hiddenSelectors)} {collapsed}
+
+window.view .navigation-sidebar > separator {{
+    min-height: 0px;
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+    background: none;
+    opacity: 0;
+}}
+
+{"\n\n".join(iconRules)}
+""")

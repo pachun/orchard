@@ -10,13 +10,13 @@
 # text and source, audio and video, and (with libreoffice) office documents.
 # Anything it can't render falls back to a name-and-type card.
 #
-# The sidebar shows Home, then the places listed in ./sidebar-places (one
-# `~/path Label` per line), then Trash. Nautilus reads them from GTK's
-# bookmarks file, which it rewrites whenever a bookmark is added in-app,
-# so the file is rendered from the list rather than symlinked to it.
-# Ctrl+j / Ctrl+k (xremap) walk the sidebar rows via bin/nautilus-walk-sidebar,
-# which finds the next row over the accessibility bus (python-gobject +
-# at-spi2-core) and clicks it with ydotool.
+# The sidebar shows exactly the places listed in ./sidebar-places, in that
+# order, with the icons named there, then any mounts, and no dividers.
+# bin/render-nautilus-sidebar turns that list into GTK's bookmarks file and
+# ~/.config/gtk-4.0/nautilus-sidebar.css (imported by the themes feature's
+# gtk.css); the header of that script explains what Nautilus hardcodes and
+# why CSS is the only lever. The bookmarks file is rendered rather than
+# symlinked because Nautilus rewrites it whenever a bookmark is added in-app.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
@@ -26,20 +26,4 @@ sudo pacman -S --needed --noconfirm nautilus sushi ydotool python-gobject at-spi
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
-render_sidebar_places() {
-  local bookmarks="$HOME/.config/gtk-3.0/bookmarks"
-  mkdir -p "$(dirname "$bookmarks")"
-  python3 - "$HERE/sidebar-places" "$bookmarks" <<'PY'
-import sys
-from pathlib import Path
-from urllib.parse import quote
-
-places, bookmarks = Path(sys.argv[1]), Path(sys.argv[2])
-lines = []
-for line in places.read_text().splitlines():
-    path, label = line.rsplit(" ", 1)
-    lines.append(f"file://{quote(str(Path(path).expanduser()))} {label}")
-bookmarks.write_text("\n".join(lines) + "\n")
-PY
-}
-render_sidebar_places
+"$HOME/.local/bin/render-nautilus-sidebar" "$HERE/sidebar-places"

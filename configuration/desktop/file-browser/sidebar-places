@@ -1,4 +1,6 @@
+~ Home user-home-symbolic
 ~/downloads Downloads
-~/pictures/screenshots Screenshots
-~/videos/recordings Recordings
-~/icloud/icloud documents/work/gnar/invoices Invoices
+~/pictures/screenshots Screenshots camera-photo-symbolic
+~/videos/recordings Recordings camera-video-symbolic
+~/icloud/icloud documents/work/gnar/invoices Invoices x-office-document-symbolic
+trash:/// Trash user-trash-symbolic
