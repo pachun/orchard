@@ -27,20 +27,23 @@ list=$(
         name=$(basename "$d")
         [ "$name" = "active" ] && continue
         [ -f "$d/ghostty.conf" ] || continue
+        label=$("$HOME/.local/bin/theme-display-name" "$name")
         if [ "$name" = "$active" ]; then
-            printf '0\t%s  %s  %s\n' "$ICON_THEME" "$name" "$ACTIVE_DOT"
+            printf '0\t%s  %s  %s\n' "$ICON_THEME" "$label" "$ACTIVE_DOT"
         else
-            printf '1\t%s  %s\n' "$ICON_THEME" "$name"
+            printf '1\t%s  %s\n' "$ICON_THEME" "$label"
         fi
     done | sort -u | cut -f2-
 )
 
 choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt='theme: ' --width=32 --lines=8) || exit 0
 
-# Strip leading "<icon>  " and trailing "  <dot>" if present.
+# Strip leading "<icon>  " and trailing "  <dot>" if present, then turn
+# the display name back into the directory name.
 rest=${choice#*  }
 case "$rest" in
     *"  $ACTIVE_DOT") rest=${rest%"  $ACTIVE_DOT"} ;;
 esac
 
-exec "$HOME/.local/bin/set-theme" "$rest"
+theme_dir_name=$(printf '%s' "$rest" | tr 'A-Z ' 'a-z-')
+exec "$HOME/.local/bin/set-theme" "$theme_dir_name"

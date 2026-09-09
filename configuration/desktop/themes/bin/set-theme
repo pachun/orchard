@@ -197,4 +197,4 @@ if tmux info >/dev/null 2>&1; then
     tmux source-file ~/.config/orchard-themes/active/tmux.conf 2>/dev/null || true
 fi
 
-notify-send "Theme" "Switched to $target" >/dev/null 2>&1 || true
+notify-send "Theme" "Switched to $("$HOME/.local/bin/theme-display-name" "$target")" >/dev/null 2>&1 || true
