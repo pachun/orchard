@@ -18,6 +18,22 @@ modmap:
       CapsLock: Ctrl_L
 
 keymap:
+  # Nautilus: h/j/k/l navigate (see the rules further down). Anything
+  # that puts the cursor in a text field (rename, location bar, search,
+  # type-ahead) switches to nautilus-typing mode so j/k type letters there;
+  # confirming or dismissing the field returns to the default mode. This
+  # rule sits above the macOS block so Super-w can leave typing mode too.
+  - name: "nautilus: leave typing mode"
+    application:
+      only:
+        - org.gnome.Nautilus
+    mode: nautilus-typing
+    exact_match: true
+    remap:
+      Esc: [Esc, { set_mode: default }]
+      Enter: [Enter, { set_mode: default }]
+      Super-w: [C-w, { set_mode: default }]
+
   - name: macOS-style shortcuts (skipped in ghostty)
     # exact_match=true keeps these rules from swallowing Shift-modified
     # variants. Without it, xremap's default loose-match treats Super-3
@@ -45,6 +61,73 @@ keymap:
       # Ctrl+Shift+I and Ctrl+Shift+J.
       Super-Alt-i: C-Shift-i
       Super-Alt-j: C-Shift-j
+
+  - name: "nautilus: hjkl — up a folder / down / up / open"
+    application:
+      only:
+        - org.gnome.Nautilus
+    mode: default
+    exact_match: true
+    remap:
+      h: Alt-Up
+      j: Down
+      k: Up
+      l: Enter
+
+  - name: "nautilus: Ctrl+j/k walk the sidebar"
+    application:
+      only:
+        - org.gnome.Nautilus
+    exact_match: true
+    remap:
+      C-j: { launch: ["nautilus-walk-sidebar", "down"] }
+      C-k: { launch: ["nautilus-walk-sidebar", "up"] }
+
+  - name: "nautilus: keys that put the cursor in a text field"
+    application:
+      only:
+        - org.gnome.Nautilus
+    mode: default
+    exact_match: true
+    remap:
+      F2: [F2, &enter_typing { set_mode: nautilus-typing }]
+      C-l: [C-l, *enter_typing]
+      C-f: [C-f, *enter_typing]
+      C-Shift-n: [C-Shift-n, *enter_typing]
+      a: [a, *enter_typing]
+      b: [b, *enter_typing]
+      c: [c, *enter_typing]
+      d: [d, *enter_typing]
+      e: [e, *enter_typing]
+      f: [f, *enter_typing]
+      g: [g, *enter_typing]
+      i: [i, *enter_typing]
+      m: [m, *enter_typing]
+      n: [n, *enter_typing]
+      o: [o, *enter_typing]
+      p: [p, *enter_typing]
+      q: [q, *enter_typing]
+      r: [r, *enter_typing]
+      s: [s, *enter_typing]
+      t: [t, *enter_typing]
+      u: [u, *enter_typing]
+      v: [v, *enter_typing]
+      w: [w, *enter_typing]
+      x: [x, *enter_typing]
+      y: [y, *enter_typing]
+      z: [z, *enter_typing]
+      "0": ["0", *enter_typing]
+      "1": ["1", *enter_typing]
+      "2": ["2", *enter_typing]
+      "3": ["3", *enter_typing]
+      "4": ["4", *enter_typing]
+      "5": ["5", *enter_typing]
+      "6": ["6", *enter_typing]
+      "7": ["7", *enter_typing]
+      "8": ["8", *enter_typing]
+      "9": ["9", *enter_typing]
+      Dot: [Dot, *enter_typing]
+      Minus: [Minus, *enter_typing]
 
   - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
     remap:
