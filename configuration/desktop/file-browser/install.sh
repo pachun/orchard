@@ -10,6 +10,13 @@
 # text and source, audio and video, and (with libreoffice) office documents.
 # Anything it can't render falls back to a name-and-type card.
 #
+# sushi sizes its window wrong on a HiDPI Wayland desktop (half size; see
+# bin/patch-quick-look-size), so a patched copy of its window script is
+# rendered to ~/.config/sushi and handed to it through GLib's resource
+# overlay variable. The variable has to reach the D-Bus-activated previewer,
+# which the user's systemd manager launches, so it is set both for this
+# session and in environment.d for the next login.
+#
 # The sidebar shows exactly the places listed in ./sidebar-places, in that
 # order, with the icons named there, then any mounts, and no dividers.
 # bin/render-nautilus-sidebar turns that list into GTK's bookmarks file and
@@ -27,3 +34,12 @@ sudo pacman -S --needed --noconfirm nautilus sushi ydotool python-gobject at-spi
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 "$HOME/.local/bin/render-nautilus-sidebar" "$HERE/sidebar-places"
+
+patch_quick_look_size() {
+  "$HOME/.local/bin/patch-quick-look-size"
+  local overlay="G_RESOURCE_OVERLAYS=/org/gnome/NautilusPreviewer/js/ui/mainWindow.js=$HOME/.config/sushi/mainWindow.js"
+  mkdir -p "$HOME/.config/environment.d"
+  printf '%s\n' "$overlay" > "$HOME/.config/environment.d/quick-look.conf"
+  systemctl --user set-environment "$overlay"
+}
+patch_quick_look_size

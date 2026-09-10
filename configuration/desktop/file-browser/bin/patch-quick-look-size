@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+# Make Quick Look (sushi, Space in Nautilus) open at a useful size on a
+# HiDPI Wayland desktop. sushi holds its window back until the preview is
+# ready and sized, which is exactly right, but its size cap divides by the
+# monitor scale factor a second time under Wayland, so on a scale-2 panel
+# every preview maps at half the size it should. Forcing a size from the
+# compositor after the map is what causes the pixelated flash: the
+# half-size buffer is stretched until sushi repaints.
+#
+# GLib can substitute a file for any path inside a GResource
+# (G_RESOURCE_OVERLAYS), so this extracts sushi's main window script from
+# the installed gresource, replaces the size cap with a fraction of the
+# monitor work area, drops the client-side shadow margins (their extra
+# buffer area is what the compositor shows for a frame before the window
+# geometry lands, and the desktop draws no drop shadows anyway), drops the
+# theme's one-pixel decoration border (it was there for the first frame and
+# gone by the second, a visible one-pixel jiggle), keeps the Open With
+# button out of the keyboard focus chain (as the focused widget it grew a
+# focus border the moment the window went active), and writes the result
+# where the environment points (see the file-browser installer). Rendered
+# from the installed sushi on every configure run so an upstream change to
+# the rest of the file is picked up; if the text it replaces ever moves,
+# this fails loudly rather than shipping a stale copy.
+from pathlib import Path
+
+import gi
+
+from gi.repository import Gio
+
+gresource = "/usr/share/sushi/org.gnome.NautilusPreviewer.src.gresource"
+mainWindowResource = "/org/gnome/NautilusPreviewer/js/ui/mainWindow.js"
+patched = Path.home() / ".config/sushi/mainWindow.js"
+workareaFraction = 0.85
+
+maxSizeFunctionStart = "    _getMaxSize() {"
+nextFunctionStart = "    _resizeWindow() {"
+upstreamConstants = """const WINDOW_MAX_W = 800;
+const WINDOW_MAX_H = 600;
+const WINDOW_MAX_W_BASE = 1368;
+const WINDOW_MAX_H_BASE = 768;
+"""
+replacementConstants = f"const WINDOW_MAX_FRACTION_OF_WORKAREA = {workareaFraction};\n"
+windowConstructed = "                      application: application });\n"
+openButtonCreated = "        this._openButton = new Gtk.Button();\n"
+openButtonUnfocusable = openButtonCreated + "        this._openButton.can_focus = false;\n"
+shownWhenReady = """            this._resizeWindow();
+            this.queue_resize();
+            this.show();
+"""
+shownFocused = shownWhenReady + """            this.unset_state_flags(Gtk.StateFlags.BACKDROP);
+"""
+flatDecoration = windowConstructed + """
+        let flatDecoration = new Gtk.CssProvider();
+        flatDecoration.load_from_data('decoration { box-shadow: none; margin: 0; border: none; }');
+        Gtk.StyleContext.add_provider_for_screen(this.get_screen(), flatDecoration,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+"""
+replacementFunction = """    _getMaxSize() {
+        let monitor = this.get_display().get_monitor_at_window(this.get_window());
+        let workarea = monitor.get_workarea();
+        return [Math.floor(workarea.width * WINDOW_MAX_FRACTION_OF_WORKAREA),
+                Math.floor(workarea.height * WINDOW_MAX_FRACTION_OF_WORKAREA)];
+    }
+
+"""
+
+resource = Gio.Resource.load(gresource)
+source = resource.lookup_data(mainWindowResource, Gio.ResourceLookupFlags.NONE).get_data().decode()
+
+for anchor in (maxSizeFunctionStart, nextFunctionStart, upstreamConstants, windowConstructed, shownWhenReady, openButtonCreated):
+    if anchor not in source:
+        raise SystemExit(f"sushi's mainWindow.js no longer contains the expected text:\n{anchor}")
+
+start = source.index(maxSizeFunctionStart)
+end = source.index(nextFunctionStart)
+source = source[:start] + replacementFunction + source[end:]
+source = source.replace(upstreamConstants, replacementConstants)
+source = source.replace(windowConstructed, flatDecoration, 1)
+source = source.replace(shownWhenReady, shownFocused, 1)
+source = source.replace(openButtonCreated, openButtonUnfocusable, 1)
+
+patched.parent.mkdir(parents=True, exist_ok=True)
+patched.write_text(source)
+print(f"wrote {patched}")
