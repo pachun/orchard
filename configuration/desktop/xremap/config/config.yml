@@ -74,6 +74,17 @@ keymap:
       k: Up
       l: Enter
 
+  # The Quick Look window (Space in Nautilus) is its own app; its arrow keys
+  # step the folder selection behind it, so j/k keep walking files there too.
+  - name: "nautilus quick look: j/k step the previewed file"
+    application:
+      only:
+        - org.gnome.NautilusPreviewer
+    exact_match: true
+    remap:
+      j: Down
+      k: Up
+
   - name: "nautilus: Ctrl+j/k walk the sidebar"
     application:
       only:
