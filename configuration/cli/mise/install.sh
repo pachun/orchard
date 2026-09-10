@@ -5,9 +5,10 @@
 # typescript-language-server, bash-language-server, etc. Ruby is for
 # depot's entry-point script, which uses #!/usr/bin/env ruby. Bun is the
 # default JS runtime and package manager, available everywhere for
-# projects that don't pin their own. eas-cli builds and submits Expo
-# apps to the app stores. Idempotent — `mise use --global` rewrites a
-# config file; the version is skipped on subsequent runs.
+# projects that don't pin their own; pnpm is for the ones that do
+# (perch). eas-cli builds and submits Expo apps to the app stores.
+# Idempotent — `mise use --global` rewrites a config file; the version
+# is skipped on subsequent runs.
 set -euo pipefail
 
 sudo pacman -S --needed --noconfirm mise
@@ -23,4 +24,5 @@ mise settings ruby.compile=false
 mise use --global node@lts
 mise use --global ruby@latest
 mise use --global bun@latest
+mise use --global pnpm@latest
 mise use --global npm:eas-cli@latest
