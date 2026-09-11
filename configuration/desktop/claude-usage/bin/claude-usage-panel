@@ -1,24 +1,55 @@
 #!/bin/sh
 # Toggle the Claude usage dropdown under the bar. Opening forces a fresh
 # fetch so the numbers are current, pushes the record into the eww window,
-# and shows it; a second click closes it.
+# and shows it; a second press closes it.
+#
+# The compositor decides whether the panel is up. eww's own window list
+# has been seen to say nothing is open while the panel was still on
+# screen (its daemon had lost track of the window); trusting it then
+# stacked a second panel on the first, each press darker, and left the
+# open call hanging. When the two disagree the daemon is restarted, which
+# takes its surface with it, and any client still waiting on it is killed
+# first so a wedged daemon can't wedge the next press too.
 set -eu
 
 config="$HOME/.config/claude-usage/eww"
-eww_cmd() { timeout 2 eww --config "$config" "$@"; }
+eww_cmd() { timeout -s KILL 2 eww --config "$config" "$@"; }
+
+panel_is_on_screen() {
+    hyprctl layers -j 2>/dev/null | grep -q -E '"namespace": *"claude-usage"'
+}
+
+daemon_tracks_the_panel() {
+    eww_cmd active-windows 2>/dev/null | grep -q '^usage'
+}
+
+kill_stuck_clients() {
+    pkill -9 -f "eww --config $config (open|close|update)" 2>/dev/null || true
+}
+
+close_panel() {
+    if daemon_tracks_the_panel; then
+        eww_cmd close usage >/dev/null 2>&1 || true
+    else
+        "$HOME/.local/bin/restart-claude-usage"
+    fi
+    hyprctl dispatch submap reset >/dev/null 2>&1 || true
+}
+
+open_panel() {
+    eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-claude-usage"
+    record=$("$HOME/.local/bin/claude-usage" --force)
+    eww_cmd update usage="$record" >/dev/null 2>&1 || true
+    eww_cmd open usage >/dev/null 2>&1 || true
+    hyprctl dispatch submap claude-usage >/dev/null 2>&1 || true
+    pkill -RTMIN+12 waybar 2>/dev/null || true
+}
 
 # Open and closed each come with a submap switch: while the panel is up,
 # Escape (bound in hyprland.conf's claude-usage submap) closes it.
-if eww_cmd active-windows 2>/dev/null | grep -q '^usage'; then
-    eww_cmd close usage >/dev/null 2>&1 || true
-    hyprctl dispatch submap reset >/dev/null 2>&1 || true
-    exit 0
+kill_stuck_clients
+if panel_is_on_screen; then
+    close_panel
+else
+    open_panel
 fi
-
-eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-claude-usage"
-
-record=$("$HOME/.local/bin/claude-usage" --force)
-eww_cmd update usage="$record" >/dev/null 2>&1 || true
-eww_cmd open usage >/dev/null 2>&1 || true
-hyprctl dispatch submap claude-usage >/dev/null 2>&1 || true
-pkill -RTMIN+12 waybar 2>/dev/null || true
