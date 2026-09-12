@@ -4,12 +4,8 @@
 # discovered — and switches to the chosen one. Bound to Cmd+Shift+A, and to a
 # click on waybar's speaker icon.
 #
-# Switching means two things, and doing only the first is the usual mistake:
-#   1. set the default sink, so anything that starts playing *later* goes
-#      there, and
-#   2. move every stream that's *already* playing. Without this, picking a
-#      speaker while Spotify is mid-song appears to do nothing at all,
-#      because the browser is already bound to the old sink.
+# Switching is audio_switch_to in _audio-sinks (shared with the Bluetooth
+# watcher): set the default sink and move every stream already playing.
 #
 # Why an OS-level picker exists at all: the Spotify web player's own device
 # list only enumerates Spotify Connect and Google Cast devices — it cannot see
@@ -84,20 +80,6 @@ case "$sink" in
         fi
         sink="airplay_sink"
         ;;
-    *)
-        # Leaving AirPlay: the pipe going quiet stops the stream anyway, but
-        # deselecting is immediate where autostop takes a few seconds.
-        curl -fsS -m 1 -X PUT "$OWNTONE_API/outputs/set" \
-            --data '{"outputs":[]}' >/dev/null 2>&1 || true
-        ;;
 esac
 
-pactl set-default-sink "$sink"
-
-# Everything already playing is still attached to the old sink; move it, or
-# the switch looks like it did nothing.
-pactl list sink-inputs short 2>/dev/null | while read -r id _; do
-    [ -n "$id" ] && pactl move-sink-input "$id" "$sink" 2>/dev/null || true
-done
-
-notify-send 'Output' "$label" >/dev/null 2>&1 || true
+audio_switch_to "$sink" "$label"

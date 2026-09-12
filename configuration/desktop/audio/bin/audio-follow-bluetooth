@@ -1,0 +1,35 @@
+#!/bin/sh
+# Send sound to a Bluetooth speaker or headphones the moment they connect.
+# Connecting and choosing an output stay separate menus, and staying
+# connected without using a device remains possible from the output menu,
+# but in practice connecting a Bluetooth audio device means wanting to
+# hear through it. WirePlumber keeps whatever default was last chosen, so
+# left alone the new device would sit idle in the list.
+#
+# A Bluetooth device that connects is a new PipeWire sink; this watches the
+# sink events and routes to any bluez sink that appears. A profile change
+# on a connected device recreates its sink, which just re-routes to the
+# same device. Runs as a user service, after pipewire-pulse.
+set -eu
+
+. "$HOME/.local/bin/_audio-sinks"
+
+label_for() {
+    audio_outputs | awk -F'\t' -v s="$1" '$1 == s { print $2; exit }'
+}
+
+sink_name_for_index() {
+    pactl list sinks short 2>/dev/null | awk -v i="$1" '$1 == i { print $2; exit }'
+}
+
+route_to_if_bluetooth() {
+    _sink=$(sink_name_for_index "$1")
+    case "$_sink" in
+        bluez_output.*) audio_switch_to "$_sink" "${2:-$(label_for "$_sink")}" ;;
+    esac
+}
+
+pactl subscribe | while read -r _ event _ kind index; do
+    [ "$event" = "'new'" ] && [ "$kind" = "sink" ] || continue
+    route_to_if_bluetooth "${index#\#}" || true
+done

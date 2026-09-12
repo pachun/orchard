@@ -44,6 +44,24 @@ owntone_airplay_outputs() {
         | @tsv' 2>/dev/null || true
 }
 
+# Route sound to a sink: make it the default so anything that starts later
+# goes there, and move every stream already playing, or the switch looks
+# like it did nothing. Leaving AirPlay also deselects OwnTone's outputs: the
+# pipe going quiet stops the stream anyway, but deselecting is immediate
+# where autostop takes a few seconds.
+audio_switch_to() {
+    _target=$1; _label=$2
+    if [ "$_target" != "airplay_sink" ]; then
+        curl -fsS -m 1 -X PUT "$OWNTONE_API/outputs/set" \
+            --data '{"outputs":[]}' >/dev/null 2>&1 || true
+    fi
+    pactl set-default-sink "$_target"
+    pactl list sink-inputs short 2>/dev/null | while read -r _id _; do
+        [ -n "$_id" ] && pactl move-sink-input "$_id" "$_target" 2>/dev/null || true
+    done
+    notify-send 'Output' "$_label" >/dev/null 2>&1 || true
+}
+
 audio_current_sink() {
     _sink=$(pactl get-default-sink 2>/dev/null || true)
     # Sound going to the AirPlay pipe is really going to whichever speaker

@@ -1,0 +1,14 @@
+[Unit]
+Description=Send sound to Bluetooth audio devices as they connect
+After=pipewire-pulse.service
+Wants=pipewire-pulse.service
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
+ExecStart=%h/.local/bin/audio-follow-bluetooth
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
