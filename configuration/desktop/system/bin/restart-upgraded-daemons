@@ -1,9 +1,9 @@
 #!/bin/sh
 # Restart every running user service whose executable has been replaced on
 # disk since it started — the state a package upgrade leaves a daemon in.
-# The old binary keeps running, invisibly, until something restarts it
-# (tetherd 0.2.27 ran for seven hours after its upgrade and then spun on a
-# full core). Run at the end of system-update.
+# The old binary keeps running, invisibly, until something restarts it (one
+# daemon ran seven hours past its upgrade and then spun on a full core).
+# Run at the end of system-update.
 #
 # Only systemd user services are covered: they are the daemons this setup
 # can restart cleanly. A replaced system service or a desktop app is
