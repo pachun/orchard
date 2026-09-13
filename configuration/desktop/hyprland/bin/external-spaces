@@ -1,0 +1,26 @@
+#!/bin/sh
+# Decide whether the five spaces follow an external monitor. `on` pins them to
+# it (the docked layout: Cmd+1..5 always drives the monitor); `off` keeps them
+# on the laptop panel whatever gets plugged in. Off is for a monitor whose link
+# is still being coaxed up: while it flaps, every appearance would otherwise
+# sweep the terminal you're working in across to it and back.
+#
+# hyprland.lua reads the choice from a state file when it loads and only makes
+# the workspace rules if it says on (no file means on), so the reload is what
+# applies the change: Hyprland can add rules live but not remove them.
+set -eu
+
+state_file="$HOME/.local/state/orchard/external-spaces"
+
+remember() {
+    mkdir -p "$(dirname "$state_file")"
+    echo "$1" > "$state_file"
+    hyprctl reload >/dev/null
+}
+
+case "${1:-status}" in
+    on)  remember on; echo "spaces follow the external monitor" ;;
+    off) remember off; echo "spaces stay on the laptop panel" ;;
+    status) if [ -f "$state_file" ] && grep -qx off "$state_file"; then echo off; else echo on; fi ;;
+    *) echo "usage: external-spaces on|off|status" >&2; exit 2 ;;
+esac

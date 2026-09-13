@@ -3,7 +3,7 @@
 # the other monitor. Every workspace switch goes through here — Cmd+1..5 via
 # xremap, and Ctrl+Left/Right via workspace-cycle.
 #
-# `hyprctl dispatch workspace N` alone is not enough on two screens. It does
+# Focusing workspace N alone is not enough on two screens. It does
 # show the workspace on whichever monitor owns it, but focus only follows if
 # there is a window there to take it. Switch to an *empty* workspace on the
 # other monitor and follow_mouse=2 hands focus straight back to whichever
@@ -36,11 +36,11 @@ centre_of_monitor() {
         "\((.x + (.width / .scale / 2)) | floor) \((.y + (.height / .scale / 2)) | floor)"'
 }
 
-hyprctl dispatch workspace "$target" >/dev/null
+hyprctl dispatch "hl.dsp.focus({ workspace = \"$target\" })" >/dev/null
 
 destination=$(monitor_showing_workspace "$target")
 
 if [ -n "$destination" ] && [ "$destination" != "$(focused_monitor)" ]; then
-    # shellcheck disable=SC2046 # centre_of_monitor deliberately yields two args
-    hyprctl dispatch movecursor $(centre_of_monitor "$destination") >/dev/null
+    read -r centre_x centre_y <<<"$(centre_of_monitor "$destination")"
+    hyprctl dispatch "hl.dsp.cursor.move({ x = $centre_x, y = $centre_y })" >/dev/null
 fi

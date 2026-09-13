@@ -12,7 +12,7 @@
 #     it up. A choice made there outranks the active theme's own
 #     wallpaper and survives theme switches — for trying an image on
 #     before committing it to a theme. Called with no image at all by
-#     hyprland.conf at login and by set-theme on a theme switch, both of
+#     hyprland.lua at login and by set-theme on a theme switch, both of
 #     which need the desktop to be correct without choosing anything.
 #   - orchard-wallpaper-portal, the missing XDG desktop portal backend
 #     that makes Nautilus's built-in "Set as Wallpaper" work. See below.
@@ -39,7 +39,7 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 
 # D-Bus starts the portal backend on demand from this, so it needs no
-# exec-once and isn't running when nothing has asked for a wallpaper.
+# hyprland.start and isn't running when nothing has asked for a wallpaper.
 bash "$TOOLS/link.sh" "$HERE/dbus" "$HOME/.local/share/dbus-1/services"
 
 # The .portal file is the one piece that can't live in $HOME:

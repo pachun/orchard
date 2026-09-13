@@ -182,7 +182,7 @@ s.connect(sock_path)
 
 # Sync state at startup so a fullscreen window that already exists when
 # the daemon starts (e.g., after a hyprctl reload that re-fires
-# exec-once) is reflected immediately, not on the next event.
+# hyprland.start) is reflected immediately, not on the next event.
 update_fullscreen_state()
 
 buf = b""

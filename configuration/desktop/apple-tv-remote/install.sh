@@ -2,7 +2,7 @@
 # Control the Apple TVs with the vim keys. pyatv speaks Apple's Companion
 # protocol (what the Siri Remote uses); Cmd+Shift+R or the bar's TV glyph
 # opens a which-key card in the corner and a Hyprland submap hands hjkl to
-# the TV (see hyprland.conf's appletv submap and waybar's custom/apple-tv).
+# the TV (see hyprland.lua's appletv submap and waybar's custom/apple-tv).
 # pyatv arrives as a uv tool — per-user, no AUR build. Pairing needs a PIN
 # read off each TV, so it lives in ./connect apple-tv.
 # Idempotent.

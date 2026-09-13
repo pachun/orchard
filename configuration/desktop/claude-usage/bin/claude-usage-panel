@@ -33,7 +33,7 @@ close_panel() {
     else
         "$HOME/.local/bin/restart-claude-usage"
     fi
-    hyprctl dispatch submap reset >/dev/null 2>&1 || true
+    hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null 2>&1 || true
 }
 
 open_panel() {
@@ -41,12 +41,12 @@ open_panel() {
     record=$("$HOME/.local/bin/claude-usage" --force)
     eww_cmd update usage="$record" >/dev/null 2>&1 || true
     eww_cmd open usage >/dev/null 2>&1 || true
-    hyprctl dispatch submap claude-usage >/dev/null 2>&1 || true
+    hyprctl dispatch 'hl.dsp.submap("claude-usage")' >/dev/null 2>&1 || true
     pkill -RTMIN+12 waybar 2>/dev/null || true
 }
 
 # Open and closed each come with a submap switch: while the panel is up,
-# Escape (bound in hyprland.conf's claude-usage submap) closes it.
+# Escape (bound in hyprland.lua's claude-usage submap) closes it.
 kill_stuck_clients
 if panel_is_on_screen; then
     close_panel

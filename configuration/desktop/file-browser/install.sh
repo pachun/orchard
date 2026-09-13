@@ -2,7 +2,7 @@
 # The file browser, and Quick Look for it.
 #
 # Nautilus was only ever here as a dependency of xdg-desktop-portal-gnome, even
-# though Cmd+E in hyprland.conf launches it by name — so it's installed on
+# though Cmd+E in hyprland.lua launches it by name — so it's installed on
 # purpose now.
 #
 # sushi is GNOME's Quick Look: Space on a selected file opens a preview window,

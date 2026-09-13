@@ -2,7 +2,7 @@
 # Apply the Dell XPS OLED white-balance correction, held for the session.
 # No-op wherever gammawb wasn't built (Apple panels are factory-calibrated;
 # non-Dell x86 panels have their own balance), so the shared Hyprland
-# exec-once is safe on every machine.
+# hyprland.start is safe on every machine.
 #
 # Values were hand-matched to a MacBook Air's Liquid Retina display: neutral
 # gains, with green pulled out of the shadows (exponent 1.08) to cancel the

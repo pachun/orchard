@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Emoji picker (Ctrl+Cmd+Space in hyprland.conf, macOS-style).
+# Emoji picker (Ctrl+Cmd+Space in hyprland.lua, macOS-style).
 # rofimoji is the picker; fuzzel (handled by the fuzzel feature) is
 # the menu it draws into; ydotool injects the chosen emoji into the
 # focused window via /dev/uinput. ydotool over wtype because wtype

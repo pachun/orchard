@@ -161,7 +161,7 @@ ramp() {
         rested_since="${rested_since:-$now}"
         if [ $((now - rested_since)) -ge "$OFF_AFTER_MS_AT_DIMMEST" ]; then
           set_level 0
-          hyprctl dispatch dpms off >/dev/null
+          hyprctl dispatch 'hl.dsp.dpms({ action = "off" })' >/dev/null
           forget_ticks
           exit 0
         fi
@@ -190,7 +190,7 @@ start_ramp() {
 turn_on_at_dimmest() {
   stop_ramp
   forget_ticks
-  hyprctl dispatch dpms on >/dev/null
+  hyprctl dispatch 'hl.dsp.dpms({ action = "on" })' >/dev/null
   set_level "$(percent_of_max "$DIMMEST_PERCENT")"
   show_osd "$(level)"
 }
@@ -207,7 +207,7 @@ tap() {
       set_level "$target"
     else
       set_level 0
-      hyprctl dispatch dpms off >/dev/null
+      hyprctl dispatch 'hl.dsp.dpms({ action = "off" })' >/dev/null
       forget_ticks
     fi
   fi

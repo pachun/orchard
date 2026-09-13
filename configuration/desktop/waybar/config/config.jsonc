@@ -141,7 +141,7 @@
         // the bar that isn't the clock, which is a different slot per machine
         // — see waybar/layouts/. Polled every 30s as a safety net, but
         // dnd-toggle sends SIGRTMIN+7 to flip the icon immediately.
-        // Click toggles the mode; F6 in hyprland.conf does the same.
+        // Click toggles the mode; F6 in hyprland.lua does the same.
         "exec": "$HOME/.local/bin/waybar-dnd",
         "return-type": "json",
         "interval": 30,

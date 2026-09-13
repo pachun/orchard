@@ -1,0 +1,27 @@
+#!/bin/sh
+# Turn the laptop panel off and on for hypridle, and swap the dpms-off submap
+# with it. hypridle's config is hyprlang, and the Lua dispatch strings Hyprland
+# wants are full of braces and quotes it has no business parsing, so they live
+# here instead. Only eDP-1: waking an external from DPMS re-runs link training,
+# and on the UltraFine 5K's marginal Thunderbolt link that usually collapses a
+# working session. `wake` is the after-sleep case, where every panel comes back.
+#
+# Usage: panel-power off|on|wake
+set -eu
+
+INTERNAL_PANEL=eDP-1
+
+set_panel() {
+    hyprctl dispatch "hl.dsp.dpms({ action = \"$1\", monitor = \"$INTERNAL_PANEL\" })" >/dev/null
+}
+
+enter_submap() {
+    hyprctl dispatch "hl.dsp.submap(\"$1\")" >/dev/null
+}
+
+case "${1:-}" in
+    off) set_panel off; enter_submap dpms-off ;;
+    on) set_panel on; enter_submap reset ;;
+    wake) hyprctl dispatch 'hl.dsp.dpms({ action = "on" })' >/dev/null ;;
+    *) echo "usage: $(basename "$0") off|on|wake" >&2; exit 2 ;;
+esac

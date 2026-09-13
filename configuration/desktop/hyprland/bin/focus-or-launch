@@ -14,7 +14,7 @@
 #                                     otherwise the lowest-numbered
 #                                     empty workspace (matches the
 #                                     global `match:class .*, workspace
-#                                     empty` rule in hyprland.conf so
+#                                     empty` rule in hyprland.lua so
 #                                     restored windows land where new
 #                                     launches would)
 #   4. Running, on a regular ws     → focus + raise
@@ -109,7 +109,7 @@ if [ -n "$stashed_addr" ]; then
             target=$((target + 1))
         done
     fi
-    hyprctl dispatch movetoworkspace "$target,address:$stashed_addr"
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"$target\", window = \"address:$stashed_addr\" })"
     exit 0
 fi
 
@@ -137,12 +137,12 @@ if [ "$focused_class" = "$class" ]; then
     # State 2: focused — stash the *focused* window. If there are
     # multiple windows of this class, this only minimizes the one
     # the user is looking at, leaving the others alone.
-    # `movetoworkspacesilent` keeps the user's view on the current
+    # `follow = false` keeps the user's view on the current
     # workspace instead of following the window into the scratchpad.
-    hyprctl dispatch movetoworkspacesilent "$special,address:$focused_addr"
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"$special\", window = \"address:$focused_addr\", follow = false })"
 else
     # State 4: visible elsewhere — focus + raise. `class:` selector
     # picks the most-recently-focused window of the class, which is
     # the right "bring it back" semantic for multi-window apps.
-    hyprctl dispatch focuswindow "class:$class"
+    hyprctl dispatch "hl.dsp.focus({ window = \"class:$class\" })"
 fi

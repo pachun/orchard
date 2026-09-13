@@ -2,7 +2,7 @@
 # On-screen volume and brightness controls, styled like macOS's HUD.
 #
 # Changing volume, screen brightness, or keyboard brightness (F1/F2 and the
-# audio keys — see hyprland.conf) pops a frosted rounded square: a themed glyph
+# audio keys — see hyprland.lua) pops a frosted rounded square: a themed glyph
 # over a level bar, drawn by an eww widget. The glyphs are GTK symbolic icons,
 # so GTK rasterises them at the display scale (crisp on a HiDPI panel) and
 # recolours them from the theme. render-osd-theme regenerates the square's

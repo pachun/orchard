@@ -1,6 +1,6 @@
 // Frosted rounded square, macOS HUD style. The translucent background is read
 // through Hyprland's blur layerrule on this window's namespace (see
-// hyprland.conf). Colours ($frost / $edge / $track / $ink) are regenerated
+// hyprland.lua). Colours ($frost / $edge / $track / $ink) are regenerated
 // from the active theme's palette by render-osd-theme into colors.scss.
 @import "colors";
 

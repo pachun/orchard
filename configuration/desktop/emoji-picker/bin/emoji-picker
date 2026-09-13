@@ -1,5 +1,5 @@
 #!/bin/sh
-# Cmd+Ctrl+Space emoji picker — bound from hyprland.conf.
+# Cmd+Ctrl+Space emoji picker — bound from hyprland.lua.
 #
 # Why this exists instead of `rofimoji --action type`: neither wtype
 # (wlr-virtual-keyboard) nor ydotool (uinput, falling back to GTK-style
@@ -30,8 +30,8 @@ ydotool key 29:1 47:1 47:0 29:0
 sleep 0.3
 
 # Restore the pre-emoji clipboard. After rofimoji's wl-copy, the
-# `wl-paste --type * --watch cliphist store` hooks (exec-once in
-# hyprland.conf) record the emoji as cliphist's newest entry, pushing
+# `wl-paste --type * --watch cliphist store` hooks (hyprland.start in
+# hyprland.lua) record the emoji as cliphist's newest entry, pushing
 # the original clipboard content to line 2 of `cliphist list`.
 prev=$(cliphist list | sed -n 2p)
 [ -n "$prev" ] && printf '%s\n' "$prev" | cliphist decode | wl-copy

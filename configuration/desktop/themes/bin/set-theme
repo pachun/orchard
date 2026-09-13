@@ -96,10 +96,10 @@ done
 pkill -SIGUSR2 -x ghostty 2>/dev/null || true
 
 # Hyprland window borders pull their color from this theme dir's
-# hyprland.conf via the main config's `source = .../active/hyprland.conf`.
+# hyprland.lua via the main config's `require(.../active/hyprland)`.
 # A `hyprctl reload` re-reads the config (following the freshly-repointed
 # active symlink) so the focused-window border repaints to the new theme.
-# reload doesn't re-run exec-once, so daemons started at launch aren't
+# reload doesn't re-run hyprland.start, so daemons started at launch aren't
 # disturbed.
 hyprctl reload >/dev/null 2>&1 || true
 

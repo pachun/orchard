@@ -606,7 +606,7 @@ fn main() -> Result<()> {
     // A supervisor thread periodically rescans /proc/bus/input/devices so we
     // pick up keyboards that appear *after* palm-filter starts — most notably
     // xremap's virtual keyboard, which only exists once xremap launches from
-    // Hyprland's exec-once during user login (well after this system service
+    // Hyprland's hyprland.start during user login (well after this system service
     // has started at boot). Without rescanning, palm-filter would only ever
     // see the original keyboard, which xremap exclusively grabs and silences
     // for everyone else.

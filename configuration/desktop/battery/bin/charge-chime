@@ -2,8 +2,8 @@
 # The MagSafe chime: a short sound when the charger is plugged in. Listens
 # to udev's power_supply events for the session and plays on the moment
 # mains power goes from off to on — plugging in, not unplugging, not the
-# burst of events a single plug produces. Runs from hyprland.conf's
-# exec-once, so it plays through your own PipeWire and works with the lid
+# burst of events a single plug produces. Runs from hyprland.lua's
+# hyprland.start, so it plays through your own PipeWire and works with the lid
 # closed; it can't play while suspended, since plugging in doesn't wake
 # the machine.
 #

@@ -1,7 +1,7 @@
 ; The Apple TV card: one window, three faces, driven by apple-tv-key
 ; through the vars below. A device picker (paired TVs instantly, the scan
 ; filling in unpaired ones), a PIN prompt while pairing, and the which-key
-; remote once connected. The keys live in hyprland.conf's appletv submap;
+; remote once connected. The keys live in hyprland.lua's appletv submap;
 ; this card is the picture of the mode. Colours come from colors.scss,
 ; regenerated per theme by render-apple-tv-remote-theme.
 

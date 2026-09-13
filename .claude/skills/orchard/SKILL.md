@@ -72,7 +72,7 @@ A feature owns its scripts and config; other features carry only the
 wiring lines that reference it, in their own files. E.g. the Claude usage
 widget: `claude-usage/` owns the scripts and the eww panel; `waybar`
 holds the module block, style rule, and layout entry; `hyprland` holds
-the keybind, `exec-once`, and layer rules; `themes/bin/set-theme` holds
+the keybind, `hyprland.start`, and layer rules; `themes/bin/set-theme` holds
 the re-theme block. When adding something, put each line in the file
 whose feature it belongs to, guarded so a machine without the owning
 feature still works (`[ -x "$HOME/.local/bin/render-x-theme" ] && …`,
@@ -96,7 +96,7 @@ accent every theme agrees on), `ghostty.conf` (bundled `theme = "…"` +
 `background-opacity`, or the palette inlined), `nvim.lua` (plugin
 `setup()` with `require("theme_opacity").transparent()`, then
 `vim.opt.background` — the source of truth for light/dark — and
-`colorscheme`), `hyprland.conf` (active/inactive border colors),
+`colorscheme`), `hyprland.lua` (active/inactive border colors),
 `fuzzel.ini`, `tmux.conf`, `waybar.css` (bar background sampled from the
 wallpaper's top edge: `magick wallpaper.png -crop 100%x2%+0+0 +repage
 -resize '1x1!' -format '%[hex:u.p{0,0}]' info:`), `chromium.json`
@@ -141,20 +141,38 @@ modules that need a nudge get signalled directly by process
 config/layout changes; `pkill -RTMIN+<n> waybar` to refresh a polled
 module.
 
-## Hyprland (`configuration/desktop/hyprland/config/hyprland.conf`)
+## Hyprland (`configuration/desktop/hyprland/config/hyprland.lua`)
 
-`$modifier = SUPER` (the key the user calls Cmd; the XPS keycap says
-Alt). App binds are `bind = $modifier [SHIFT], <key>, exec,
-$HOME/.local/bin/focus-or-launch <class> <command>` — one window you
-bring forward or hide; things you open several of (Nautilus) use plain
-`exec` plus `windowrule = match:class …, workspace unset`. A global
-`windowrule = match:class .*, workspace empty` sends every new window to
-the lowest empty workspace; anything that should stay put (dialogs,
-file manager, calculator, Quick Look) needs the `workspace unset`
-override. Layer surfaces (eww, fuzzel) get `layerrule = no_anim on` and,
-for frosted panels, `blur on` + `ignore_alpha 0.3`, keyed by namespace.
-Daemons start from `exec-once`. Apply live with `hyprctl reload` (does
-not re-run exec-once).
+Lua config (the `.conf` format is gone in Hyprland 0.57); the API
+reference is the stub at `/usr/share/hypr/stubs/hl.meta.lua`.
+`modifier = "SUPER"` (the key the user calls Cmd; the XPS keycap says
+Alt). App binds are `hl.bind(modifier .. " + [SHIFT +] <key>",
+focusOrLaunch(<class>, <command>))` — one window you bring forward or
+hide; things you open several of (Nautilus) use plain `hl.dsp.exec_cmd`
+plus `hl.window_rule({ match = { class = … }, workspace = "unset" })`.
+Scripts in `~/.local/bin` go through `runScript("<name> <args>")`.
+Legacy bind flags are option tables: `binde` → `{ repeating = true }`,
+`bindl` → `{ locked = true }`; submaps are `hl.define_submap(name, fn)`.
+A global `hl.window_rule({ match = { class = ".*" }, workspace = "empty" })`
+sends every new window to the lowest empty workspace; anything that
+should stay put (dialogs, file manager, calculator, Quick Look) needs
+the `workspace = "unset"` override. Layer surfaces (eww, fuzzel) get
+`hl.layer_rule({ match = { namespace = … }, no_anim = true })` and, for
+frosted panels, `blur = true, ignore_alpha = 0.3`. Daemons start inside
+`hl.on("hyprland.start", …)`; a top-level `hl.exec_cmd` runs on every
+config load instead. Config blocks are one `hl.config({ … })` table;
+the theme's border colors come in through
+`require(home .. "/.config/orchard-themes/active/hyprland")`. Apply live
+with `hyprctl reload` (does not re-run hyprland.start); check with
+`Hyprland --verify-config -c <file>` and `hyprctl configerrors`.
+
+Scripts talk to Hyprland in Lua too: `hyprctl dispatch 'hl.dsp.focus({
+workspace = "3" })'`, `hyprctl -r eval 'hl.monitor({ … })'` (there is no
+`hyprctl keyword` any more), and `hyprctl dispatch 'hl.dsp.submap("reset")'`.
+hypridle's config is still hyprlang, so its Hyprland calls go through
+`lock/bin/panel-power`. Never delete `hyprland.lua` while a session is
+up: Hyprland's file watcher regenerates a stub config through the
+symlink, into the repo.
 
 ## Panels and menus
 
@@ -163,7 +181,7 @@ not re-run exec-once).
   (`eww --config ~/.config/<feature>/eww`), restarted by kill + `daemon`
   + ping loop, never `eww reload` (strands surfaces on wlr-layer-shell).
   Window geometry that should line up with tiled windows uses
-  `gaps_out` (10px) offsets and `rounding` (10px) radius; hyprland.conf
+  `gaps_out` (10px) offsets and `rounding` (10px) radius; hyprland.lua
   `general`/`decoration` are the source. No drop shadows anywhere.
 - **fuzzel** for pickers/menus (`system-menu`, `wifi-menu`,
   `bluetooth-menu`, `theme-menu`, `audio-menu`): `. "$HOME/.local/bin/_fuzzel-menu-toggle"`,

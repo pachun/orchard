@@ -24,7 +24,7 @@ if looking_at_the_visualizer; then
     exit 0
 fi
 if pgrep -x projectMSDL >/dev/null; then
-    exec hyprctl dispatch focuswindow 'class:^(projectMSDL)$' >/dev/null
+    exec hyprctl dispatch 'hl.dsp.focus({ window = "class:^(projectMSDL)$" })' >/dev/null
 fi
 
 mkdir -p "$HOME/.projectM"

@@ -5,7 +5,7 @@
 # repackages that same official .deb verbatim (from downloads.claude.ai, with
 # upstream-published checksums), which is how it reaches Arch.
 #
-# It's an Electron app. env = ELECTRON_OZONE_PLATFORM_HINT,auto in hyprland.conf
+# It's an Electron app. env = ELECTRON_OZONE_PLATFORM_HINT,auto in hyprland.lua
 # is what puts its window on Wayland rather than XWayland — without it the app
 # renders through XWayland and looks soft on the HiDPI laptop panel. Launch and
 # window class are wired to Cmd+Shift+O there too.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Step to the next or previous workspace, wrapping at both ends. Bound to
-# Ctrl+Left/Right in hyprland.conf.
+# Ctrl+Left/Right in hyprland.lua.
 #
 # The ring is workspaces 1..5 — always, whether or not they hold anything, so
 # the five you see in the bar are the five you can reach — *plus* any workspace

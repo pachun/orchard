@@ -4,7 +4,7 @@
 # 0 just means off here.
 #
 # Usage: kbd-brightness up|down [STEP%]   (STEP defaults to 5%)
-#        kbd-brightness max               (used at login — see hyprland.conf)
+#        kbd-brightness max               (used at login — see hyprland.lua)
 # 5% pairs well with Hyprland's `binde` at the default 25 Hz repeat rate:
 # a single tap moves a noticeable amount, holding ramps full-range in ~0.8s.
 set -euo pipefail

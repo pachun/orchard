@@ -9,7 +9,7 @@
 # theme because set-theme already writes color-scheme.
 #
 # Bound to the keyboard's own calculator key, which the XPS declares. If your
-# keyboard has no such key, use the bind in hyprland.conf.
+# keyboard has no such key, use the bind in hyprland.lua.
 # Idempotent.
 set -euo pipefail
 

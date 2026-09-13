@@ -4,7 +4,7 @@
 # bails. Hex value is copied to the clipboard and surfaced in a
 # notification so it's visible without paste.
 #
-# Bound to Cmd+Shift+C in hyprland.conf. Caveat: that chord steals
+# Bound to Cmd+Shift+C in hyprland.lua. Caveat: that chord steals
 # chromium devtools' "inspect element" — F12 still opens devtools
 # for that, and the inspect mode is reachable inside devtools.
 set -eu

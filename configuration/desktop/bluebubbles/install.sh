@@ -7,7 +7,7 @@
 # own "App Update Check" nag stays quiet. This feature used to carry its
 # own PKGBUILD for the 2.0.0 beta, when stable couldn't paste with ctrl+V
 # on Linux and the AUR's beta packages forced XWayland and renamed the
-# binary (breaking the window-class wiring in hyprland.conf,
+# binary (breaking the window-class wiring in hyprland.lua,
 # launch-hidden and orchard-notifications). The paste fix reached stable
 # in 2.0.0, and bluebubbles-bin ships a native-Wayland launcher with the
 # binary still called `bluebubbles`, so none of those reasons survive.

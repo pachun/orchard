@@ -12,7 +12,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 
 # wb + the login applier go on every machine; the applier no-ops on Apple
-# panels, so the shared Hyprland exec-once (below) is harmless there.
+# panels, so the shared Hyprland hyprland.start (below) is harmless there.
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 # The gamma client is only needed on the Dell OLED. Build it from source so
@@ -29,7 +29,7 @@ if is_dell; then
   rm -rf "$build"
 
   # Re-apply live so a re-run picks up value changes without a re-login.
-  # (First bringup reboots into Hyprland, where the exec-once applies it.)
+  # (First bringup reboots into Hyprland, where the hyprland.start applies it.)
   if pgrep -x Hyprland >/dev/null 2>&1; then
     pkill -x gammawb 2>/dev/null || true
     sleep 0.3

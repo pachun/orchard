@@ -14,7 +14,7 @@
 #
 # One idempotent operation: work out which image ought to be up, and put
 # it up. Naming an image changes the answer first; naming none just
-# reasserts it. That's why login (hyprland.conf's exec-once, where the
+# reasserts it. That's why login (hyprland.lua's hyprland.start, where the
 # wallpaper daemon starts from nothing) and set-theme (where the answer may
 # have just changed underneath us) both call it with no argument — they
 # aren't choosing anything, they just need the desktop to be correct.

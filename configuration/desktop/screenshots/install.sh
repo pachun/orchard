@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Screenshot + recording stack (Cmd+Shift+3/4/5 in hyprland.conf).
+# Screenshot + recording stack (Cmd+Shift+3/4/5 in hyprland.lua).
 # grim grabs pixels, slurp picks regions, wf-recorder writes mp4.
 # hyprpicker freezes the screen during region-select (used by
 # ~/.local/bin/screenshot) so on-screen UI (fuzzel menus, the bar)

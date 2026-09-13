@@ -16,7 +16,7 @@ card_is_still_up() {
 }
 
 if [ -d "$runtime" ]; then
-    hyprctl dispatch submap reset >/dev/null 2>&1 || true
+    hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null 2>&1 || true
     for pidfile in "$runtime"/*.pid; do
         [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
     done
@@ -41,4 +41,4 @@ eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-apple-tv-remote"
 printf '%s\n' "$!" > "$runtime/scan.pid"
 
 eww_cmd open remote >/dev/null 2>&1 || true
-hyprctl dispatch submap appletv >/dev/null 2>&1 || true
+hyprctl dispatch 'hl.dsp.submap("appletv")' >/dev/null 2>&1 || true

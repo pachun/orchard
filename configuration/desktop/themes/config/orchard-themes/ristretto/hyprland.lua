@@ -1,0 +1,6 @@
+-- Window border colors for Monokai Pro Ristretto. Loaded by the main
+-- hyprland.lua through the orchard-themes/active symlink, so a
+-- set-theme switch repaints borders to match. Active = the orange
+-- accent; inactive = the selection gray, which recedes against the
+-- base. Border width itself lives in the main config's general block.
+hl.config({ general = { col = { active_border = "rgb(f38d70)", inactive_border = "rgb(403e41)" } } })

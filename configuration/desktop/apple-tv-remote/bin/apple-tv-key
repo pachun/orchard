@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Every key of Apple TV mode lands here (from hyprland.conf's appletv
+"""Every key of Apple TV mode lands here (from hyprland.lua's appletv
 submap), and the card in the corner is redrawn to match. Three states:
 
   picker   j/k move, Enter connects a paired TV or starts pairing an

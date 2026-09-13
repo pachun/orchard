@@ -24,7 +24,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$TOOLS/machine.sh"
 
-# The charger chime (bin/charge-chime, started from hyprland.conf) is for
+# The charger chime (bin/charge-chime, started from hyprland.lua) is for
 # every laptop, Macs included; its sound ships in sounds/. Everything past
 # this is x86 power management.
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

@@ -13,7 +13,7 @@ native right-click item works — as does any other app that asks the
 portal to set a wallpaper.
 
 Started on demand by D-Bus (see the .service file alongside this script),
-not by an exec-once.
+not by a hyprland.start.
 """
 
 import subprocess
