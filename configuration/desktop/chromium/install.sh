@@ -12,7 +12,7 @@
 #     silently fails to start. This package (asahi-alarm repo)
 #     installs the CDM and registers it with Chromium and Firefox.
 #   gnome-keyring — Secret Service backend chromium uses for password
-#     storage.
+#     storage. Installed (and unlocked at login) by the keyring feature.
 #
 # Extension force-install: chromium reads JSON files under
 # /etc/chromium/policies/managed/ on every startup and installs
@@ -35,7 +35,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 . "$TOOLS/machine.sh"
 
-packages=(chromium gnome-keyring)
+bash "$HERE/../keyring/install.sh"
+
+packages=(chromium)
 if is_apple_silicon; then
   packages+=(widevine)
 fi

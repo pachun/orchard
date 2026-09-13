@@ -139,19 +139,6 @@ point_geoclue_at_beacondb() {
   systemctl restart geoclue.service
 }
 
-enable_keyring_autounlock() {
-  # PAM captures the login password and unlocks gnome-keyring with it,
-  # macOS-Keychain style. A mismatched keyring password just falls back to
-  # the normal prompt — no lockout.
-  local pam=/etc/pam.d/login
-  grep -q 'pam_gnome_keyring' "$pam" && return 0
-  cat >> "$pam" <<'EOF'
-
-auth     optional  pam_gnome_keyring.so
-session  optional  pam_gnome_keyring.so auto_start
-EOF
-}
-
 ignore_suspend_key() {
   # F6 sends XF86Sleep on Asahi Apple keyboards (fnmode=3); logind suspends
   # on it by default. Ignore it so Hyprland's own XF86Sleep bind is the
@@ -213,7 +200,6 @@ set_hostname
 set_timezone
 configure_kernel_cmdline
 point_geoclue_at_beacondb
-enable_keyring_autounlock
 ignore_suspend_key
 remove_alarm_user
 move_repo_into_user_home
