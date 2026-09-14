@@ -6,16 +6,32 @@
 # in the glyphs the modules use. pacman-contrib supplies the
 # `checkupdates` binary that waybar-updates calls without locking
 # the system pacman DB.
+#
+# waybar comes from the AUR's git package, not extra, until the release
+# after 0.15.0. The workspace buttons switch desktops by sending Hyprland
+# the old `dispatch workspace N` string, which Hyprland's Lua config
+# manager rejects, so under hyprland.lua the numbers in the bar stopped
+# responding to clicks. Upstream fixed it on main (Alexays/Waybar#5013,
+# then #5231 to detect the protocol) but has not released it. Once a
+# release carries it, put `waybar` back in the pacman line and drop the
+# AUR one.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm \
-    waybar cava playerctl ttf-nerd-fonts-symbols-mono pacman-contrib
+    cava playerctl ttf-nerd-fonts-symbols-mono pacman-contrib
 
 bash "$TOOLS/install-yay.sh"
-bash "$TOOLS/aur-install.sh" ttf-phosphor-icons
+
+# waybar-git conflicts with extra's waybar, and a --noconfirm install answers
+# no to pacman's "remove it?", so the swap has to be explicit. The running
+# bar keeps its binary until restart-waybar below replaces it.
+if pacman -Qq waybar >/dev/null 2>&1; then
+    sudo pacman -R --noconfirm waybar
+fi
+bash "$TOOLS/aur-install.sh" ttf-phosphor-icons waybar-git
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/waybar"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
@@ -55,7 +71,7 @@ esac
 EOF
 sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-waybar-weather-refresh
 
-# Waybar reads its config once at startup, so a bar that has been up since
-# before a re-run would keep drawing the old modules until the next login.
-# SIGUSR2 is waybar's live config reload; no-op when no session is up.
-pkill -SIGUSR2 -x waybar 2>/dev/null || true
+# Waybar reads its config once at startup and its binary is whatever was
+# there when it launched, so a bar that has been up since before a re-run
+# would keep drawing the old modules on the old build until the next login.
+"$HOME/.local/bin/restart-waybar"

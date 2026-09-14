@@ -26,7 +26,17 @@
  * breathing room the distro logo used to — 12px here plus the button's own
  * 2px margin lands the first digit at 14px, matching the battery on the right. */
 #workspaces                 { padding: 0 4px 0 12px; }
-#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; border-radius: 3px; }
+/* A button transitions only its fill. The GTK theme's default is
+ * `transition: all`, which also crossfades the digit's color to transparent
+ * through black when a space becomes active; naming the property leaves color
+ * out, so the digit is simply gone the frame the square lands, and the square's
+ * fill eases up under it. The GTK theme's hover style also paints a text-shadow,
+ * which shows through the transparent digit of the active space as a black one
+ * whenever the pointer is over it; the shadow is dropped. Corners are the same
+ * in every state: a hover highlight is the square, not a pill that becomes one.
+ * The fill color is the theme's; the theme sets .active's background-color. */
+#workspaces button          { padding: 0 3px; margin: 8px 2px; background: transparent; border-radius: 3px;
+                              text-shadow: none; transition: background-color 180ms ease-out; }
 
 /* DND has three states — see waybar-dnd:
  *   .active = DND on, bright (something to notice)

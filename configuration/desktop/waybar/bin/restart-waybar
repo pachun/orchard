@@ -1,0 +1,13 @@
+#!/bin/sh
+# Bring the bar down and back up on whatever is installed now. SIGUSR2 is
+# enough for a config change, but a new waybar binary only takes effect in a
+# fresh process, and the installer can't tell which of the two it just
+# caused, so it always does this. No-op outside a Wayland session: at first
+# bringup there is no bar to restart, and hyprland.lua starts one at login.
+set -eu
+
+[ -n "${WAYLAND_DISPLAY:-}" ] || exit 0
+
+pkill -x waybar 2>/dev/null || true
+while pgrep -x waybar >/dev/null; do sleep 0.1; done
+setsid waybar >/dev/null 2>&1 < /dev/null &

@@ -166,6 +166,7 @@
         // workspace shows its number; the active one is replaced by
         // a rounded square via CSS (color: transparent + filled bg).
         "format": "{id}",
+        "tooltip": false,
         "persistent-workspaces": {
             "*": [1, 2, 3, 4, 5]
         },

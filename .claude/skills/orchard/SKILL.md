@@ -139,7 +139,7 @@ and wait for it to exit", so a looping script never draws. Continuous
 modules that need a nudge get signalled directly by process
 (`refresh-updates-badge`). Apply live: `pkill -SIGUSR2 -x waybar` for
 config/layout changes; `pkill -RTMIN+<n> waybar` to refresh a polled
-module.
+module; `restart-waybar` after the binary changes (the installer runs it).
 
 ## Hyprland (`configuration/desktop/hyprland/config/hyprland.lua`)
 
