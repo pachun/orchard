@@ -16,6 +16,12 @@
 # the modules are `optional`, so a broken keyring can never keep you from
 # logging in.
 #
+# PAM only unlocks the keyring named "login". A machine that already had
+# secrets before this ran keeps them in a "Default Keyring" gnome-keyring
+# invented on its own, and that one stays locked. move-secrets-into-login-keyring
+# folds it into "login"; it needs the desktop up, so run ./configure (or
+# that script) from inside Hyprland once after the first login.
+#
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
@@ -35,3 +41,6 @@ PAM
 }
 
 unlock_keyring_with_the_login_password
+
+bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+"$HERE/bin/move-secrets-into-login-keyring"
