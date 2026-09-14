@@ -57,7 +57,7 @@ last_reachable = active_workspace() or 1
 
 def send_home(address):
     subprocess.run(
-        ["hyprctl", "dispatch", "movetoworkspace", f"{last_reachable},address:{address}"],
+        ["hyprctl", "dispatch", f'hl.dsp.window.move({{ workspace = "{last_reachable}", window = "address:{address}" }})'],
         check=False,
     )
 

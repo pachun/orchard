@@ -95,9 +95,9 @@ def ask_hyprland(*query):
         return None
 
 
-def tell_hyprland(*command):
+def tell_hyprland(dispatcher):
     subprocess.run(
-        ["hyprctl", "dispatch", *command], check=False, stdout=subprocess.DEVNULL
+        ["hyprctl", "dispatch", dispatcher], check=False, stdout=subprocess.DEVNULL
     )
 
 
@@ -124,7 +124,7 @@ def previously_running_preview():
 def stop_previous_preview():
     """One preview at a time — running :md on another file replaces it."""
     for window in preview_windows():
-        tell_hyprland("closewindow", "address:" + window["address"])
+        tell_hyprland(f'hl.dsp.window.close({{ window = "address:{window["address"]}" }})')
 
     previous = previously_running_preview()
     if previous is None:
@@ -221,7 +221,7 @@ def main():
             sys.exit(f"markdown-preview: grip never came up on port {PORT}")
         preview = open_preview_window()
         if editor:
-            tell_hyprland("focuswindow", "address:" + editor)
+            tell_hyprland(f'hl.dsp.focus({{ window = "address:{editor}" }})')
         if preview:
             wait_until_window_closes(preview)
     finally:

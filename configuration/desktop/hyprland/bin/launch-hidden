@@ -69,8 +69,8 @@ while True:
             continue
         subprocess.run(
             [
-                "hyprctl", "dispatch", "movetoworkspacesilent",
-                f"{scratchpad},address:0x{fields[0]}",
+                "hyprctl", "dispatch",
+                f'hl.dsp.window.move({{ workspace = "{scratchpad}", window = "address:0x{fields[0]}", follow = false }})',
             ],
             stdout=subprocess.DEVNULL,
             check=False,

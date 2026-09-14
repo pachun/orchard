@@ -170,11 +170,11 @@ keymap:
   - name: move window to workspace (Cmd+Ctrl+1..5)
     exact_match: true
     remap:
-      Super-Ctrl-1: { launch: ["hyprctl", "dispatch", "movetoworkspace", "1"] }
-      Super-Ctrl-2: { launch: ["hyprctl", "dispatch", "movetoworkspace", "2"] }
-      Super-Ctrl-3: { launch: ["hyprctl", "dispatch", "movetoworkspace", "3"] }
-      Super-Ctrl-4: { launch: ["hyprctl", "dispatch", "movetoworkspace", "4"] }
-      Super-Ctrl-5: { launch: ["hyprctl", "dispatch", "movetoworkspace", "5"] }
+      Super-Ctrl-1: { launch: ["hyprctl", "dispatch", "hl.dsp.window.move({ workspace = \"1\" })"] }
+      Super-Ctrl-2: { launch: ["hyprctl", "dispatch", "hl.dsp.window.move({ workspace = \"2\" })"] }
+      Super-Ctrl-3: { launch: ["hyprctl", "dispatch", "hl.dsp.window.move({ workspace = \"3\" })"] }
+      Super-Ctrl-4: { launch: ["hyprctl", "dispatch", "hl.dsp.window.move({ workspace = \"4\" })"] }
+      Super-Ctrl-5: { launch: ["hyprctl", "dispatch", "hl.dsp.window.move({ workspace = \"5\" })"] }
 
   - name: workspace switching (Cmd+1..5)
     exact_match: true

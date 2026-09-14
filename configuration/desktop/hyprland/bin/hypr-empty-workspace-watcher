@@ -63,7 +63,7 @@ def jump_back_if_empty():
         return  # nowhere meaningful to go; stay put
 
     target = min(populated, key=lambda i: (abs(i - ws_id), i))
-    subprocess.run(["hyprctl", "dispatch", "workspace", str(target)], check=False)
+    subprocess.run(["hyprctl", "dispatch", f'hl.dsp.focus({{ workspace = "{target}" }})'], check=False)
 
 
 workspace_of_window = {
