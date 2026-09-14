@@ -108,14 +108,6 @@ end
 -- eDP-1 is 2880 wide at scale 2, so DP-1 starts at its logical width, 1440.
 hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 2 })
 hl.monitor({ output = "DP-1", mode = "2560x1440@59.95", position = "1440x0", scale = 1 })
--- The UltraFine 5K is a dual-tile display: it appears as two 2560x2880
--- outputs that share one EDID description and serial, so one desc: rule
--- covers both tiles and auto-placement sets them side by side. Listed
--- after the DP-1 rule so the tile that lands on DP-1 gets tile settings,
--- not the 1440p desk-monitor mode. When its Thunderbolt link trains well
--- this is all the display needs; whether it does is a link-training
--- lottery on the XPS (see ~/ultrafine-5k-bug-report.md).
-hl.monitor({ output = "desc:LG Electronics LG UltraFine 201NTXRKS554", mode = "2560x2880@60", position = "auto", scale = 2 })
 
 -- The external is the primary screen: the five spaces the bar promises all live
 -- on it, so Cmd+1..5 always drives the monitor and closing the lid barely

@@ -1,6 +1,0 @@
-[Unit]
-Description=Retry UltraFine 5K link training until it holds under video
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/ultrafine-bringup
