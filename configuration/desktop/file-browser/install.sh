@@ -10,8 +10,9 @@
 # text and source, audio and video, and (with libreoffice) office documents.
 # Anything it can't render falls back to a name-and-type card.
 #
-# sushi sizes its window wrong on a HiDPI Wayland desktop (half size; see
-# bin/patch-quick-look-size), so a patched copy of its window script is
+# sushi sizes its window wrong on a HiDPI Wayland desktop (half size) and
+# shows a transparent image as if it had a solid background, so patched
+# copies of its window and image scripts (see bin/patch-quick-look) are
 # rendered to ~/.config/sushi and handed to it through GLib's resource
 # overlay variable. The variable has to reach the D-Bus-activated previewer,
 # which the user's systemd manager launches, so it is set both for this
@@ -35,11 +36,12 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 "$HOME/.local/bin/render-nautilus-sidebar" "$HERE/sidebar-places"
 
-patch_quick_look_size() {
-  "$HOME/.local/bin/patch-quick-look-size"
-  local overlay="G_RESOURCE_OVERLAYS=/org/gnome/NautilusPreviewer/js/ui/mainWindow.js=$HOME/.config/sushi/mainWindow.js"
+patch_quick_look() {
+  "$HOME/.local/bin/patch-quick-look"
+  local resources=/org/gnome/NautilusPreviewer/js
+  local overlay="G_RESOURCE_OVERLAYS=$resources/ui/mainWindow.js=$HOME/.config/sushi/mainWindow.js:$resources/viewers/image.js=$HOME/.config/sushi/image.js"
   mkdir -p "$HOME/.config/environment.d"
   printf '%s\n' "$overlay" > "$HOME/.config/environment.d/quick-look.conf"
   systemctl --user set-environment "$overlay"
 }
-patch_quick_look_size
+patch_quick_look

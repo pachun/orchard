@@ -456,7 +456,7 @@ hl.window_rule({ match = { class = "org.gnome.Nautilus" }, workspace = "unset" }
 -- of being sent to an empty desktop.
 -- sushi shows its window only once the preview is ready and sized, so the
 -- first frame is the final one — provided nothing resizes it afterwards. Its
--- own size is fixed by file-browser's patch-quick-look-size (it halves the
+-- own size is fixed by file-browser's patch-quick-look (it halves the
 -- size on a scale-2 panel otherwise); forcing a size or minimum here instead
 -- was what produced the pixelated flash, a half-size buffer stretched until
 -- sushi repainted. `no_anim` keeps the open a cut rather than a tween.

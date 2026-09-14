@@ -24,8 +24,8 @@ def hyprctl(*args):
     return json.loads(subprocess.check_output(["hyprctl", *args, "-j"]))
 
 
-def dispatch(*args):
-    subprocess.run(["hyprctl", "dispatch", *args], check=True, capture_output=True)
+def move_pointer(x, y):
+    subprocess.run(["hyprctl", "dispatch", f"hl.dsp.cursor.move({{ x = {x}, y = {y} }})"], check=True, capture_output=True)
 
 
 def children(node):
@@ -74,10 +74,10 @@ def clickRow(window, row):
     rowCenterX = windowX + extents.x + extents.width // 2
     rowCenterY = windowY + extents.y + extents.height // 2
     pointerBefore = subprocess.check_output(["hyprctl", "cursorpos"]).decode().replace(",", "").split()
-    dispatch("movecursor", str(rowCenterX), str(rowCenterY))
+    move_pointer(rowCenterX, rowCenterY)
     subprocess.run(["ydotool", "click", leftClick], check=True)
     time.sleep(clickSettleSeconds)
-    dispatch("movecursor", *pointerBefore)
+    move_pointer(*pointerBefore)
 
 
 direction = sys.argv[1] if len(sys.argv) > 1 else "down"

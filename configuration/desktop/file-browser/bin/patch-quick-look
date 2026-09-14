@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+# Make Quick Look (sushi, Space in Nautilus) fit this desktop. Two things are
+# patched into the scripts it ships inside a GResource, and GLib's
+# G_RESOURCE_OVERLAYS is what substitutes a file for a path in that resource
+# (the file-browser installer points it at the copies written here).
+#
+# The window's size. sushi holds its window back until the preview is ready
+# and sized, which is exactly right, but its size cap divides by the monitor
+# scale factor a second time under Wayland, so on a scale-2 panel every
+# preview maps at half the size it should. Forcing a size from the compositor
+# after the map is what causes the pixelated flash: the half-size buffer is
+# stretched until sushi repaints. The size cap becomes a fraction of the
+# monitor work area; the client-side shadow margins go (their extra buffer
+# area is what the compositor shows for a frame before the window geometry
+# lands, and the desktop draws no drop shadows anyway); so does the theme's
+# one-pixel decoration border (there for the first frame and gone by the
+# second, a visible one-pixel jiggle); the Open With button leaves the
+# keyboard focus chain (as the focused widget it grew a focus border the
+# moment the window went active).
+#
+# Transparency. The image viewer paints the picture straight onto the window
+# background, so a PNG with a transparent background looks like it has a
+# solid one — the window's — and there is no telling the two apart. An image
+# with an alpha channel now sits on a checkerboard, the way every image
+# editor shows transparency; an opaque image is left alone.
+#
+# Rendered from the installed sushi on every configure run so an upstream
+# change to the rest of each file is picked up; if the text a patch replaces
+# ever moves, this fails loudly rather than shipping a stale copy.
+from pathlib import Path
+
+import gi
+
+from gi.repository import Gio
+
+gresource = "/usr/share/sushi/org.gnome.NautilusPreviewer.src.gresource"
+mainWindowResource = "/org/gnome/NautilusPreviewer/js/ui/mainWindow.js"
+imageViewerResource = "/org/gnome/NautilusPreviewer/js/viewers/image.js"
+patchedDirectory = Path.home() / ".config/sushi"
+workareaFraction = 0.85
+
+maxSizeFunctionStart = "    _getMaxSize() {"
+nextFunctionStart = "    _resizeWindow() {"
+upstreamConstants = """const WINDOW_MAX_W = 800;
+const WINDOW_MAX_H = 600;
+const WINDOW_MAX_W_BASE = 1368;
+const WINDOW_MAX_H_BASE = 768;
+"""
+replacementConstants = f"const WINDOW_MAX_FRACTION_OF_WORKAREA = {workareaFraction};\n"
+windowConstructed = "                      application: application });\n"
+openButtonCreated = "        this._openButton = new Gtk.Button();\n"
+openButtonUnfocusable = openButtonCreated + "        this._openButton.can_focus = false;\n"
+shownWhenReady = """            this._resizeWindow();
+            this.queue_resize();
+            this.show();
+"""
+shownFocused = shownWhenReady + """            this.unset_state_flags(Gtk.StateFlags.BACKDROP);
+"""
+flatDecoration = windowConstructed + """
+        let flatDecoration = new Gtk.CssProvider();
+        flatDecoration.load_from_data('decoration { box-shadow: none; margin: 0; border: none; }');
+        Gtk.StyleContext.add_provider_for_screen(this.get_screen(), flatDecoration,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+"""
+replacementFunction = """    _getMaxSize() {
+        let monitor = this.get_display().get_monitor_at_window(this.get_window());
+        let workarea = monitor.get_workarea();
+        return [Math.floor(workarea.width * WINDOW_MAX_FRACTION_OF_WORKAREA),
+                Math.floor(workarea.height * WINDOW_MAX_FRACTION_OF_WORKAREA)];
+    }
+
+"""
+
+imports = "const {Gdk, GdkPixbuf, Gio, GLib, GObject, Gtk} = imports.gi;\n"
+importsWithCairo = imports + "const Cairo = imports.cairo;\n"
+imagePainted = """        context.setSourceSurface(this._scaledSurface, offsetX, offsetY);
+        context.paint();
+"""
+checkerboardUnderTransparentImage = """        if (this._pix.get_has_alpha())
+            this._paintCheckerboard(context, offsetX, offsetY,
+                                    this._scaledSurface.getWidth() / scaleFactor,
+                                    this._scaledSurface.getHeight() / scaleFactor);
+
+""" + imagePainted
+drawFunctionStart = "    vfunc_draw(context) {\n"
+checkerboardPainter = """    _paintCheckerboard(context, x, y, width, height) {
+        if (!this._checkerboard) {
+            let square = CHECKERBOARD_SQUARE_SIZE;
+            let tile = new Cairo.ImageSurface(Cairo.Format.RGB24, square * 2, square * 2);
+            let painter = new Cairo.Context(tile);
+            painter.setSourceRGB(...CHECKERBOARD_LIGHT_GRAY);
+            painter.paint();
+            painter.setSourceRGB(...CHECKERBOARD_DARK_GRAY);
+            painter.rectangle(0, 0, square, square);
+            painter.rectangle(square, square, square, square);
+            painter.fill();
+
+            this._checkerboard = new Cairo.SurfacePattern(tile);
+            this._checkerboard.setExtend(Cairo.Extend.REPEAT);
+            this._checkerboard.setFilter(Cairo.Filter.NEAREST);
+        }
+
+        context.save();
+        context.rectangle(x, y, width, height);
+        context.clip();
+        context.setSource(this._checkerboard);
+        context.paint();
+        context.restore();
+    }
+
+""" + drawFunctionStart
+rendererImported = "const Renderer = imports.ui.renderer;\n"
+checkerboardConstants = rendererImported + """
+const CHECKERBOARD_SQUARE_SIZE = 8;
+const CHECKERBOARD_LIGHT_GRAY = [0.6, 0.6, 0.6];
+const CHECKERBOARD_DARK_GRAY = [0.4, 0.4, 0.4];
+"""
+
+
+def sourceOf(resourcePath):
+    return resource.lookup_data(resourcePath, Gio.ResourceLookupFlags.NONE).get_data().decode()
+
+
+def requireAnchors(resourcePath, source, anchors):
+    for anchor in anchors:
+        if anchor not in source:
+            raise SystemExit(f"sushi's {resourcePath} no longer contains the expected text:\n{anchor}")
+
+
+def replaced(source, replacements):
+    for anchor, replacement in replacements.items():
+        source = source.replace(anchor, replacement, 1)
+    return source
+
+
+def write(resourcePath, source):
+    target = patchedDirectory / Path(resourcePath).name
+    target.write_text(source)
+    print(f"wrote {target}")
+
+
+resource = Gio.Resource.load(gresource)
+patchedDirectory.mkdir(parents=True, exist_ok=True)
+
+mainWindow = sourceOf(mainWindowResource)
+mainWindowReplacements = {
+    upstreamConstants: replacementConstants,
+    windowConstructed: flatDecoration,
+    shownWhenReady: shownFocused,
+    openButtonCreated: openButtonUnfocusable,
+}
+requireAnchors(mainWindowResource, mainWindow, [maxSizeFunctionStart, nextFunctionStart, *mainWindowReplacements])
+maxSizeStart = mainWindow.index(maxSizeFunctionStart)
+maxSizeEnd = mainWindow.index(nextFunctionStart)
+mainWindow = mainWindow[:maxSizeStart] + replacementFunction + mainWindow[maxSizeEnd:]
+write(mainWindowResource, replaced(mainWindow, mainWindowReplacements))
+
+imageViewer = sourceOf(imageViewerResource)
+imageViewerReplacements = {
+    imports: importsWithCairo,
+    rendererImported: checkerboardConstants,
+    imagePainted: checkerboardUnderTransparentImage,
+    drawFunctionStart: checkerboardPainter,
+}
+requireAnchors(imageViewerResource, imageViewer, imageViewerReplacements)
+write(imageViewerResource, replaced(imageViewer, imageViewerReplacements))
