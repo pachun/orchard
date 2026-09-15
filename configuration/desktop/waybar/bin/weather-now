@@ -2,39 +2,43 @@
 # The weather, once: fetches current condition + temperature + sun times
 # from wttr.in (location auto-detected from IP, units forced to
 # US/Fahrenheit) and prints waybar JSON — the sky glyph as the text, the
-# temperature and next sunrise/sunset as the tooltip. waybar-weather runs
-# this on a schedule and owns the bar slot. Requires bash for the
+# temperature and next sunrise/sunset as the tooltip.
+# waybar-hidden-during-notifications runs this on a schedule and owns the
+# bar slot. Requires bash for the
 # $'\UXXXXXXXX' escape sequences used to embed the supplementary-plane
 # MDI weather glyphs from Symbols Nerd Font Mono (same icon family as
 # battery / wifi — outlined silhouette with state shown by partial
 # fills inside).
 #
-# Resilience: every successful fetch caches its output. On network
-# failure we emit the cached value instead of "--", so the bar stays
-# populated through brief outages and post-sleep wifi reconnects.
-# A NetworkManager dispatcher (99-waybar-weather-refresh) sends
-# SIGRTMIN+9 to waybar on interface up so the next refresh happens
-# within seconds of reconnect rather than up to 10 minutes later.
+# Resilience: every successful fetch caches the raw fields it got, not what
+# it drew from them. On network failure the cached fields are replayed and
+# everything time-dependent (which sun event is next, whether it's night for
+# the glyph) is worked out afresh from the clock, so an overnight cache does
+# not spend the next day saying "sunrise tomorrow". A replay older than the
+# refresh interval says how old it is in the tooltip, and the bar shows "--"
+# only when there has never been a fetch. A NetworkManager dispatcher
+# (99-waybar-weather-refresh) sends SIGRTMIN+9 to waybar on interface up so
+# the next refresh happens within seconds of reconnect rather than up to 10
+# minutes later.
 set -eu
 
-# .json suffix keeps a cache written by the old plain-text version of
-# this script from being replayed as (invalid) waybar JSON.
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather.json"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/waybar-weather.fields"
 mkdir -p "$(dirname "$CACHE")"
+refresh_seconds=600
 
-emit_cached() {
-    if [ -s "$CACHE" ]; then
-        cat "$CACHE"
-    else
-        printf '%s\n' '{"text": "--"}'
-    fi
-}
-
+now=$(date +%s)
+fetched_at=$now
 raw=$(curl -s --max-time 5 'https://wttr.in/?u&format=%C|%t|%S|%s' 2>/dev/null || true)
 
 if [ -z "$raw" ] || echo "$raw" | grep -qiE 'unknown|error|<html'; then
-    emit_cached
-    exit 0
+    if [ -s "$CACHE" ]; then
+        IFS='|' read -r fetched_at raw < "$CACHE"
+    else
+        printf '%s\n' '{"text": "--"}'
+        exit 0
+    fi
+else
+    printf '%s|%s\n' "$fetched_at" "$raw" > "$CACHE"
 fi
 
 IFS='|' read -r condition temp sunrise sunset <<<"$raw"
@@ -102,6 +106,17 @@ if [ "$have_sun_times" -eq 1 ]; then
     fi
 fi
 
+# A replay that has outlived its refresh interval says so, with the day
+# once it is no longer today's.
+if [ $((now - fetched_at)) -gt "$refresh_seconds" ]; then
+    if [ "$(date -d "@$fetched_at" +%F)" = "$(date +%F)" ]; then
+        fetched_pretty=$(date -d "@$fetched_at" +'%-I:%M %p')
+    else
+        fetched_pretty=$(date -d "@$fetched_at" +'%a %-I:%M %p')
+    fi
+    tooltip="${tooltip:+$tooltip · }as of $fetched_pretty"
+fi
+
 # Just the glyph: the temperature lives in the tooltip with the sun times.
 # Wrapped in Pango markup to shift it down. Phosphor's weather glyphs (moon,
 # sun, cloud-sun) occupy the upper half of their em-square, sitting visibly
@@ -110,4 +125,4 @@ fi
 # module needs markup=pango (set in config.jsonc).
 tooltip="$temp${tooltip:+ · $tooltip}"
 text=$(printf '<span rise="-1200">%s</span>' "$icon")
-jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}' | tee "$CACHE"
+jq -cn --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
