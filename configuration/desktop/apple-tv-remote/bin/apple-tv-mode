@@ -36,9 +36,16 @@ fi
 mkdir -p "$runtime"
 eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-apple-tv-remote"
 
-"$HOME/.local/bin/apple-tv-key" open
-"$HOME/.local/bin/apple-tv-scan" &
-printf '%s\n' "$!" > "$runtime/scan.pid"
-
+# The card goes up before anything is looked up: apple-tv-key's open path
+# reads the network for the preferred TV and may spend seconds waking the one
+# you used last, and every one of those seconds with no card on screen reads
+# as a press that was not heard. It opens on the picker face, scanning, and
+# apple-tv-key redraws it as soon as it knows more. The submap is entered
+# first for the same reason, so Escape works while the TV is still waking.
+eww_cmd update mode=picker scanning=true picker_note= >/dev/null 2>&1 || true
 eww_cmd open remote >/dev/null 2>&1 || true
 hyprctl dispatch 'hl.dsp.submap("appletv")' >/dev/null 2>&1 || true
+
+"$HOME/.local/bin/apple-tv-scan" &
+printf '%s\n' "$!" > "$runtime/scan.pid"
+"$HOME/.local/bin/apple-tv-key" open

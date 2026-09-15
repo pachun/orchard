@@ -5,6 +5,9 @@
 ; render-claude-usage-theme.
 
 (defvar usage '{"signed_in": true, "limits": []}')
+; True from the moment the panel opens until the forced fetch lands, so the
+; numbers on screen are known to be the last ones rather than current ones.
+(defvar refreshing false)
 
 (defwidget limit-row [row]
   (box :class "row" :orientation "v" :space-evenly false
@@ -16,9 +19,12 @@
 
 (defwidget panel []
   (box :class "panel" :orientation "v" :space-evenly false
-    (label :class "title" :halign "start" :text "Claude Code")
+    (box :class "head" :space-evenly false
+      (label :class "title" :halign "start" :hexpand true :text "Claude Code")
+      (label :class "refreshing" :halign "end" :visible refreshing :text "updating…"))
     (label :class "empty" :halign "start" :visible {!usage.signed_in} :text "Signed out — run `claude` to sign in")
-    (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0} :text "Usage unavailable")
+    (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0 && refreshing} :text "Loading…")
+    (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0 && !refreshing} :text "Usage unavailable")
     (for row in {usage.limits}
       (limit-row :row row))))
 
