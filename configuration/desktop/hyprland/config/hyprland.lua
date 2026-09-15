@@ -659,6 +659,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
 
+    -- Shared clipboard (clipboard-sharing feature): a copy here lands on every
+    -- other machine of yours on the tailnet, and theirs land here.
+    hl.exec_cmd(localBin("shared-clipboard") .. " receive")
+    hl.exec_cmd("wl-paste --type text --watch " .. localBin("shared-clipboard") .. " send")
+
     -- Propagate Hyprland's session env (incl. QT_QPA_PLATFORMTHEME) into D-Bus
     -- and systemd user services so xdg-desktop-portal-hyprland (D-Bus-launched
     -- lazily on first screencast) sees the Qt theme variables.

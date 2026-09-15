@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""One clipboard across every machine you own, over Tailscale.
+
+`shared-clipboard receive` listens on this machine's Tailscale address and
+pastes whatever arrives into the local clipboard. `shared-clipboard send` runs
+on every copy (wl-paste --watch feeds it the clipboard on stdin) and posts it
+to every peer on the tailnet that is online.
+
+Trust comes from Tailscale, not from keys or names: the listener only binds
+the Tailscale interface, and it asks tailscaled who is behind each connection
+and drops anything not owned by the same account as this machine. The sender
+applies the same rule to who it talks to, so a node someone else shared into
+the tailnet never sees a clipboard. Nothing is configured per machine or per
+person.
+
+A clipboard that arrived from a peer would immediately be seen by the local
+watcher and sent back out. The receiver notes a hash of what it just pasted
+and the sender skips exactly that, which is what stops the ping-pong.
+
+Text only: images and files ride cliphist and Taildrop respectively.
+"""
+import hashlib
+import http.server
+import json
+import os
+import socket
+import subprocess
+import sys
+import threading
+import time
+import urllib.request
+from pathlib import Path
+
+CLIPBOARD_PORT = 47820
+LARGEST_SHAREABLE_BYTES = 1_000_000
+PEER_TIMEOUT_SECONDS = 2
+TAILSCALE_RETRY_SECONDS = 5
+runtime_dir = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "shared-clipboard"
+last_received_hash = runtime_dir / "last-received-hash"
+
+
+def tailscale(*arguments):
+    result = subprocess.run(["tailscale", *arguments], capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def tailnet_status():
+    status = tailscale("status", "--json")
+    return json.loads(status) if status else None
+
+
+def my_account():
+    status = tailnet_status()
+    return status["Self"]["UserID"] if status else None
+
+
+def my_tailscale_ip():
+    ip = tailscale("ip", "-4")
+    return ip.strip() if ip else None
+
+
+def account_behind(ip):
+    whois = tailscale("whois", "--json", ip)
+    return json.loads(whois)["UserProfile"]["ID"] if whois else None
+
+
+def online_peers_on_my_account():
+    status = tailnet_status()
+    if not status:
+        return []
+    return [
+        peer["TailscaleIPs"][0]
+        for peer in status["Peer"].values()
+        if peer["Online"] and peer["UserID"] == status["Self"]["UserID"] and peer["TailscaleIPs"]
+    ]
+
+
+def hashed(text):
+    return hashlib.sha256(text).hexdigest()
+
+
+def remember_received(text):
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    last_received_hash.write_text(hashed(text))
+
+
+def was_just_received(text):
+    try:
+        return last_received_hash.read_text() == hashed(text)
+    except FileNotFoundError:
+        return False
+
+
+def paste_locally(text):
+    subprocess.run(["wl-copy"], input=text, check=True)
+
+
+def send_to(peer, text):
+    request = urllib.request.Request(
+        f"http://{peer}:{CLIPBOARD_PORT}/clipboard",
+        data=text,
+        headers={"Content-Type": "text/plain; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        urllib.request.urlopen(request, timeout=PEER_TIMEOUT_SECONDS)
+    except OSError:
+        pass
+
+
+def send():
+    text = sys.stdin.buffer.read()
+    if not text or len(text) > LARGEST_SHAREABLE_BYTES or was_just_received(text):
+        return
+    deliveries = [threading.Thread(target=send_to, args=(peer, text)) for peer in online_peers_on_my_account()]
+    for delivery in deliveries:
+        delivery.start()
+    for delivery in deliveries:
+        delivery.join()
+
+
+class ClipboardReceiver(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.path != "/clipboard":
+            return self.reply(404)
+        length = int(self.headers.get("Content-Length", 0))
+        if length == 0 or length > LARGEST_SHAREABLE_BYTES:
+            return self.reply(413)
+        sender = self.client_address[0]
+        if account_behind(sender) != self.server.account:
+            return self.reply(403)
+        text = self.rfile.read(length)
+        remember_received(text)
+        paste_locally(text)
+        self.reply(204)
+
+    def reply(self, status):
+        self.send_response(status)
+        self.end_headers()
+
+    def log_message(self, *_):
+        pass
+
+
+def wait_for_tailscale():
+    while True:
+        ip, account = my_tailscale_ip(), my_account()
+        if ip and account:
+            return ip, account
+        time.sleep(TAILSCALE_RETRY_SECONDS)
+
+
+def receive():
+    ip, account = wait_for_tailscale()
+    try:
+        server = http.server.ThreadingHTTPServer((ip, CLIPBOARD_PORT), ClipboardReceiver)
+    except OSError as error:
+        sys.exit(f"not listening on {ip}:{CLIPBOARD_PORT}: {error.strerror}")
+    server.account = account
+    server.serve_forever()
+
+
+commands = {"send": send, "receive": receive}
+if len(sys.argv) != 2 or sys.argv[1] not in commands:
+    sys.exit(f"usage: shared-clipboard {'|'.join(commands)}")
+commands[sys.argv[1]]()
