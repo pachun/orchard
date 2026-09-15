@@ -14,7 +14,8 @@
 #
 # A keyring password that doesn't match falls through to the normal prompt;
 # the modules are `optional`, so a broken keyring can never keep you from
-# logging in.
+# logging in. `passwd` gets the module too, so changing the login password
+# re-keys the keyring with it and the two never drift apart.
 #
 # PAM only unlocks the keyring named "login". A machine that already had
 # secrets before this ran keeps them in a "Default Keyring" gnome-keyring
@@ -30,6 +31,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm gnome-keyring seahorse
 
 login_pam=/etc/pam.d/login
+passwd_pam=/etc/pam.d/passwd
 
 unlock_keyring_with_the_login_password() {
   grep -q pam_gnome_keyring "$login_pam" && return 0
@@ -40,7 +42,15 @@ session  optional  pam_gnome_keyring.so auto_start
 PAM
 }
 
+rekey_keyring_when_the_login_password_changes() {
+  grep -q pam_gnome_keyring "$passwd_pam" && return 0
+  sudo tee -a "$passwd_pam" >/dev/null <<'PAM'
+password	optional	pam_gnome_keyring.so
+PAM
+}
+
 unlock_keyring_with_the_login_password
+rekey_keyring_when_the_login_password_changes
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 "$HERE/bin/move-secrets-into-login-keyring"
