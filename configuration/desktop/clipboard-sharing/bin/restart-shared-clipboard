@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# (Re)start the shared clipboard's receiver and copy watcher. hyprland.lua
+# starts them at login; this is for the installer and for after the script
+# changes, when the session that's already up wouldn't otherwise notice.
+set -euo pipefail
+
+pkill -f 'shared-clipboard receive' || true
+pkill -f 'shared-clipboard send' || true
+
+setsid -f "$HOME/.local/bin/shared-clipboard" receive >/dev/null 2>&1 </dev/null
+setsid -f wl-paste --type text --watch "$HOME/.local/bin/shared-clipboard" send >/dev/null 2>&1 </dev/null

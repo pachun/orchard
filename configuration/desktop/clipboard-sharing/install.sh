@@ -9,7 +9,8 @@
 # what came from another machine on the same Tailscale account, so there
 # are no keys to copy around and nothing named after anyone.
 #
-# hyprland.lua starts the receiver and the watcher at login.
+# hyprland.lua starts the receiver and the watcher at login; installing from
+# inside a session starts them right away.
 #
 # Idempotent.
 set -euo pipefail
@@ -20,3 +21,6 @@ bash "$HERE/../clipboard/install.sh"
 bash "$HERE/../tailscale/install.sh"
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+
+inside_a_desktop_session() { [ -n "${WAYLAND_DISPLAY:-}" ]; }
+inside_a_desktop_session && "$HERE/bin/restart-shared-clipboard"
