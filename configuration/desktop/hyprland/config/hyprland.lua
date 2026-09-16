@@ -12,6 +12,8 @@ local modifier = "SUPER"
 local terminalApplication = "ghostty"
 local browserApplication = "chromium"
 local messagesApplication = "bluebubbles"
+local emailApplication = "emma"
+local emailWindowClass = "Emma-desktop"
 
 -- The web apps below all run as `chromium --app`, which strips the browser
 -- chrome so each reads as its own application rather than a tab.
@@ -167,6 +169,7 @@ hl.bind(modifier .. " + SHIFT + C", focusOrLaunch(calendarWindowClass, calendarA
 hl.bind(modifier .. " + SHIFT + M", focusOrLaunch(mapsWindowClass, mapsApplication))
 hl.bind(modifier .. " + SHIFT + S", focusOrLaunch(musicWindowClass, musicApplication))
 hl.bind(modifier .. " + SHIFT + W", focusOrLaunch(weatherWindowClass, weatherApplication))
+hl.bind(modifier .. " + SHIFT + E", focusOrLaunch(emailWindowClass, emailApplication))
 
 -- Screenshots + recording, macOS-style shortcuts.
 -- Cmd+Shift+3 → full-screen capture
@@ -393,11 +396,10 @@ hl.layer_rule({ match = { namespace = "hyprpicker" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "awww-daemon" }, no_anim = true })
 
 -- Ctrl+Left/Right cycles workspaces, matching macOS Mission Control.
--- workspace-cycle walks the five persistent workspaces plus any that exist
--- above them — the `workspace = "empty"` window rule below opens a new window
--- on 6 once 1..5 are full, and this is the only way to reach it, since
--- Cmd+1..5 stops at five. It never walks into a workspace that doesn't exist,
--- so there's no drifting off into an endless plain of empty desktops.
+-- workspace-cycle walks the five spaces plus whatever exists above them (the
+-- laptop panel's own space while docked, when 1..5 live on the monitor). It
+-- never walks into a workspace that doesn't exist, so there's no drifting off
+-- into an endless plain of empty desktops.
 -- Trade-off: Ctrl+arrow word navigation in text fields is lost at the
 -- system level — use Alt+arrow inside apps that support it instead.
 hl.bind("CTRL + left", runScript("workspace-cycle left"))
@@ -429,19 +431,57 @@ hl.bind("CTRL + right", runScript("workspace-cycle right"))
 -- the same place avoids subtle ordering issues between xremap's
 -- exact-match rules and Hyprland's bind matcher.
 
--- Open new windows on the lowest-numbered empty workspace, but…
-hl.window_rule({ match = { class = ".*" }, workspace = "empty" })
--- …keep dialogs / file pickers / popups (anything that auto-floats) on
--- the current workspace as overlays instead of yeeting them to a fresh
--- desktop. The rule below overrides the workspace assignment above for
--- floating windows only.
-hl.window_rule({ match = { float = true }, workspace = "unset" })
+-- Every new window gets a desktop of its own: it is moved to the lowest of
+-- the five spaces that holds nothing, and the view follows it there. When all
+-- five are taken it stays on the one you are looking at — never a sixth.
+--
+-- This used to be Hyprland's `workspace = "empty"` window rule, whose "empty"
+-- has no upper bound (its `empty[1-5]` form parses and is ignored), so a full
+-- desktop overflowed onto 6: somewhere Cmd+1..5 can't reach and the bar never
+-- promised. A watcher hauled each such window back, and waybar was left with a
+-- ghost button for a workspace that had existed for a millisecond. Choosing the
+-- space here, in the compositor, means 6 is never created at all.
+--
+-- Left where they open: anything a rule already placed elsewhere (BlueBubbles'
+-- scratchpad), anything floating (dialogs, pickers, Quick Look — overlays
+-- belong over what opened them), and the classes below, which you open
+-- because of what you're already looking at.
+local staysBesideWhatYouAreDoing = {
+    ["org.gnome.Nautilus"] = true,          -- Cmd+E opens one beside your work, every time
+    ["org.gnome.Calculator"] = true,
+    ["chrome-localhost__-Default"] = true,  -- the markdown preview (:md in nvim)
+    ["xdg-desktop-portal-gtk"] = true,      -- file pickers and system dialogs
+}
 
--- …and keep file manager windows on the current workspace too. Cmd+E
--- opens a new one every time (see the bind), and the point of that is to
--- put a file manager next to what you're already doing — sending each one
--- to a fresh empty desktop would defeat it.
-hl.window_rule({ match = { class = "org.gnome.Nautilus" }, workspace = "unset" })
+local function isEmptyButForTheNewWindow(workspace, active)
+    if workspace == nil or workspace.windows == 0 then
+        return true
+    end
+    return workspace.id == active.id and workspace.windows == 1
+end
+
+local function lowestEmptySpace(active)
+    for space = 1, spaceCount do
+        if isEmptyButForTheNewWindow(hl.get_workspace(space), active) then
+            return space
+        end
+    end
+    return nil
+end
+
+hl.on("window.open", function(window)
+    local active = hl.get_active_workspace()
+    if active == nil or window.workspace == nil or window.workspace.id ~= active.id then
+        return
+    end
+    if window.floating or staysBesideWhatYouAreDoing[window.class] then
+        return
+    end
+    local space = lowestEmptySpace(active)
+    if space ~= nil and space ~= active.id then
+        hl.dispatch(hl.dsp.window.move({ window = window, workspace = tostring(space) }))
+    end
+end)
 
 -- …and the Quick Look preview (sushi, Space in Nautilus). It previews the
 -- file you're looking at, so it floats over the folder it came from instead
@@ -457,28 +497,14 @@ hl.window_rule({
     float = true,
     no_anim = true,
     center = true,
-    workspace = "unset",
 })
-
--- …and the calculator, for the same reason. You open it because of something
--- you're looking at; sending it to an empty desktop takes it away from that.
-hl.window_rule({ match = { class = "org.gnome.Calculator" }, workspace = "unset" })
 
 -- The music visualizer (projectM) asks SDL for fullscreen, which on Wayland
 -- arrives as an ordinary toplevel; Hyprland has to be the one to make it
--- fullscreen. It still lands on an empty workspace via the global rule, so
+-- fullscreen. It still gets an empty space like any new window, so
 -- it's a desktop of its own — Ctrl+arrow away from it, click the bar's
 -- music levels (or Cmd+Q) to close it.
 hl.window_rule({ match = { class = "projectMSDL" }, fullscreen = true })
-
--- …and keep the markdown preview (:md in nvim) next to the editor that asked
--- for it. A preview you have to switch desktops to look at is not a preview.
---
--- The class is Chromium's invention, not ours: it ignores --class for --app
--- windows and derives one from the URL, so a preview served from localhost
--- arrives as chrome-localhost__-Default. It matches any localhost app window,
--- which in practice means the preview and nothing else.
-hl.window_rule({ match = { class = "chrome-localhost__-Default" }, workspace = "unset" })
 
 -- BlueBubbles auto-starts hidden and lives in its special:bluebubbles
 -- scratchpad (see the launch-hidden line at login below, and focus-or-launch
@@ -497,7 +523,6 @@ hl.window_rule({ match = { class = "bluebubbles" }, workspace = "special:bluebub
 -- so they read as overlays instead of fullscreen tiles.
 hl.window_rule({
     match = { class = "xdg-desktop-portal-gtk" },
-    workspace = "unset",
     float = true,
     size = { 900, 600 },
     center = true,
@@ -603,16 +628,6 @@ hl.on("hyprland.start", function()
     -- Switch to the previously-used workspace when the active one becomes
     -- empty (any close path: Cmd+Q, ghostty's Cmd+W on the last tab, etc.).
     hl.exec_cmd(localBin("hypr-empty-workspace-watcher"))
-
-    -- Cap the desktops at five. The `workspace = "empty"` window rule gives
-    -- each new window its own desktop by putting it on the lowest empty one —
-    -- but with 1..5 all occupied there is no empty one below six, so it takes
-    -- six, and six is somewhere you cannot go (Cmd+1..5 stops at five). This
-    -- catches that and drops the window on the workspace you were already
-    -- looking at instead. The rule itself can't be bounded — Hyprland's
-    -- `empty` selector has no upper limit, and its `empty[1-5]` form silently
-    -- ignores the range.
-    hl.exec_cmd(localBin("hypr-workspace-cap"))
 
     -- Begin the session on desktop 1. The workspace rules above pin 1..5 to
     -- DP-1, and Hyprland honors that pinning even when DP-1 is unplugged — so
@@ -813,10 +828,10 @@ hl.config({
 
     gestures = {
         -- Swiping past the last desktop must NOT conjure another one. There
-        -- are five workspaces on purpose — five in the bar, five on Cmd+1..5 —
-        -- and hypr-workspace-cap exists precisely to keep windows out of a
-        -- sixth you can't reach. Left at its default (on), this would hand you
-        -- that sixth workspace with a flick of three fingers.
+        -- are five workspaces on purpose — five in the bar, five on Cmd+1..5,
+        -- and new windows are placed among those five and no further. Left at
+        -- its default (on), this would hand you a sixth with a flick of three
+        -- fingers.
         workspace_swipe_create_new = false,
     },
 })
