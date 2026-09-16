@@ -12,7 +12,7 @@ local modifier = "SUPER"
 local terminalApplication = "ghostty"
 local browserApplication = "chromium"
 local messagesApplication = "bluebubbles"
-local emailApplication = "emma"
+local emailApplication = localBin("emma")
 local emailWindowClass = "Emma-desktop"
 
 -- The web apps below all run as `chromium --app`, which strips the browser
