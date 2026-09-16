@@ -13,7 +13,7 @@ local terminalApplication = "ghostty"
 local browserApplication = "chromium"
 local messagesApplication = "bluebubbles"
 local emailApplication = localBin("emma")
-local emailWindowClass = "Emma-desktop"
+local emailWindowClass = "emma-desktop"
 
 -- The web apps below all run as `chromium --app`, which strips the browser
 -- chrome so each reads as its own application rather than a tab.
