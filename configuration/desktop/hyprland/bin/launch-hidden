@@ -11,8 +11,7 @@ though you had stashed it yourself.
 
 The window is caught on Hyprland's event socket rather than by polling for it. On
 `openwindow` the window exists but has not been drawn, so moving it there is
-invisible — the same trick hypr-workspace-cap uses, and the reason you never see
-a stray window land on the wrong desktop either.
+invisible.
 
 Two things that don't work, for the next person who tries them:
 

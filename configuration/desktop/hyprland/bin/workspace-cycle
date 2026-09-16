@@ -6,14 +6,12 @@
 # the five you see in the bar are the five you can reach — *plus* any workspace
 # above 5 that currently exists.
 #
-# That last part isn't a nicety. The global `windowrule = match:class .*,
-# workspace empty` opens every new window on the lowest empty workspace, so once
-# 1..5 are all occupied the next one lands on 6. Cmd+1..5 can't reach it (xremap
-# binds those five digits and no more), and this script used to stop at 5 — so a
-# window that landed there was simply unreachable: plainly visible in the bar,
-# and impossible to get to from the keyboard. Extending the ring to cover
-# whatever exists is what makes an overflow workspace somewhere you can go
-# rather than somewhere windows disappear to.
+# That last part is for the docked layout: with 1..5 pinned to the external
+# monitor, the laptop panel holds a space of its own above them, and Cmd+1..5
+# (xremap binds those five digits and no more) can't reach it. Walking whatever
+# exists keeps that space somewhere you can go. New windows themselves are
+# always placed within 1..5 (see hyprland.lua), so nothing lands above five on
+# its own.
 #
 # The ring only ever grows to cover workspaces that *exist*, so there's still no
 # way to drift rightwards into an endless plain of empty desktops.

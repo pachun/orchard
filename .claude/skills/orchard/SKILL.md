@@ -153,10 +153,10 @@ plus `hl.window_rule({ match = { class = … }, workspace = "unset" })`.
 Scripts in `~/.local/bin` go through `runScript("<name> <args>")`.
 Legacy bind flags are option tables: `binde` → `{ repeating = true }`,
 `bindl` → `{ locked = true }`; submaps are `hl.define_submap(name, fn)`.
-A global `hl.window_rule({ match = { class = ".*" }, workspace = "empty" })`
-sends every new window to the lowest empty workspace; anything that
-should stay put (dialogs, file manager, calculator, Quick Look) needs
-the `workspace = "unset"` override. Layer surfaces (eww, fuzzel) get
+A `hl.on("window.open", …)` handler moves every new tiled window to the
+lowest empty space among 1..5 (never a sixth); anything that should stay
+put (file manager, calculator, portal dialogs) is listed in
+`staysBesideWhatYouAreDoing`, and floating windows are left alone. Layer surfaces (eww, fuzzel) get
 `hl.layer_rule({ match = { namespace = … }, no_anim = true })` and, for
 frosted panels, `blur = true, ignore_alpha = 0.3`. Daemons start inside
 `hl.on("hyprland.start", …)`; a top-level `hl.exec_cmd` runs on every
