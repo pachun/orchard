@@ -6,9 +6,9 @@
 # ~/.codex/config.toml is Codex's own file, not a link into this repo: Codex
 # writes per-machine state into it as you work (which projects you've trusted,
 # which model notices you've seen), so linking it would dirty the repo on
-# every session. Instead the model choice is patched in — the two top-level
-# keys below are set to these values and everything else is left as Codex
-# keeps it — so configure re-asserts the choice on every run.
+# every session. Instead our choices are patched in — the model and effort at
+# top level, and no startup tips under [tui] — and everything else is left as
+# Codex keeps it, so configure re-asserts them on every run.
 #
 # Signing in is the one manual step, once per machine: `codex login` opens
 # the browser for the ChatGPT sign-in and keeps the result under ~/.codex.
@@ -27,23 +27,48 @@ import sys
 from pathlib import Path
 
 config = Path(sys.argv[1])
-chosen = {"model": '"gpt-6-astra"', "model_reasoning_effort": '"high"'}
+TOP_LEVEL = None
+chosen = [
+    (TOP_LEVEL, "model", '"gpt-6-astra"'),
+    (TOP_LEVEL, "model_reasoning_effort", '"high"'),
+    ("tui", "show_tooltips", "false"),
+]
 
-lines = config.read_text().splitlines()
-first_table = next((i for i, line in enumerate(lines) if line.lstrip().startswith("[")), len(lines))
-top_level, tables = lines[:first_table], lines[first_table:]
 
-for key, value in chosen.items():
+def table_named_by(line):
+    stripped = line.strip()
+    if stripped.startswith("[[") or not (stripped.startswith("[") and stripped.endswith("]")):
+        return None
+    return stripped[1:-1].strip()
+
+
+def split_into_tables(lines):
+    tables = [(TOP_LEVEL, [])]
+    for line in lines:
+        name = table_named_by(line)
+        if name is not None or line.strip().startswith("[["):
+            tables.append((name if name is not None else line.strip(), [line]))
+        else:
+            tables[-1][1].append(line)
+    return tables
+
+
+def with_key_set(body, key, value):
     assignment = f"{key} = {value}"
-    is_this_key = re.compile(rf"^\s*{key}\s*=").match
-    if any(is_this_key(line) for line in top_level):
-        top_level = [assignment if is_this_key(line) else line for line in top_level]
-    else:
-        top_level.append(assignment)
+    is_this_key = re.compile(rf"^\s*{re.escape(key)}\s*=").match
+    if any(is_this_key(line) for line in body):
+        return [assignment if is_this_key(line) else line for line in body]
+    return body + [assignment]
 
-if tables and top_level and top_level[-1].strip():
-    top_level.append("")
-wanted = "\n".join(top_level + tables) + "\n"
+
+tables = split_into_tables(config.read_text().splitlines())
+for table, key, value in chosen:
+    if not any(name == table for name, _ in tables):
+        tables.append((table, [f"[{table}]"]))
+    tables = [(name, with_key_set(body, key, value) if name == table else body) for name, body in tables]
+
+blocks = ["\n".join(line for line in body).strip("\n") for _, body in tables]
+wanted = "\n\n".join(block for block in blocks if block) + "\n"
 if config.read_text() != wanted:
     config.write_text(wanted)
 PY
