@@ -5,10 +5,34 @@ includes this feature on new machines. To reapply configuration when Codex
 is already installed, run `bash configuration/cli/codex/setup.sh`.
 
 The setup preserves machine-specific `~/.codex/config.toml` settings while
-applying the model, reasoning effort, Vim editing, tooltip preference, and Claude
-instruction filename fallbacks. Existing fallback filenames are retained.
+applying the model, reasoning effort, Vim editing, tooltip preference, Claude
+instruction filename fallbacks, and working permissions. Existing fallback
+filenames and additional writable roots are retained.
 `config/AGENTS.md` is linked into `~/.codex/AGENTS.md` using Orchard's usual
 link helper, which backs up any existing regular file.
+
+## Working permissions
+
+New sessions use `workspace-write` with the machine's `~/code` directory as
+an additional writable root, regardless of the launch directory. Files
+elsewhere, including screenshots, remain readable. Setup resolves the home
+directory on each machine rather than hard-coding a username.
+
+`approval_policy = "on-request"` and `approvals_reviewer = "auto_review"`
+select automatic review for eligible approval requests. Routine edits and
+tests within the writable roots do not need escalation; actions that cross
+sandbox boundaries still go through review and can be denied.
+
+Global `AGENTS.md` guidance reserves git mutations, pushes, and deployments
+for explicit user requests so changes remain available for review. This is
+an agent instruction, not a filesystem-level prohibition on git commands.
+
+Restart Codex after applying setup to load these defaults. Explicit launch
+options, project configuration, and managed policies can override them;
+setup does not change the permissions of an already running session.
+
+Settings reference: [Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference)
+and [automatic review](https://learn.chatgpt.com/docs/sandboxing/auto-review).
 
 ## Shared skills
 

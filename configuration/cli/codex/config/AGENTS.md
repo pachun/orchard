@@ -1,3 +1,16 @@
+# Working permissions
+
+Proceed with task-related file edits, builds, and tests across `~/code`
+without asking for confirmation. Read referenced files elsewhere, including
+screenshots. Respect the active sandbox and approval requirements.
+
+Use git for read-only inspection, such as status, diff, and log. Do not stage,
+commit, stash, reset, switch branches, merge, rebase, push, or otherwise
+change git state unless the user explicitly requests that action. Leave
+changes available for the user to review. Permission to edit or test does
+not authorize committing, pushing, or deploying; obtain explicit direction
+for those actions.
+
 # Shared Claude guidance
 
 Use the user's existing Claude configuration as persistent working guidance

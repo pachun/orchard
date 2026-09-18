@@ -23,11 +23,19 @@ fallback_names = list(dict.fromkeys([
     "CLAUDE.md",
     "CLAUDE.MD",
 ]))
+writable_roots = list(dict.fromkeys([
+    *existing.get("sandbox_workspace_write", {}).get("writable_roots", []),
+    str(config.parent.parent.resolve() / "code"),
+]))
 TOP_LEVEL = None
 chosen = [
     (TOP_LEVEL, "project_doc_fallback_filenames", json.dumps(fallback_names)),
     (TOP_LEVEL, "model", '"gpt-6-astra"'),
     (TOP_LEVEL, "model_reasoning_effort", '"high"'),
+    (TOP_LEVEL, "approval_policy", '"on-request"'),
+    (TOP_LEVEL, "approvals_reviewer", '"auto_review"'),
+    (TOP_LEVEL, "sandbox_mode", '"workspace-write"'),
+    ("sandbox_workspace_write", "writable_roots", json.dumps(writable_roots)),
     ("tui", "show_tooltips", "false"),
     ("tui", "vim_mode_default", "true"),
 ]

@@ -7,7 +7,8 @@
 # writes per-machine state into it as you work (which projects you've trusted,
 # which model notices you've seen), so linking it would dirty the repo on
 # every session. Instead our choices are patched in — the model and effort at
-# top level, Claude instruction filenames, and no startup tips under [tui].
+# top level, Claude instruction filenames, working permissions across ~/code,
+# automatic approval review, and no startup tips under [tui].
 # Shared guidance links back to this feature. Whole-directory skill links
 # keep Claude as the source of truth, including skills added after setup.
 #
