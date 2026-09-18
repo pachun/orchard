@@ -187,15 +187,16 @@ local function bindScreenshotKeys()
 end
 bindScreenshotKeys()
 
--- Claude Code usage panel under the bar — same toggle as clicking its robot.
--- While it's open the panel's submap is active (claude-usage-panel enters and
+-- AI usage panel under the bar (Claude Code and Codex) — same toggle as
+-- clicking its robot.
+-- While it's open the panel's submap is active (ai-usage-panel enters and
 -- leaves it), so Escape dismisses it the way a menu would; the toggle chord is
 -- repeated inside the submap so it keeps working there. Ordinary typing still
 -- reaches the focused window — a submap only swaps the binds.
-hl.bind(modifier .. " + SHIFT + U", runScript("claude-usage-panel"))
-hl.define_submap("claude-usage", function()
-    hl.bind("Escape", runScript("claude-usage-panel"))
-    hl.bind(modifier .. " + SHIFT + U", runScript("claude-usage-panel"))
+hl.bind(modifier .. " + SHIFT + U", runScript("ai-usage-panel"))
+hl.define_submap("ai-usage", function()
+    hl.bind("Escape", runScript("ai-usage-panel"))
+    hl.bind(modifier .. " + SHIFT + U", runScript("ai-usage-panel"))
     bindScreenshotKeys()
 end)
 
@@ -377,9 +378,9 @@ hl.layer_rule({ match = { namespace = "launcher" }, no_anim = true })
 -- square reads as frosted glass. Its styling lives in the
 -- volume-and-brightness-controls feature.
 hl.layer_rule({ match = { namespace = "eww-osd" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
--- Same frosting for the Claude usage dropdown under the bar (claude-usage
+-- Same frosting for the AI usage dropdown under the bar (ai-usage
 -- feature).
-hl.layer_rule({ match = { namespace = "claude-usage" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+hl.layer_rule({ match = { namespace = "ai-usage" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the Apple TV remote card (apple-tv-remote feature).
 hl.layer_rule({ match = { namespace = "apple-tv-remote" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- waybar gets reloaded on theme switch (SIGUSR2). Without this rule the
@@ -605,8 +606,8 @@ hl.on("hyprland.start", function()
     -- regardless. Its widget, styling, and glyphs live in the
     -- volume-and-brightness-controls feature.
     hl.exec_cmd("eww daemon")
-    -- The Claude usage dropdown's own eww daemon (see the claude-usage feature).
-    hl.exec_cmd(localBin("restart-claude-usage"))
+    -- The AI usage dropdown's own eww daemon (see the ai-usage feature).
+    hl.exec_cmd(localBin("restart-ai-usage"))
 
     -- The Apple TV remote card's eww daemon (see the apple-tv-remote feature).
     hl.exec_cmd(localBin("restart-apple-tv-remote"))

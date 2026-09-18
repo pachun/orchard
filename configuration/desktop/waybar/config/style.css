@@ -89,9 +89,9 @@
     to   { opacity: 1.00; }
 }
 #custom-updates     { padding: 0 8px; }
-#custom-claude-usage { padding: 0 8px; }
-#custom-claude-usage.signed-out,
-#custom-claude-usage.unavailable { opacity: 0.45; }
+#custom-ai-usage { padding: 0 8px; }
+#custom-ai-usage.signed-out,
+#custom-ai-usage.unavailable { opacity: 0.45; }
 #custom-weather     { padding: 0 8px; }
 #custom-clock       { padding: 0 8px; }          /* centred, so symmetric */
 
@@ -126,7 +126,7 @@
 #custom-nordvpn,
 #custom-dnd,
 #custom-updates,
-#custom-claude-usage,
+#custom-ai-usage,
 #custom-apple-tv,
 #custom-audio,
 #custom-bluetooth {

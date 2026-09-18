@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Codex plan usage, as one JSON record.
+
+Reads the rate limits OpenAI reports for the ChatGPT account Codex is logged
+in to — the same two windows `/status` shows inside Codex: the rolling 5-hour
+session and the weekly window. They are asked for the way Codex itself asks:
+by starting `codex app-server` and sending its `account/rateLimits/read`
+request over JSON-RPC. That keeps the login and token refresh Codex's own
+business, so an expired login shows as signed_out rather than being fought
+over, and the request shape survives OpenAI moving the endpoint underneath.
+
+The record is cached so the bar and the dropdown can both read it without
+each starting a server; a fetch happens at most once per cache TTL unless
+--force is given (the dropdown forces one on open).
+
+Usage: codex-usage [--force]
+"""
+import datetime as dt
+import json
+import os
+import select
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+CACHE_TTL_SECONDS = 300
+SERVER_TIMEOUT_SECONDS = 15
+SESSION_WINDOW_MINUTES = 300
+WEEK_IN_MINUTES = 7 * 24 * 60
+MINUTES_PER_DAY = 24 * 60
+ELEVATED_PERCENT = 70
+HIGH_PERCENT = 90
+
+cache_file = Path(os.environ.get("XDG_CACHE_HOME", "~/.cache")).expanduser() / "codex-usage.json"
+
+INITIALIZE_ID = 1
+READ_RATE_LIMITS_ID = 2
+conversation = [
+    {"jsonrpc": "2.0", "id": INITIALIZE_ID, "method": "initialize",
+     "params": {"clientInfo": {"name": "orchard-ai-usage", "title": "orchard", "version": "1"}}},
+    {"jsonrpc": "2.0", "method": "initialized"},
+    {"jsonrpc": "2.0", "id": READ_RATE_LIMITS_ID, "method": "account/rateLimits/read", "params": {}},
+]
+
+
+class SignedOut(Exception):
+    pass
+
+
+def signed_out_record():
+    return {"signed_in": False, "limits": [], "fetched_at": time.time()}
+
+
+def ask_codex_for_rate_limits():
+    codex = shutil.which("codex")
+    if codex is None:
+        raise SignedOut
+    server = subprocess.Popen(
+        [codex, "app-server"],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+    )
+    try:
+        server.stdin.write("".join(json.dumps(message) + "\n" for message in conversation))
+        server.stdin.flush()
+        deadline = time.monotonic() + SERVER_TIMEOUT_SECONDS
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            ready, _, _ = select.select([server.stdout], [], [], remaining)
+            if not ready:
+                raise TimeoutError
+            line = server.stdout.readline()
+            if not line:
+                raise ConnectionError("codex app-server exited")
+            message = json.loads(line)
+            if message.get("id") == READ_RATE_LIMITS_ID:
+                return message
+    finally:
+        server.kill()
+        server.wait()
+
+
+def resets_phrase(unix_seconds, window_minutes):
+    if not unix_seconds:
+        return ""
+    resets_at = dt.datetime.fromtimestamp(unix_seconds, dt.timezone.utc).astimezone()
+    remaining = resets_at - dt.datetime.now(dt.timezone.utc).astimezone()
+    if window_minutes and window_minutes <= SESSION_WINDOW_MINUTES:
+        minutes = max(0, int(remaining.total_seconds() // 60))
+        hours, minutes = divmod(minutes, 60)
+        return f"Resets in {hours} hr {minutes} min" if hours else f"Resets in {minutes} min"
+    return "Resets " + resets_at.strftime("%a %-I:%M %p")
+
+
+def window_label(window):
+    minutes = window.get("windowDurationMins")
+    if not minutes:
+        return "Usage"
+    if minutes <= SESSION_WINDOW_MINUTES:
+        return "Session"
+    if minutes == WEEK_IN_MINUTES:
+        return "Weekly"
+    return f"{minutes // MINUTES_PER_DAY}-day"
+
+
+def severity(percent):
+    return "critical" if percent >= HIGH_PERCENT else "warning" if percent >= ELEVATED_PERCENT else "normal"
+
+
+def row(prefix, window):
+    percent = int(round(window.get("usedPercent") or 0))
+    return {
+        "label": prefix + window_label(window),
+        "percent": percent,
+        "resets": resets_phrase(window.get("resetsAt"), window.get("windowDurationMins")),
+        "severity": severity(percent),
+    }
+
+
+def rows_for(snapshot, prefix=""):
+    windows = [snapshot.get("primary"), snapshot.get("secondary")]
+    return [row(prefix, window) for window in windows if window]
+
+
+def normalize(result):
+    by_bucket = result.get("rateLimitsByLimitId") or {}
+    if len(by_bucket) > 1:
+        limits = [
+            limit
+            for bucket_id, snapshot in by_bucket.items()
+            for limit in rows_for(snapshot, (snapshot.get("limitName") or bucket_id) + " · ")
+        ]
+    else:
+        limits = rows_for(result.get("rateLimits") or {})
+    return {"signed_in": True, "limits": limits, "fetched_at": time.time()}
+
+
+def cached():
+    try:
+        return json.loads(cache_file.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def fresh_enough(record):
+    return record is not None and time.time() - record.get("fetched_at", 0) < CACHE_TTL_SECONDS
+
+
+def main():
+    force = "--force" in sys.argv[1:]
+    record = cached()
+    if not force and fresh_enough(record):
+        print(json.dumps(record))
+        return
+
+    try:
+        reply = ask_codex_for_rate_limits()
+        if "error" in reply:
+            if "authentication" in reply["error"].get("message", "").lower():
+                raise SignedOut
+            raise ConnectionError(reply["error"].get("message", "codex error"))
+        record = normalize(reply.get("result") or {})
+    except SignedOut:
+        record = signed_out_record()
+    except (ConnectionError, TimeoutError, OSError, ValueError) as error:
+        if record is None:
+            record = {"signed_in": True, "limits": [], "fetched_at": 0, "error": str(error) or "offline"}
+
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(json.dumps(record))
+    print(json.dumps(record))
+
+
+if __name__ == "__main__":
+    main()

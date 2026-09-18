@@ -1,7 +1,7 @@
 // The dropdown: a frosted panel matching the OSD square, blurred by Hyprland's
 // layerrule on this window's namespace. Colours ($panel / $track /
 // $ink / $dim / $accent) are regenerated from the active theme's palette by
-// render-claude-usage-theme into colors.scss.
+// render-ai-usage-theme into colors.scss.
 @import "colors";
 
 * {
@@ -27,6 +27,13 @@ window,
 
 .head {
   margin-bottom: 8px;
+}
+
+// A rule between the tools, so two stacks of bars read as two sections.
+.section.later {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid $track;
 }
 
 .title {

@@ -1,9 +1,10 @@
 #!/bin/sh
-# Toggle the Claude usage dropdown under the bar. Opening shows the panel at
-# once with the last record it had, marked as updating, then forces a fresh
-# fetch in the background and swaps the numbers in when it lands; a second
-# press closes it. The fetch is a network round trip (about a second), and a
-# press that shows nothing for a second reads as a press that was not heard.
+# Toggle the AI usage dropdown under the bar. Opening shows the panel at once
+# with the last records it had, marked as updating, then forces a fresh fetch
+# of each tool in the background and swaps the numbers in when both land; a
+# second press closes it. A fetch is a network round trip (about a second),
+# and a press that shows nothing for a second reads as a press that was not
+# heard.
 #
 # The compositor decides whether the panel is up. eww's own window list
 # has been seen to say nothing is open while the panel was still on
@@ -14,11 +15,12 @@
 # first so a wedged daemon can't wedge the next press too.
 set -eu
 
-config="$HOME/.config/claude-usage/eww"
+config="$HOME/.config/ai-usage/eww"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}"
 eww_cmd() { timeout -s KILL 2 eww --config "$config" "$@"; }
 
 panel_is_on_screen() {
-    hyprctl layers -j 2>/dev/null | grep -q -E '"namespace": *"claude-usage"'
+    hyprctl layers -j 2>/dev/null | grep -q -E '"namespace": *"ai-usage"'
 }
 
 daemon_tracks_the_panel() {
@@ -33,34 +35,39 @@ close_panel() {
     if daemon_tracks_the_panel; then
         eww_cmd close usage >/dev/null 2>&1 || true
     else
-        "$HOME/.local/bin/restart-claude-usage"
+        "$HOME/.local/bin/restart-ai-usage"
     fi
     hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null 2>&1 || true
 }
 
 last_record() {
-    cat "${XDG_CACHE_HOME:-$HOME/.cache}/claude-usage.json" 2>/dev/null \
+    cat "$cache/$1-usage.json" 2>/dev/null \
         || printf '{"signed_in": true, "limits": []}'
 }
 
 refresh_in_background() {
     (
-        record=$("$HOME/.local/bin/claude-usage" --force)
-        eww_cmd update usage="$record" refreshing=false >/dev/null 2>&1 || true
+        claude_record="$(mktemp)"
+        codex_record="$(mktemp)"
+        "$HOME/.local/bin/claude-usage" --force > "$claude_record" &
+        "$HOME/.local/bin/codex-usage" --force > "$codex_record" &
+        wait
+        eww_cmd update claude="$(cat "$claude_record")" codex="$(cat "$codex_record")" refreshing=false >/dev/null 2>&1 || true
+        rm -f "$claude_record" "$codex_record"
         pkill -RTMIN+12 waybar 2>/dev/null || true
     ) &
 }
 
 open_panel() {
-    eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-claude-usage"
-    eww_cmd update usage="$(last_record)" refreshing=true >/dev/null 2>&1 || true
+    eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-ai-usage"
+    eww_cmd update claude="$(last_record claude)" codex="$(last_record codex)" refreshing=true >/dev/null 2>&1 || true
     eww_cmd open usage >/dev/null 2>&1 || true
-    hyprctl dispatch 'hl.dsp.submap("claude-usage")' >/dev/null 2>&1 || true
+    hyprctl dispatch 'hl.dsp.submap("ai-usage")' >/dev/null 2>&1 || true
     refresh_in_background
 }
 
 # Open and closed each come with a submap switch: while the panel is up,
-# Escape (bound in hyprland.lua's claude-usage submap) closes it.
+# Escape (bound in hyprland.lua's ai-usage submap) closes it.
 kill_stuck_clients
 if panel_is_on_screen; then
     close_panel

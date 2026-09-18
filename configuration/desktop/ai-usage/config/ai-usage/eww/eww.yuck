@@ -1,11 +1,13 @@
-; The Claude usage dropdown: one row per rate-limit window, each a label, a
-; bar, the percentage, and when it resets. claude-usage-panel pushes the
-; record from claude-usage into `usage` and opens this window under the bar's
-; right end. Colours come from colors.scss, regenerated per theme by
-; render-claude-usage-theme.
+; The AI usage dropdown: one section per AI CLI, one row per rate-limit
+; window, each a label, a bar, the percentage, and when it resets.
+; ai-usage-panel pushes the record from claude-usage into `claude` and the one
+; from codex-usage into `codex`, then opens this window under the bar's right
+; end. Colours come from colors.scss, regenerated per theme by
+; render-ai-usage-theme.
 
-(defvar usage '{"signed_in": true, "limits": []}')
-; True from the moment the panel opens until the forced fetch lands, so the
+(defvar claude '{"signed_in": true, "limits": []}')
+(defvar codex '{"signed_in": true, "limits": []}')
+; True from the moment the panel opens until the forced fetches land, so the
 ; numbers on screen are known to be the last ones rather than current ones.
 (defvar refreshing false)
 
@@ -17,22 +19,27 @@
     (progress :class "row-bar ${row.severity}" :orientation "h" :value {row.percent})
     (label :class "row-resets" :halign "start" :text {row.resets})))
 
-(defwidget panel []
-  (box :class "panel" :orientation "v" :space-evenly false
+(defwidget section [title sign-in usage first]
+  (box :class "section ${first ? "first" : "later"}" :orientation "v" :space-evenly false
     (box :class "head" :space-evenly false
-      (label :class "title" :halign "start" :hexpand true :text "Claude Code")
-      (label :class "refreshing" :halign "end" :visible refreshing :text "updating…"))
-    (label :class "empty" :halign "start" :visible {!usage.signed_in} :text "Signed out — run `claude` to sign in")
+      (label :class "title" :halign "start" :hexpand true :text title)
+      (label :class "refreshing" :halign "end" :visible {refreshing && first} :text "updating…"))
+    (label :class "empty" :halign "start" :visible {!usage.signed_in} :text "Signed out — run `${sign-in}` to sign in")
     (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0 && refreshing} :text "Loading…")
     (label :class "empty" :halign "start" :visible {usage.signed_in && arraylength(usage.limits) == 0 && !refreshing} :text "Usage unavailable")
     (for row in {usage.limits}
       (limit-row :row row))))
 
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (section :title "Claude Code" :sign-in "claude" :usage claude :first true)
+    (section :title "Codex · GPT-6 Astra" :sign-in "codex login" :usage codex :first false)))
+
 ; Offsets match Hyprland's gaps_out and window rounding so the panel's edges
 ; and corners line up with a tiled window's outer border in that corner.
 (defwindow usage
   :monitor 0
-  :namespace "claude-usage"
+  :namespace "ai-usage"
   :geometry (geometry :x "10px" :y "10px" :width "360px" :anchor "top right")
   :stacking "overlay"
   :exclusive false

@@ -112,19 +112,19 @@
         "on-click": "$HOME/.local/bin/system-update"
     },
 
-    "custom/claude-usage": {
+    "custom/ai-usage": {
         "cursor": false,
-        // Claude Code plan usage. A robot glyph; the numbers live in the
-        // tooltip and the panel. The script serves a 5-minute cache so the
-        // poll never blocks on the network; click (or Cmd+Shift+U) drops the
-        // full panel — every rate-limit window and when it resets — under
-        // the bar, and the panel sends SIGRTMIN+12 after its forced refresh
-        // so the tooltip matches it.
-        "exec": "$HOME/.local/bin/waybar-claude-usage",
+        // Claude Code and Codex plan usage. A robot glyph; the numbers live in
+        // the tooltip and the panel. Each fetcher serves a 5-minute cache so
+        // the poll never blocks on the network; click (or Cmd+Shift+U) drops
+        // the full panel — every rate-limit window of every tool and when it
+        // resets — under the bar, and the panel sends SIGRTMIN+12 after its
+        // forced refresh so the tooltip matches it.
+        "exec": "$HOME/.local/bin/waybar-ai-usage",
         "return-type": "json",
         "interval": 60,
         "signal": 12,
-        "on-click": "$HOME/.local/bin/claude-usage-panel"
+        "on-click": "$HOME/.local/bin/ai-usage-panel"
     },
 
     "custom/notch-spacer": {

@@ -18,8 +18,8 @@ as_rgb() { local h=${1#\#}; printf '%d, %d, %d' "0x${h:0:2}" "0x${h:2:2}" "0x${h
 panel_rgb=$(as_rgb "$panel_hex")
 ink_rgb=$(as_rgb "$ink_hex")
 
-mkdir -p "$HOME/.config/claude-usage/eww"
-cat > "$HOME/.config/claude-usage/eww/colors.scss" <<SCSS
+mkdir -p "$HOME/.config/ai-usage/eww"
+cat > "$HOME/.config/ai-usage/eww/colors.scss" <<SCSS
 \$panel:  rgba($panel_rgb, 0.80);
 \$track:  rgba($ink_rgb, 0.15);
 \$ink:    $ink_hex;

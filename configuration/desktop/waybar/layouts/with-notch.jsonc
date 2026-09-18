@@ -30,7 +30,7 @@
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
-        "custom/claude-usage",
+        "custom/ai-usage",
         "battery",
         "custom/updates",
         "custom/clock",

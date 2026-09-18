@@ -22,7 +22,7 @@ creating the folder; removing one is deleting it. A feature folder holds:
   were made; ends with `# Idempotent.` Starts with
   `set -euo pipefail` and `HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`.
 - `bin/` — scripts, linked into `~/.local/bin`. Named the way you'd say
-  them (`set-theme`, `system-update`, `claude-usage-panel`). Waybar
+  them (`set-theme`, `system-update`, `ai-usage-panel`). Waybar
   module scripts are `waybar-<module>`; theme renderers are
   `render-<thing>-theme`; daemon restarters are `restart-<thing>`.
 - `config/` — files linked into `~/.config`, preserving subdirectories
@@ -69,8 +69,8 @@ creating the folder; removing one is deleting it. A feature folder holds:
 ## Consumers vs owners
 
 A feature owns its scripts and config; other features carry only the
-wiring lines that reference it, in their own files. E.g. the Claude usage
-widget: `claude-usage/` owns the scripts and the eww panel; `waybar`
+wiring lines that reference it, in their own files. E.g. the AI usage
+widget: `ai-usage/` owns the scripts and the eww panel; `waybar`
 holds the module block, style rule, and layout entry; `hyprland` holds
 the keybind, `hyprland.start`, and layer rules; `themes/bin/set-theme` holds
 the re-theme block. When adding something, put each line in the file
@@ -119,7 +119,7 @@ A module is: a `bin/waybar-<name>` script printing one JSON line
 (`{"text","tooltip","class"}`), a `"custom/<name>": {…}` block in
 `config/config.jsonc` (`exec`, `return-type: json`, `interval` or
 continuous, a dedicated `signal` number — 7 dnd, 9 network, 11
-bluetooth, 12 claude-usage — and `on-click`), a padding rule
+bluetooth, 12 ai-usage — and `on-click`), a padding rule
 plus any state classes in `config/style.css` (icon modules join the
 `Phosphor-Fill` font-family list), and an entry in **both**
 `layouts/with-notch.jsonc` and `layouts/without-notch.jsonc` (the Mac's
@@ -176,7 +176,7 @@ symlink, into the repo.
 
 ## Panels and menus
 
-- **eww** for anything drawn (OSD square, Claude usage dropdown). Each
+- **eww** for anything drawn (OSD square, AI usage dropdown). Each
   feature runs **its own daemon on its own config dir**
   (`eww --config ~/.config/<feature>/eww`), restarted by kill + `daemon`
   + ping loop, never `eww reload` (strands surfaces on wlr-layer-shell).

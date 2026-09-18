@@ -114,12 +114,12 @@ if command -v eww >/dev/null 2>&1; then
     "$HOME/.local/bin/restart-osd" >/dev/null 2>&1 || true
 fi
 
-# Claude usage dropdown — same deal: regenerate its colours from the palette
+# AI usage dropdown — same deal: regenerate its colours from the palette
 # and restart its own eww daemon so it repaints from them. Skipped cleanly on
-# a machine without the claude-usage feature.
-if [ -x "$HOME/.local/bin/render-claude-usage-theme" ]; then
-    "$HOME/.local/bin/render-claude-usage-theme" >/dev/null 2>&1 || true
-    "$HOME/.local/bin/restart-claude-usage" >/dev/null 2>&1 || true
+# a machine without the ai-usage feature.
+if [ -x "$HOME/.local/bin/render-ai-usage-theme" ]; then
+    "$HOME/.local/bin/render-ai-usage-theme" >/dev/null 2>&1 || true
+    "$HOME/.local/bin/restart-ai-usage" >/dev/null 2>&1 || true
 fi
 
 # Same for the Apple TV remote card, likewise guarded.
