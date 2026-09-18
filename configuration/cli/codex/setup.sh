@@ -29,6 +29,7 @@ chosen = [
     (TOP_LEVEL, "model", '"gpt-6-astra"'),
     (TOP_LEVEL, "model_reasoning_effort", '"high"'),
     ("tui", "show_tooltips", "false"),
+    ("tui", "vim_mode_default", "true"),
 ]
 
 

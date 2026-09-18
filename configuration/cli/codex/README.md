@@ -5,7 +5,7 @@ includes this feature on new machines. To reapply configuration when Codex
 is already installed, run `bash configuration/cli/codex/setup.sh`.
 
 The setup preserves machine-specific `~/.codex/config.toml` settings while
-applying the model, reasoning effort, tooltip preference, and Claude
+applying the model, reasoning effort, Vim editing, tooltip preference, and Claude
 instruction filename fallbacks. Existing fallback filenames are retained.
 `config/AGENTS.md` is linked into `~/.codex/AGENTS.md` using Orchard's usual
 link helper, which backs up any existing regular file.
