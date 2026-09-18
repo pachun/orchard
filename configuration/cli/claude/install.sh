@@ -29,6 +29,7 @@ if ! command -v claude >/dev/null 2>&1; then
 fi
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.claude"
+bash "$HERE/setup-skills.sh"
 
 MARKETPLACES=(
     anthropics/claude-plugins-official

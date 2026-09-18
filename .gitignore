@@ -4,13 +4,8 @@
 __pycache__/
 *.pyc
 
-# Work-private Claude skills. This repo is public; skills like /qar
-# review a client's codebase and must never be committed here — the
-# work security team would treat that as a leak. tools/link.sh only
-# ever symlinks repo -> $HOME (never the reverse), so a skill could
-# only land in the repo by a manual mistake; this is the backstop.
-# Public skills, if any are ever wanted, can be force-added.
 configuration/cli/claude/config/skills/
+**/skills/qar/
 
 # The /orchard skill ships with the repo. The global git ignore drops all of
 # .claude/ because it's usually per-repo state (settings.local.json,
@@ -18,3 +13,7 @@ configuration/cli/claude/config/skills/
 !.claude/
 .claude/*
 !.claude/skills/
+
+!.agents/
+.agents/*
+!.agents/skills
