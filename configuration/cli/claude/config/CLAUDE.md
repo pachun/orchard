@@ -208,6 +208,15 @@ Implementation details belong in the body. The subject line is
 what gets scanned years later when the product is remembered only
 vaguely; it should help you re-orient there.
 
+**Lead with the main action verb.** Prefer "Scroll thread headings
+with messages" over "Let thread headings scroll with messages".
+Verbs such as "Let", "Allow", "Enable", and "Handle" can be right
+when they name the actual outcome, but often just delay the verb
+that says what changes. Put that verb first whenever it preserves
+the meaning. Use the body for the previous behavior and why the
+change matters — in this example, the headings were previously
+pinned to the top of the thread.
+
 When the outcome is hard to phrase succinctly, that's usually a
 hint to dig harder for the real value, not to fall back on
 describing the action. "Reduce setup time" beats "Remove manual
