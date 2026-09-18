@@ -669,3 +669,18 @@ and collapse them to thread ids, Outlook-conversation style.
   it kept green, so it went. Then the search listing was extracted into
   `Gmail.GetSearchedThreadIds` beside its Outlook sibling, with no new test
   and no `TestSeam`, since no layer mocks it.
+
+## 2026-09-18 — Monitoring configuration is an explicit exception
+
+Nick clarified the scope while adding database and memory diagnostics:
+Emma and emma_api use BDD for product features. Performance-monitoring
+configuration does not require test-first development or dedicated tests;
+compilation, manual inspection, and checking the resulting telemetry are
+appropriate verification. Do not build a test harness merely to configure
+operator diagnostics. This exception does not extend to product behavior
+or performance requirements that users experience.
+
+Morning Telegraph is Nick's personal operations app, not a BDD codebase.
+Do not add tests there. Verify changes pragmatically by compiling and
+checking the integration. Existing monitoring tests do not establish a
+requirement to add more.
