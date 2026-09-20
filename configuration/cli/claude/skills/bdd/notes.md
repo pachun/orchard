@@ -763,3 +763,28 @@ was unreachable by any real state, yet coverage stayed at 100%. Its condition
 was `queries.every(status === "Load Error")`, and `[].every(...)` is `true`,
 so any render with no accounts walked the branch. Deleting it and watching
 green was the only honest check.
+
+## 2026-09-20 — Tests run silently: console output and unanswered requests both fail
+
+Act warnings were printing beside a green suite. Two holes let them through.
+The console guard only watched `console.error`, and only between `beforeEach`
+and `afterEach`, so anything logged after a test finished was never seen.
+And a request mock matched on the URL path, then checked the query inside its
+handler and returned nothing on a mismatch; msw counts that as handled and
+passes the request to the real network. So a request no test had mocked failed
+quietly, retried with backoff, and updated the store after the test had ended
+— which is what an "update not wrapped in act" warning is: the app still
+working when the test stopped watching. Sixteen tests signed in by hand, mocked
+INBOX, and never answered the Set Aside request the always-mounted second tab
+makes. The warning surfaced in whichever test ran next, so the named test was
+usually innocent.
+
+Now: `failOnConsoleOutput` is installed for the whole file, covers every
+console method, and checks in `afterEach` and `afterAll`. `mswNock` matches
+path and query together, so an unmocked request is unhandled and msw reports
+it immediately. When a test trips either, the question is "what is the app
+still doing that this test never arranged for?" — answer the request (the
+`signin` helper mocks both tabs; `mockNothingSetAside` for hand-rolled
+sign-ins), don't silence the message. A `console.log` in production code is
+not a product requirement; its only test asserted the log itself, so the
+assertion and the line went together, under green.
