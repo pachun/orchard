@@ -54,6 +54,16 @@ vim.opt.tabstop = 2
 -- nowhere nvim can see. Backed by wl-copy/wl-paste on Wayland.
 vim.opt.clipboard:append("unnamedplus")
 
+-- Never remember files under ~/icloud. It is an sshfs automount to the
+-- mac mini, so merely stat-ing a path there can block for as long as the
+-- ssh connection takes to come up or time out. Telescope's recent-files
+-- picker stats every remembered file before it filters to the cwd, so a
+-- single remembered iCloud file freezes the editor. The shada "r" flag
+-- marks a path prefix as removable media: no marks, and so no recent-file
+-- entries, are stored for anything beneath it.
+local neverRememberFilesUnder = "r"
+vim.opt.shada:append(neverRememberFilesUnder .. vim.env.HOME .. "/icloud")
+
 -- No sign column. Diagnostic indication happens via line-number
 -- highlighting (numhl below) instead, so the gutter stays as narrow
 -- as just the line numbers.
