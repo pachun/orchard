@@ -7,10 +7,15 @@
 -- Ordinary messages are *not* popups. noice's default backend for them is
 -- nvim-notify, which stacks every "written", warning, and vim.notify call
 -- in the top-right corner over your code for a few seconds. Instead they
--- go to the `cmdline` view: the bottom line stock vim already reserves for
--- them, where they sit until the next message or redraw and cover nothing.
+-- go to the `mini` view: one right-aligned line in the bottom corner, just
+-- above the statusline, that clears itself after two seconds.
+--
+-- Not the `cmdline` view. While noice is attached nvim sets cmdheight to 0,
+-- so there is no reserved message line: the screen's last row is the
+-- statusline. The `cmdline` view draws on that row and never times out, so
+-- one warning hides the filename until another message replaces it.
 -- nui.nvim is the floating-window toolkit noice draws into.
-local bottomLine = "cmdline"
+local bottomCorner = "mini"
 
 return {
   "folke/noice.nvim",
@@ -21,13 +26,13 @@ return {
   config = function()
     require("noice").setup({
       messages = {
-        view = bottomLine,
-        view_error = bottomLine,
-        view_warn = bottomLine,
+        view = bottomCorner,
+        view_error = bottomCorner,
+        view_warn = bottomCorner,
       },
-      notify = { view = bottomLine },
+      notify = { view = bottomCorner },
       lsp = {
-        message = { view = bottomLine },
+        message = { view = bottomCorner },
         -- Route LSP markdown (hover docs, signature help) through noice
         -- so it gets treesitter-highlighted code blocks instead of the
         -- plain unhighlighted default. cmp.entry.get_documentation only
