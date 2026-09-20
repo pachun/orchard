@@ -23,23 +23,45 @@ code in these projects should read.
   composition. Derive state from what you already have; don't
   store-and-sync duplicate state.
 
-## Lead with the affirmative case
+## Few return paths, affirmative case first, no guard clauses
 
-When a conditional picks between a real result and a fallback, write
-the positive, un-negated condition first and return the real result
-from it — let the fallback be the trailing return:
+Aim for one return path. A function that computes a value and returns
+it once is the easiest to follow; derive the value above (a named
+intermediate, a lookup, a ternary that fits on a line) and return it at
+the bottom.
+
+When more than one return is genuinely needed — a component choosing
+between whole trees is the usual case — write it as a single
+`if / else if / else` chain, with the positive, un-negated condition
+first:
 
 ```
 if (fontsLoaded) {
+  return <App />
+} else {
+  return <Splash />
+}
+```
+
+Never a guard clause, and never a trailing `return` sitting outside the
+`if`:
+
+```
+if (!fontsLoaded) return <Splash />   // no: negated early exit
+return <App />
+
+if (fontsLoaded) {                    // no: the fallback dangles
   return <App />
 }
 return <Splash />
 ```
 
-Not `if (!fontsLoaded) return <Splash />` ahead of the app. The reader
-meets what the component *is* before its degraded state, and there's
-no negation to mentally flip. Keep the flat guard-clause shape — early
-returns, no nested `else` — just order it so what's true comes first.
+A dangling return makes the reader reconstruct which conditions had to
+be false to reach it. In an `if / else` chain every outcome sits at the
+same level, under the condition that produces it, so the branches read
+as a list of cases. The reader also meets what the component *is*
+before its degraded state, with no negation to mentally flip. Generic
+advice says to flatten with early returns; this codebase doesn't.
 
 ## Components return ReactElements — `<></>` over `null`
 
@@ -47,13 +69,14 @@ A component that sometimes renders nothing returns an empty fragment,
 not `null`. `return <></>` keeps every component uniformly
 `ReactElement` (no `ReactElement | null` unions rippling into
 signatures), and an empty fragment renders nothing just the same. So a
-self-hiding component pairs this with the affirmative-first guard:
+self-hiding component pairs this with the affirmative-first `if / else`:
 
 ```
 if (isToFieldFocused) {
   return <View testID="Recipient Suggestions Bar">…</View>
+} else {
+  return <></>
 }
-return <></>
 ```
 
 Generic React guidance says `return null`; this codebase doesn't.
