@@ -684,3 +684,82 @@ Morning Telegraph is Nick's personal operations app, not a BDD codebase.
 Do not add tests there. Verify changes pragmatically by compiling and
 checking the integration. Existing monitoring tests do not establish a
 requirement to add more.
+
+## 2026-09-19 — A request-error report does not cover every error screen
+
+An Outlook inbox showed "Inbox Unavailable" without a Sentry event.
+Reporting the first-load error callback covered HTTP, network, and parsing
+failures, but the same screen could render with zero accounts: `every([])`
+made all-accounts-failed true without any request or error callback.
+
+The outside-in no-account scenario drove a report when the unavailable
+screen mounts. A failed Outlook request then drove account/provider context
+without serializing the account object. Request breadcrumbs record the
+endpoint without query text and the response's status, content type, and
+request ID without copying headers or email bodies. The network-failure
+scenario drove the breadcrumb before the fetch, so rejected fetches leave
+evidence too. A temporary malformed-JSON scenario verified that the existing
+handler reports the original SyntaxError; it was already green, so it was
+removed after verification rather than retained as another driving test.
+
+Mocked Sentry assertions prove the app calls the SDK, not delivery. A
+separate labeled informational event was sent through the installed JS SDK
+and read back through Sentry's API. This proves ingestion from the development
+machine; it does not prove connectivity or native transport on another
+person's phone. The installed React Native SDK already attaches Expo OTA
+update context, so duplicating that integration was unnecessary.
+
+## 2026-09-19 — Provider-error reporting is explicitly outside coverage
+
+Nick explicitly requested Sentry reporting at backend boundaries that discard
+provider failures: start with Outlook inbox loading, then audit the other
+providers. No new tests; put the reporting calls and reporting helpers inside
+`coveralls-ignore-start` / `coveralls-ignore-stop` blocks. This extends the
+monitoring exception to provider-error instrumentation. It does not authorize
+untested changes to the application's error handling, retries, or return values.
+
+Preserve the provider's error body and response metadata before a fallback
+turns them into an empty result or generic status. A successful outer batch can
+contain failed subresponses, so inspect those independently. Keep credentials,
+request payloads, and successful email bodies out of the diagnostic event.
+Verify through compilation and local payload inspection rather than adding
+coverage tests. A Sentry `before_send` callback returning nil can expose the
+constructed event locally without delivering it. Its `message` is a Sentry
+struct; print `message.formatted`, not the struct through Jason directly.
+
+## 2026-09-19 — Sent inbox conversations must stay silent
+
+Emma adds newly sent Gmail conversations to the inbox. Checking only INBOX
+in the notification webhook therefore also admits outgoing messages labeled
+SENT. A production sent-message record and push tickets two seconds later
+identified this path. The regression starts at the Gmail webhook, stubs
+provider HTTP with Bypass and the message serializer through its TestSeam,
+and exercises the notification command through the real Oban queue in manual
+mode. The initial failure showed the outgoing message queued for the user's
+device; excluding SENT from notification eligibility made it green without
+changing inbox placement. This is a new eligibility rule, not a test written
+to justify deleting a feature.
+
+## 2026-09-20 — A special-case clause is the model asking to change; vacuous `every` hides dead branches
+
+A failed first thread load was stored as `"Load Error"` under `"Without
+Data"`. Everything downstream then grew a one-off: the spinner's release
+condition became `With Data || Load Error`, the refresh and load guards each
+skipped the status so nothing could ever retry it, and an "Inbox Unavailable"
+screen existed only for the all-accounts case. Pull to refresh was a dead end
+in production. The fix was not another clause. A failed load is now stored the
+way a failed refresh and a failed next page already were — `"Success"` with
+the data we have, here none, plus the flash message — and every one-off
+deleted under green. One production line; `refreshThreads` needed no change.
+When a fix seems to need a special case around a type, propose changing the
+type first.
+
+Placement: the existing "when every account fails to load" test asserted the
+behavior being reversed, so it was rewritten in place. A new test beside it
+could never have gone green while the old one stood.
+
+Coverage is not drivenness, again: after the change the unavailable branch
+was unreachable by any real state, yet coverage stayed at 100%. Its condition
+was `queries.every(status === "Load Error")`, and `[].every(...)` is `true`,
+so any render with no accounts walked the branch. Deleting it and watching
+green was the only honest check.
