@@ -52,6 +52,12 @@ cursor-style = block
 cursor-style-blink = false
 shell-integration-features = no-cursor
 
+# One scroll event per wheel notch. The default of 3 stacks with tmux, which
+# moves 5 lines per event in scrollback: 15 lines a notch, against one notch's
+# worth everywhere else on the desktop. Trackpads take the precision path,
+# which was already 1.
+mouse-scroll-multiplier = precision:1,discrete:1
+
 # Auto-start each ghostty surface inside a fresh tmux session. The wrapper
 # is symlinked into ~/.local/bin/ by dotfiles/link.sh.
 command = $HOME/.local/bin/ghostty-tmux-launcher
