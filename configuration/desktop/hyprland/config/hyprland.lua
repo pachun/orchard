@@ -269,13 +269,24 @@ hl.bind(modifier .. " + SHIFT + B", runScript("bluetooth-menu"))
 hl.bind(modifier .. " + SHIFT + V", runScript("nordvpn-menu"))
 hl.bind(modifier .. " + comma", runScript("system-menu"))
 
--- The calculator. K because C is xremap's — Cmd+C is copy, rewritten before any
--- app sees it, so it can never be a launcher key.
+-- The calculator. = because C is xremap's — Cmd+C is copy, rewritten before any
+-- app sees it, so it can never be a launcher key — and K belongs to the window
+-- directions below.
 --
 -- --here, and the window rule below, because a calculator belongs beside
 -- whatever made you reach for it. Every other app here gets a desktop of its
 -- own; this one gets yours.
-hl.bind(modifier .. " + SHIFT + K", runScript("focus-or-launch --here org.gnome.Calculator gnome-calculator"))
+hl.bind(modifier .. " + SHIFT + equal", runScript("focus-or-launch --here org.gnome.Calculator gnome-calculator"))
+
+-- Windows that share a space: Cmd + a vim direction walks to the neighbor on
+-- that side, and with Shift trades places with it. Ctrl+hjkl would be the
+-- vim-tmux-navigator reflex, which is exactly why it is left alone: tmux and
+-- nvim own those four, and Hyprland takes a key before any app sees it.
+local vimDirections = { H = "left", J = "down", K = "up", L = "right" }
+for key, direction in pairs(vimDirections) do
+    hl.bind(modifier .. " + " .. key, hl.dsp.focus({ direction = direction }))
+    hl.bind(modifier .. " + SHIFT + " .. key, hl.dsp.window.swap({ direction = direction }))
+end
 
 hl.bind(modifier .. " + Escape", hl.dsp.exec_cmd(quitHyprland))
 
@@ -485,17 +496,26 @@ local function lowestEmptySpace(active)
     return nil
 end
 
+-- One window to a space is what keeps the laptop panel readable, and it is
+-- the wrong rule for a monitor with room for several: there a new window opens
+-- beside the one you are in, and the layout divides the space (see dwindle).
+local function getsASpaceOfItsOwn(window, active)
+    return active ~= nil
+        and active.monitor ~= nil
+        and active.monitor.name == internalPanel
+        and window.workspace ~= nil
+        and window.workspace.id == active.id
+        and not window.floating
+        and not staysBesideWhatYouAreDoing[window.class]
+end
+
 hl.on("window.open", function(window)
     local active = hl.get_active_workspace()
-    if active == nil or window.workspace == nil or window.workspace.id ~= active.id then
-        return
-    end
-    if window.floating or staysBesideWhatYouAreDoing[window.class] then
-        return
-    end
-    local space = lowestEmptySpace(active)
-    if space ~= nil and space ~= active.id then
-        hl.dispatch(hl.dsp.window.move({ window = window, workspace = tostring(space) }))
+    if getsASpaceOfItsOwn(window, active) then
+        local space = lowestEmptySpace(active)
+        if space ~= nil and space ~= active.id then
+            hl.dispatch(hl.dsp.window.move({ window = window, workspace = tostring(space) }))
+        end
     end
 end)
 
@@ -808,6 +828,14 @@ hl.config({
     -- fullscreen windows square, so no wallpaper leaks into their corners, and
     -- layer surfaces (waybar) never take window rounding in the first place.
     -- Both were checked.
+    -- dwindle halves whichever window you are in, along its longer side. Half
+    -- of an ultrawide is still wider than it is tall, so left alone a third
+    -- window makes a third column; counting height for half as much again
+    -- makes that half read as tall, and the third window takes a quarter.
+    dwindle = {
+        split_width_multiplier = 1.5,
+    },
+
     decoration = {
         rounding = 10,
         rounding_power = 4,
