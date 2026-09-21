@@ -108,8 +108,24 @@ end
 -- Both are pinned because pinning only one leaves the other to auto-place,
 -- which lands the laptop panel to the right of the external instead of left.
 -- eDP-1 is 2880 wide at scale 2, so DP-1 starts at its logical width, 1440.
-hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 2 })
-hl.monitor({ output = "DP-1", mode = "2560x1440@59.95", position = "1440x0", scale = 1 })
+local internalPanel = "eDP-1"
+local externalMonitor = "DP-1"
+local rightOfTheLaptopPanel = "1440x0"
+hl.monitor({ output = internalPanel, mode = "preferred", position = "0x0", scale = 2 })
+hl.monitor({ output = externalMonitor, mode = "2560x1440@59.95", position = rightOfTheLaptopPanel, scale = 1 })
+
+-- The UltraGear is a 3440x1440 ultrawide behind the Insignia USB-C hub, whose
+-- HDMI port has the same 300 MHz TMDS ceiling: the kernel prunes every
+-- advertised mode above 297 MHz, which takes out the panel's native 85 Hz
+-- timing (471 MHz) and leaves 50 Hz as the only listed one at native
+-- resolution. The pruning only applies to the monitor's own list, though, and
+-- the hub carries more than it admits to: this is `cvt -r 3440 1440 60`, a
+-- reduced-blanking 60 Hz timing at 319.75 MHz, which the kernel accepts as a
+-- custom mode. Matched by description so the DP-1 rule above can't stretch
+-- 16:9 across a 21:9 panel; it comes second because the later matching rule
+-- wins.
+local ultrawideSixtyHertzReducedBlanking = "modeline 319.75 3440 3488 3520 3600 1440 1443 1453 1481 +hsync -vsync"
+hl.monitor({ output = "desc:LG Electronics LG ULTRAGEAR", mode = ultrawideSixtyHertzReducedBlanking, position = rightOfTheLaptopPanel, scale = 1 })
 
 -- The external is the primary screen: the five spaces the bar promises all live
 -- on it, so Cmd+1..5 always drives the monitor and closing the lid barely
@@ -130,7 +146,6 @@ hl.monitor({ output = "DP-1", mode = "2560x1440@59.95", position = "1440x0", sca
 -- monitor would otherwise sweep your windows across to it on every
 -- appearance). It records the choice in a state file and reloads; no file
 -- means on.
-local externalMonitor = "DP-1"
 local spaceCount = 5
 
 local function externalSpacesArePinned()
