@@ -45,7 +45,7 @@ fold_panel_away() {
 }
 
 bring_panel_back() {
-    hyprctl -r eval "hl.monitor({ output = \"$INTERNAL_PANEL\", mode = \"preferred\", position = \"0x0\", scale = 2 })"
+    hyprctl -r eval "hl.monitor({ output = \"$INTERNAL_PANEL\", mode = \"preferred\", position = \"0x0\", scale = 2, disabled = false })"
 }
 
 lid_is_closed() {
@@ -66,6 +66,7 @@ case "${1:-}" in
         ;;
     opened)
         bring_panel_back
+        "$(dirname "$(readlink -f "$0")")/release-stale-display-pipes"
         ;;
     sync)
         if lid_is_closed; then

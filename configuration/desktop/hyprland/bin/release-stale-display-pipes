@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Let the next monitor be detected after one was unplugged.
+#
+# Hyprland's DRM backend cannot switch off the pipe of an output that is
+# already gone ("Cannot commit a disconnected output"), so the kernel goes on
+# driving it. On the XPS 14's Type-C ports an active pipe pins the port's mode,
+# and the next plug-in is never detected: the monitor stays blank on every port
+# until a reboot. Handing the display to the kernel console for a moment makes
+# it drop every pipe that has no connected screen, and Hyprland takes the rest
+# back on return.
+#
+# logind does the switching because chvt wants root and Ctrl+Alt+Fn never
+# reaches Hyprland on this keyboard. Nothing happens unless a connector is
+# disconnected yet still enabled, so this costs nothing once upstream fixes it.
+#
+# Skipped while the lid is shut: unplugging then sends the laptop to sleep, and
+# a console switch racing the suspend helps nobody. hypr-lid runs this again
+# when the lid opens.
+set -euo pipefail
+
+SPARE_CONSOLE=3
+SECONDS_ON_THE_KERNEL_CONSOLE=1
+
+a_pipe_outlived_its_monitor() {
+    local connector
+    for connector in /sys/class/drm/card*-*-*; do
+        if [ "$(cat "$connector/status")" = disconnected ] && [ "$(cat "$connector/enabled")" = enabled ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+lid_is_closed() {
+    grep -qi closed /proc/acpi/button/lid/*/state 2>/dev/null
+}
+
+console_hyprland_is_on() {
+    sed 's/^tty//' /sys/class/tty/tty0/active
+}
+
+switch_to_console() {
+    busctl call org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 \
+        org.freedesktop.login1.Seat SwitchTo u "$1" >/dev/null
+}
+
+if a_pipe_outlived_its_monitor && ! lid_is_closed; then
+    hyprland_console=$(console_hyprland_is_on)
+    trap 'switch_to_console "$hyprland_console"' EXIT
+    switch_to_console "$SPARE_CONSOLE"
+    sleep "$SECONDS_ON_THE_KERNEL_CONSOLE"
+fi

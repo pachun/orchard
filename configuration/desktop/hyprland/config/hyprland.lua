@@ -612,6 +612,19 @@ hl.bind("switch:off:Lid Switch", runScript("hypr-lid opened"), { locked = true }
 -- edge onto it and never comes back.
 hl.exec_cmd(localBin("hypr-lid sync"))
 
+-- A monitor plugged in mid-session arrives bare: awww only paints outputs it
+-- has already been handed an image for, so the wallpaper is put up again.
+hl.on("monitor.added", function()
+    hl.exec_cmd(localBin("set-wallpaper"))
+end)
+
+-- Hyprland leaves the kernel driving an unplugged monitor's pipe, and on this
+-- laptop that stops the next plug-in from being detected at all (the why is in
+-- the script). A no-op whenever there is nothing stale to release.
+hl.on("monitor.removed", function()
+    hl.exec_cmd(localBin("release-stale-display-pipes"))
+end)
+
 -- Everything that starts with the session. hyprland.start fires once, at
 -- login; a config reload does not run these again.
 hl.on("hyprland.start", function()
