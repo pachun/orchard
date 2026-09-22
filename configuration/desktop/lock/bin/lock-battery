@@ -5,7 +5,10 @@
 #
 # Glyphs are Material Design battery icons from Symbols Nerd Font Mono, one per
 # 10%, filled bottom-up in proportion — the set the bar's battery module uses,
-# so the two agree. The bolt is Phosphor's, as in the bar.
+# so the two agree. The bolt is Phosphor's, as in the bar. It is spelled out
+# in octal because a private-use glyph pasted as a literal does not survive
+# every editor: the last one came out as an empty string, which is why the lock
+# screen showed a bare percentage on the charger.
 set -eu
 
 battery=$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -n1)
@@ -25,7 +28,7 @@ glyph_for_capacity() {
 }
 
 case "$status" in
-    Charging) glyph='' ;;
+    Charging) glyph=$(printf '\356\213\236') ;;   # U+E2DE lightning
     *)        glyph=$(glyph_for_capacity "$capacity") ;;
 esac
 
