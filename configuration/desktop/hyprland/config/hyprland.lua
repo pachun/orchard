@@ -190,6 +190,7 @@ hl.bind(modifier .. " + SHIFT + E", focusOrLaunch(emailWindowClass, emailApplica
 -- Cmd+Shift+3 → full-screen capture
 -- Cmd+Shift+4 → region capture (slurp picker)
 -- Cmd+Shift+5 → toggle screen recording (region picker on first press)
+-- Cmd+Shift+6 → mark up a screenshot you already took (newest first)
 -- All save to ~/pictures/screenshots/ or ~/videos/recordings/ AND copy
 -- the screenshot to the clipboard for immediate paste.
 --
@@ -199,6 +200,7 @@ local function bindScreenshotKeys()
     hl.bind(modifier .. " + SHIFT + 3", runScript("screenshot full"))
     hl.bind(modifier .. " + SHIFT + 4", runScript("screenshot region"))
     hl.bind(modifier .. " + SHIFT + 5", runScript("screenrecord"))
+    hl.bind(modifier .. " + SHIFT + 6", runScript("annotate-screenshot"))
 end
 bindScreenshotKeys()
 

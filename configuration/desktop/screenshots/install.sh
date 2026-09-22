@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Screenshot + recording stack (Cmd+Shift+3/4/5 in hyprland.lua).
-# grim grabs pixels, slurp picks regions, wf-recorder writes mp4.
+# Screenshot + recording stack (Cmd+Shift+3/4/5/6 in hyprland.lua).
+# grim grabs pixels, slurp picks regions, wf-recorder writes mp4, satty
+# draws boxes and text over a shot you already took (annotate-screenshot).
 # hyprpicker freezes the screen during region-select (used by
 # ~/.local/bin/screenshot) so on-screen UI (fuzzel menus, the bar)
 # stays visible while you draw the box. Each shot also goes to the
@@ -10,6 +11,6 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm grim slurp wf-recorder hyprpicker
+sudo pacman -S --needed --noconfirm grim slurp wf-recorder hyprpicker satty
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

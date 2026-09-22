@@ -1,0 +1,36 @@
+#!/bin/sh
+# Mark up a screenshot: red boxes, arrows, text. Cmd+Shift+6 in hyprland.lua.
+# Lists the screenshots folder newest first and opens the pick in satty. Enter
+# there copies the result to the clipboard and saves it beside the original
+# with an "-annotated" suffix; the original is left alone. The capture keys
+# stay as they are — this is a separate step, for the shot you already took.
+#
+# Phosphor codepoints used:
+#   image  U+E2CA  — screenshot rows
+set -eu
+. "$HOME/.local/bin/_fuzzel-menu-toggle"
+
+screenshots="$HOME/pictures/screenshots"
+ICON_IMAGE=$(printf '\356\213\212')   # U+E2CA image
+
+newest_first() {
+    ls -t "$screenshots" 2>/dev/null | grep -iE '\.(png|jpe?g)$'
+}
+
+rows=$(newest_first | while read -r name; do printf '%s  %s\n' "$ICON_IMAGE" "$name"; done)
+if [ -z "$rows" ]; then
+    notify-send 'Annotate' 'No screenshots yet (Cmd+Shift+4 takes one)'
+    exit 0
+fi
+
+choice=$(printf '%s\n' "$rows" | fuzzel --dmenu --prompt='annotate: ' --width=48 --lines=10) || exit 0
+name=${choice#*  }
+annotated="$screenshots/${name%.*}-annotated.png"
+
+exec satty --filename "$screenshots/$name" \
+    --output-filename "$annotated" \
+    --copy-command wl-copy \
+    --actions-on-enter save-to-clipboard,save-to-file \
+    --early-exit all \
+    --initial-tool rectangle \
+    --fullscreen
