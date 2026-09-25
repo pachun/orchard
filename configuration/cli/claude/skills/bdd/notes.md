@@ -788,3 +788,89 @@ still doing that this test never arranged for?" — answer the request (the
 sign-ins), don't silence the message. A `console.log` in production code is
 not a product requirement; its only test asserted the log itself, so the
 assertion and the line went together, under green.
+
+## 2026-09-22 — Preserving email colors also requires preserving contrast
+
+A real invoice used dark teal as its body text, not an accent. Preserving
+non-neutral colors while darkening white backgrounds reduced its contrast
+from 12.8:1 to 1.37:1 on mobile. Fixtures proving that red stayed red missed
+this interaction: the requirement is readable colored text that retains its
+hue, not byte-for-byte color preservation after changing the background.
+
+Following the existing injected-WebView exception, verify the actual generated
+mobile script in a real browser, using the original email locally with remote
+resources blocked. Compare foreground/background contrast after transformation,
+check unchanged readable pairs and light mode, and check hue preservation for
+sender colors separately from the app's existing default-link recoloring.
+Browser checks complement the React Native suite; they do not establish native
+iOS or Android WebView behavior. Keep private email fixtures out of commits.
+
+## 2026-09-22 — Email contrast includes alpha, gradients, and text fill
+
+An Apple Support message used `rgba(0, 0, 0, 0.85)`, which the RGB-only
+color parser skipped after darkening its white background. Assess translucent
+text after compositing it over the displayed background; preserve fully
+transparent text and already-readable alpha colors.
+
+A newsletter painted black text over a solid-black CSS gradient and pinned
+`-webkit-text-fill-color` independently of `color`. Recognizing the uniform
+gradient fixed the computed color but still left the letters black: a second
+failing assertion on text fill drove that correction. Preserve unknown image
+backgrounds and nonuniform gradients rather than guessing their colors.
+
+Exercise the generated `javascriptInjectedIntoEmails` string with the same
+theme assignment and load event as the WebView, mocking only the native
+height-report bridge and blocking remote requests. Verify the original email
+locally, then light mode, transparent text, and preserved readable colors.
+Regenerate through `copy-javascript.rb`; editing only the readable JS source
+does not update the script bundled into the app.
+
+## 2026-09-23 — A value known only at action time belongs in an imperative request, not a hook's config
+
+Sign-in by typed email address has to hand Microsoft a `login_hint`.
+`useAuthRequest` takes that as `extraParams` in its config, and the hook
+rebuilds its request asynchronously whenever the params string changes,
+returning `null` until the rebuild lands and throwing from `promptAsync`
+if called before then. Feeding keystrokes into it would have made sign-in
+depend on the rebuild beating the provider-lookup round trip — ordering
+by luck, the timer smell in hook form.
+
+The seam moved instead: `loginOrSignupWithMicrosoft` now builds
+`new AuthRequest({ ...config, extraParams: { login_hint } })` at the moment
+of sign-in and calls `request.promptAsync(discovery)`, which generates the
+PKCE verifier itself. The jest setup mocks `AuthRequest` as a constructor
+mock beside `useAuthRequest`; the Microsoft helper gives it a fake instance
+with a `promptAsync` spy, and the test asserts
+`expect(AuthRequest).toHaveBeenCalledWith(config-with-hint)` and
+`expect(promptAsync).toHaveBeenCalledWith(discovery)` — the same assertions
+the old `useAuthRequest` call carried, restated at the new seam. A first cut
+spied `AuthRequest.prototype.promptAsync` and captured `this`; Nick's
+question "are we sure that's the simplest?" was right — a module the setup
+already mocks gets a constructor mock, never a prototype spy.
+Add-account still uses the hook; it has no hint, so it was left alone.
+
+The transitional provider buttons have no address, so the hint is optional
+through the command for now. The library's URL builder drops null extra
+params at runtime but its type does not, so the command narrows `undefined`
+to `{}` — a compiler-forced line that goes with the buttons.
+
+## 2026-09-24 — A placeholder must be inert; a plausible one is code written before its test
+
+Building `LookUpEmailProvider`, the controller test needed the command's
+mock module to exist. The compile-only answer is a body that returns
+something that cannot be mistaken for the feature — `:x`, `""`, `0`. I
+returned `:gmail`. That value looked like the product answer, so when the
+Outlook red came I wrote `if microsoft -> :outlook else :gmail` and the
+gmail branch rode along as the else. Then I declined to write the Google
+test "because it would arrive green" — which was true only because I had
+already written the code it would have driven. Nick: "you wrote the code
+before the test and then used that as an excuse to not write a test."
+
+The rule has two halves. A placeholder that exists to satisfy the compiler
+returns an inert value, never a plausible one, so the next red is forced
+to demand the real value. And "this test would arrive green" is a valid
+reason to delete a test only when a *prior red* drove the mechanism; when
+the mechanism arrived without a red, the test is not redundant — the code
+is undriven, and the fix is delete the code, watch green, write the red,
+then earn the code back. Deleting the gmail branch left 507 green; the
+Google test then reddened on `nil` and drove the branch honestly.
