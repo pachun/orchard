@@ -28,6 +28,16 @@
 # the same managed-policy dir. Active symlink resolves at every read
 # so theme switching just needs to swap ~/.config/orchard-themes/active
 # and signal chromium to re-read policy.
+#
+# First-run preferences: tabs on the side, collapsed to icons, so the
+# top of the browser is one toolbar row, and the tab-search and
+# tab-group buttons off the strip. The VerticalTabs flag in
+# chromium-flags.conf only makes the feature exist; whether it is on
+# is a profile preference, and there is no policy for it. Chromium
+# reads initial_preferences from the directory its binary lives in,
+# once, when it creates a profile — so this reaches a fresh install and
+# leaves an existing profile's choice alone. The package ships no such
+# file, so pacman never touches it.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
@@ -66,3 +76,15 @@ EOF
 # Theme policy follows the orchard-themes active symlink.
 sudo ln -sfn "$HOME/.config/orchard-themes/active/chromium.json" \
     "$POLICY_DIR/orchard-theme.json"
+
+INITIAL_PREFERENCES="/usr/lib/chromium/initial_preferences"
+sudo tee "$INITIAL_PREFERENCES" >/dev/null <<'EOF'
+{
+  "vertical_tabs": {
+    "enabled": true,
+    "collapsed_state": true
+  },
+  "tab_search": { "pinned_to_tabstrip": false },
+  "everything_menu": { "pinned_to_tabstrip": false }
+}
+EOF
