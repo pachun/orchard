@@ -6,8 +6,8 @@
 # Ctrl+Shift+U+<hex> for non-ASCII) can land emoji codepoints in
 # chromium URL bars / form fields. Chromium-on-ozone either ignores
 # synthetic typing entirely or doesn't honor the Unicode-entry combo.
-# Workaround: copy the emoji to the clipboard, send Ctrl+V via ydotool
-# to paste, then restore the previous clipboard from cliphist so the
+# Workaround: copy the emoji to the clipboard, send the app's paste
+# shortcut via ydotool, then restore the previous clipboard so the
 # emoji detour doesn't clobber whatever the user had copied.
 #
 # Toggle: if fuzzel is already up (this picker OR any other
@@ -19,10 +19,21 @@ if pkill -x fuzzel 2>/dev/null; then
     exit 0
 fi
 
+focused_app=$(hyprctl activewindow -j | jq -r '.class // ""')
+left_control_key=29
+left_shift_key=42
+v_key=47
+
 rofimoji --action copy --skin-tone neutral --prompt "" --selector fuzzel || exit 0
 
-# Ctrl+V via ydotool. 29 = KEY_LEFTCTRL, 47 = KEY_V; :1 = press, :0 = release.
-ydotool key 29:1 47:1 47:0 29:0
+case "$focused_app" in
+    com.mitchellh.ghostty)
+        ydotool key "$left_control_key:1" "$left_shift_key:1" "$v_key:1" "$v_key:0" "$left_shift_key:0" "$left_control_key:0"
+        ;;
+    *)
+        ydotool key "$left_control_key:1" "$v_key:1" "$v_key:0" "$left_control_key:0"
+        ;;
+esac
 
 # Wait for the paste to consume the clipboard. Chromium reads the
 # clipboard asynchronously after the keystroke arrives, so restoring
