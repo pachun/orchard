@@ -208,6 +208,18 @@ Implementation details belong in the body. The subject line is
 what gets scanned years later when the product is remembered only
 vaguely; it should help you re-orient there.
 
+Start from the outermost observable behavior that changed: the
+user's experience first, moving inward to the web/business-logic
+seam only when nothing changed for the user. Lead with the clearest
+user-visible problem corrected, without requiring knowledge of the
+implementation; describe secondary effects in the body. For example,
+"Avoid delete errors for already-deleted emails" names the experience
+more directly than "Keep already-deleted emails from reappearing",
+which requires remembering the optimistic update and rollback.
+"Treat missing Gmail threads as already deleted" describes the inner
+contract instead. Don't imply an action happened when it didn't:
+handling an already-missing email does not "finish deleting" it.
+
 **Lead with the main action verb.** Prefer "Scroll thread headings
 with messages" over "Let thread headings scroll with messages".
 Verbs such as "Let", "Allow", "Enable", and "Handle" can be right
