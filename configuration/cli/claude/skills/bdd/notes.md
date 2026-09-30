@@ -874,3 +874,19 @@ the mechanism arrived without a red, the test is not redundant — the code
 is undriven, and the fix is delete the code, watch green, write the red,
 then earn the code back. Deleting the gmail branch left 507 green; the
 Google test then reddened on `nil` and drove the branch honestly.
+
+## 2026-09-25 — Backfilled server data does not update a device's cached account
+
+Gmail permission checks need the granted scopes before applying an
+optimistic delete or unsubscribe. Backfilling the database does not add
+that field to accounts already saved in MMKV. A feature test starts with
+an older cached account, holds the account refresh response, and verifies
+the thread stays open; once scopes arrive, deletion proceeds optimistically.
+After a permission upgrade, fetch the account again and check its returned
+scopes before continuing. Successful Google sign-in alone does not prove
+the requested permission was granted.
+
+Alert spies retain call history when `mockImplementation` is replaced.
+An assertion counting alerts can pass alone and fail with its feature
+file's other scenarios. Clear that spy before the interaction being
+counted, and run the whole feature file after isolated red/green steps.
