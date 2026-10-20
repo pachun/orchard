@@ -890,3 +890,57 @@ Alert spies retain call history when `mockImplementation` is replaced.
 An assertion counting alerts can pass alone and fail with its feature
 file's other scenarios. Clear that spy before the interaction being
 counted, and run the whole feature file after isolated red/green steps.
+
+## 2026-10-14 — A provider "attachment" with no bytes is a different kind, not a missing field
+
+EMMA-S9 was `null.replace` on the phone: an Outlook message listed a
+OneDrive link in its attachments, the API answered the tap with
+`{"data": null}` because Graph has no bytes for a reference attachment, and
+the attachment screen spun forever. First instinct was to drop every
+non-file attachment from the serializer — a removal driven by no test, and
+it would have silently hidden content the sender attached. Outlook itself
+shows a cloud file as an attachment with a cloud badge, so the honest model
+is a second kind: `AttachmentMetadata` became `File | OutlookCloudFile`,
+with `isAFile` / `isAnOutlookCloudFile` guards replacing any null check. The outermost test
+was "tapping a OneDrive link attached to an Outlook email opens it in the
+phone's browser"; its messages drove, in order, the link tile (no mime type
+to split), skipping links in prefetch (an unanswered request), and the
+on-tap link request. The URL only exists on Graph's beta attachment
+endpoint, so the API fetches it per tap rather than on every inbox load.
+Attached emails (item attachments) remain their own story.
+
+## 2026-10-16 — A contract test one seam down, when the outer test mocks that seam
+
+EMMA_API-N8: Twilio answered 2FA-code texts with 21610, "attempt to send to
+unsubscribed recipient", 41 times in three weeks, because the recipient had
+texted STOP and Emma kept trying. The outer test lives in the 2FA sender's
+file, which mocks the Twilio module like its neighbors, so the red drove a
+match on the stubbed refusal shape and a user saved with no phone number.
+That left the shape itself undriven: the Twilio module's non-201 clause
+was coverage-ignored, so nothing pinned what the outer test assumed. The
+second test is the transitive exception — Bypass answers 400 with Twilio's
+real body and the test asserts the exact tuple the sender matches on. It
+arrives green by nature (it restates a contract the outer red already
+depends on), so its purpose is to lift the coverage ignore and make the
+seam enforced, not to drive new code. Take this shape only when the outer
+file's convention is to mock the seam; otherwise drive through Bypass from
+the outside and skip the second test.
+
+## 2026-10-17 — A refusal that asks the user to act is not a flash
+
+The second half of EMMA_API-N8: adding a phone number that had texted STOP.
+The API saved the number, asked Twilio, ignored the 21610, and answered
+201, so the app showed the confirmation-code field and no text ever came.
+First green used the generic 422 flash with "text START to +1… then save
+again" in it. Nick rejected it: a flash is a glance-and-gone surface with a
+fixed height and a short timer, and this message asks the user to go to
+another app with a number and a keyword to remember. The right surface
+was an alert, the screen's existing idiom, whose "Text START" button opens
+Messages prefilled via `sms:<number>&body=START`, so nothing has to be
+remembered. The 422 grew a third field for the number, which only this
+screen reads. Routing it through `safeFetch`'s `onError` would have fired
+the same handler for offline and timeouts with no number, needing an
+undriven branch; a dedicated `onRefusal` handler, shaped like
+`onUnauthorized`, keeps both arms covered. Test for a server refusal that
+needs action: does the user have to carry anything out of the message? If
+so, it is not a flash.
