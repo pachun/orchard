@@ -10,11 +10,11 @@
 # text and source, audio and video, and (with libreoffice) office documents.
 # Anything it can't render falls back to a name-and-type card.
 #
-# sushi sizes its window wrong on a HiDPI Wayland desktop (half size) and
-# shows a transparent image as if it had a solid background, so patched
-# copies of its window and image scripts (see bin/patch-quick-look) are
-# rendered to ~/.config/sushi and handed to it through GLib's resource
-# overlay variable. The variable has to reach the D-Bus-activated previewer,
+# sushi caps its window at half the screen, draws a shadow, and shows a
+# transparent image as if it had a solid background, so patched copies of
+# its window script, window layout and image viewer (see
+# bin/patch-quick-look) are rendered to ~/.config/sushi and handed to it
+# through GLib's resource overlay variable. The variable has to reach the D-Bus-activated previewer,
 # which the user's systemd manager launches, so it is set both for this
 # session and in environment.d for the next login.
 #
@@ -38,8 +38,9 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 patch_quick_look() {
   "$HOME/.local/bin/patch-quick-look"
-  local resources=/org/gnome/NautilusPreviewer/js
-  local overlay="G_RESOURCE_OVERLAYS=$resources/ui/mainWindow.js=$HOME/.config/sushi/mainWindow.js:$resources/viewers/image.js=$HOME/.config/sushi/image.js"
+  local resources=/org/gnome/NautilusPreviewer
+  local patched="$HOME/.config/sushi"
+  local overlay="G_RESOURCE_OVERLAYS=$resources/js/core/mainWindow.js=$patched/mainWindow.js:$resources/ui/mainWindow.ui=$patched/mainWindow.ui:$resources/js/viewers/image.js=$patched/image.js"
   mkdir -p "$HOME/.config/environment.d"
   printf '%s\n' "$overlay" > "$HOME/.config/environment.d/quick-look.conf"
   systemctl --user set-environment "$overlay"
