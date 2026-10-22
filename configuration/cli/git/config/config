@@ -16,3 +16,9 @@
 
 [include]
 	path = ~/.gitconfig.local
+
+[includeIf "hasconfig:remote.*.url:git@gitlab.com:vermontmutual/**"]
+	path = ~/.gitconfig.vermontmutual
+
+[includeIf "hasconfig:remote.*.url:https://gitlab.com/vermontmutual/**"]
+	path = ~/.gitconfig.vermontmutual
