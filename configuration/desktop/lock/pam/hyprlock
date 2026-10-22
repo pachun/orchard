@@ -1,0 +1,22 @@
+# PAM configuration file for hyprlock. Installed to /etc/pam.d/hyprlock by
+# the lock feature in place of the one the package ships.
+#
+# The package's file includes the `login` stack, and down that stack two
+# modules each ask for a two-second delay whenever a password is wrong:
+# pam_unix, and pam_faillock on every one of its three lines. The delay exists
+# to slow a brute force at a login prompt. At a lock screen it only slows the
+# person who mistyped: pam_faillock's lockout (see faillock.conf next to this
+# file) is the real brake. So this is Arch's system-auth stack with every
+# delay request turned off, spelled out rather than included so those words
+# can change without changing every other login on the machine. hyprlock only
+# authenticates (no account, session or password management), so only the
+# auth stack is here.
+
+auth       required                    pam_faillock.so      preauth nodelay
+-auth      [success=2 default=ignore]  pam_systemd_home.so
+auth       [success=1 default=bad]     pam_unix.so          try_first_pass nullok nodelay
+auth       [default=die]               pam_faillock.so      authfail nodelay
+auth       optional                    pam_permit.so
+auth       required                    pam_env.so
+auth       required                    pam_faillock.so      authsucc nodelay
+auth       optional                    pam_gnome_keyring.so
