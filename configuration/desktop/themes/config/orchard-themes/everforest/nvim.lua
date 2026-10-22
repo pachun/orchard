@@ -1,8 +1,8 @@
--- everforest's transparent_background_level: 0=opaque, 2=fully
--- transparent (the equivalent of catppuccin's transparent_background = true).
-require("everforest").setup({
-	background = "hard",
-	transparent_background_level = require("theme_opacity").transparent() and 2 or 0,
+-- Everforest here is Omarchy's Osaka Jade palette, which has no colorscheme
+-- of its own; Omarchy pairs it with bamboo, whose greens sit on the same jade base.
+require("bamboo").setup({
+	style = "multiplex",
+	transparent = require("theme_opacity").transparent(),
 })
 vim.opt.background = "dark"
-vim.cmd.colorscheme("everforest")
+vim.cmd.colorscheme("bamboo")

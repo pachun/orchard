@@ -1,32 +1,25 @@
-# Everforest Dark, Hard variant. Matches neanias/everforest-nvim's
-# `background = "hard"` so terminal and editor are visually aligned.
-# ANSI colors are shared across all dark variants (taken from
-# ghostty's bundled "Everforest Dark Hard"); only `background`
-# shifts per variant.
-#
-# Note: ghostty's bundled "Everforest Dark Hard" picks `bg_dim`
-# (#1e2326) as the background, which reads as darker than nvim's
-# editor surface. Using `bg0` (#272e33) instead so terminal and
-# nvim editor render at the same brightness.
-palette = 0=#7a8478
-palette = 1=#e67e80
-palette = 2=#a7c080
-palette = 3=#dbbc7f
-palette = 4=#7fbbb3
-palette = 5=#d699b6
-palette = 6=#83c092
-palette = 7=#f2efdf
-palette = 8=#a6b0a0
-palette = 9=#f85552
-palette = 10=#8da101
-palette = 11=#dfa000
-palette = 12=#3a94c5
-palette = 13=#df69ba
-palette = 14=#35a77c
-palette = 15=#fffbef
-background = #272e33
-foreground = #d3c6aa
-cursor-color = #e69875
-cursor-text = #4c3743
-selection-background = #4c3743
-selection-foreground = #d3c6aa
+# Everforest is the name this desktop gives Omarchy's Osaka Jade palette.
+# Ghostty has no built-in for it, so the palette is laid out from the
+# theme's colors.toml the way Omarchy's own ghostty template does.
+palette = 0=#111c18
+palette = 1=#ff5345
+palette = 2=#549e6a
+palette = 3=#459451
+palette = 4=#509475
+palette = 5=#d2689c
+palette = 6=#2dd5b7
+palette = 7=#c1c497
+palette = 8=#53685b
+palette = 9=#db9f9c
+palette = 10=#63b07a
+palette = 11=#e5c736
+palette = 12=#acd4cf
+palette = 13=#75bbb3
+palette = 14=#8cd3cb
+palette = 15=#f7e8b2
+background = #111c18
+foreground = #c1c497
+cursor-color = #f7e8b2
+cursor-text = #111c18
+selection-background = #32473b
+selection-foreground = #f7e8b2

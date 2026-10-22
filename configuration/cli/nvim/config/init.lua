@@ -105,10 +105,10 @@ vim.diagnostic.config({
   },
 })
 
--- Source the active orchard-themes nvim partial. Catppuccin and
--- everforest plugins both load eagerly via lazy with priority=1000;
--- this file just runs the `:colorscheme` call (and any per-theme
--- background setting). set-theme(1) repoints the symlink and tells
+-- Source the active orchard-themes nvim partial. Every colorscheme
+-- plugin loads eagerly via lazy with priority=1000; this file just
+-- runs the `:colorscheme` call (and any per-theme background
+-- setting). set-theme(1) repoints the symlink and tells
 -- running nvim instances to re-luafile this path, so open windows
 -- update in place when you switch themes.
 local active_theme = vim.fn.expand("~/.config/orchard-themes/active/nvim.lua")

@@ -1,49 +1,39 @@
-/* Everforest Medium colors for waybar. Imported by config/waybar/
- * style.css through ~/.config/orchard-themes/active/waybar.css.
- * Structural rules (padding, fonts, animations) live in style.css;
- * everything color-related lives here so set-theme can swap palettes
- * by repointing the active symlink. */
+/* Everforest colors for waybar. Imported by config/waybar/style.css
+ * through ~/.config/orchard-themes/active/waybar.css. Structural rules
+ * (padding, fonts, animations) live in style.css; everything
+ * color-related lives here so set-theme can swap palettes by
+ * repointing the active symlink. */
 
-/* Bar background sampled from the Dark Knight wallpaper's batman
- * silhouette (#152a33 — a deep dark teal/navy). Unlike the other
- * orchard themes, the bar deliberately does NOT match the
- * wallpaper field (the lighter teal sky); instead it picks up
- * the silhouette color so the bar reads as Batman's cape extending
- * across the top of the screen. Foreground is the warm everforest
- * fg — high luminance gap against the deep navy keeps every
- * module readable. */
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * foreground. */
 window#waybar {
-    background-color: #152a33;
-    color: #d3c6aa;
+    background-color: #269580;
+    color: #c1c497;
 }
 
 
-/* Workspace active state = soft fill, digit hidden. The soft fill
- * (~25% fg, one step above the 15% hover) gives a clear cell
- * highlight without the original full-fg slab's overwhelming
- * presence. The active workspace's number is hidden via
- * `color: transparent` so the active cell reads as a quiet "you
- * are here" pill, while the surrounding workspace digits stay
- * legible. */
-#workspaces button        { color: #9da9a0; font-weight: 600; }     /* grey2 — ambient */
-#workspaces button:hover  { background-color: rgba(211, 198, 170, 0.15); } /* fg@15% */
-#workspaces button.active { background-color: rgba(211, 198, 170, 0.25); color: transparent; }
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #d6d5bc; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(193, 196, 151, 0.15); } /* foreground@15% */
+#workspaces button.active { background-color: rgba(193, 196, 151, 0.25); color: transparent; }
 
 /* DND tri-state: bright = on, deeper grey = linger, hidden = off */
-#custom-dnd          { color: #d3c6aa; }
-#custom-dnd.linger   { color: #859289; }                            /* grey1 — even more receded */
+#custom-dnd          { color: #c1c497; }
+#custom-dnd.linger   { color: #81b8a8; }
 
 /* Right-side ambient modules are dim by default; the ones that go
  * bright are actively demanding attention. */
-#custom-recording           { color: #e67e80; }
-#custom-music-levels        { color: #7fbbb3; }
-#custom-weather             { color: #9da9a0; }
-#battery                    { color: #9da9a0; }
-#custom-nordvpn             { color: #9da9a0; }
-#custom-wifi-status         { color: #9da9a0; }
-#custom-network             { color: #9da9a0; }
-#custom-bluetooth           { color: #9da9a0; }
-#custom-audio               { color: #9da9a0; }
-#custom-updates             { color: #9da9a0; }
-#custom-ai-usage        { color: #9da9a0; }
-#custom-clock               { color: #9da9a0; }
+#custom-recording           { color: #ff5345; }
+#custom-music-levels        { color: #509475; }
+#custom-weather              { color: #d6d5bc; }
+#battery                     { color: #d6d5bc; }
+#custom-nordvpn              { color: #d6d5bc; }
+#custom-wifi-status          { color: #d6d5bc; }
+#custom-network              { color: #d6d5bc; }
+#custom-bluetooth            { color: #d6d5bc; }
+#custom-audio                { color: #d6d5bc; }
+#custom-updates              { color: #d6d5bc; }
+#custom-ai-usage        { color: #d6d5bc; }
+#custom-clock                { color: #d6d5bc; }

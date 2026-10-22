@@ -566,13 +566,6 @@ hl.window_rule({
     center = true,
 })
 
--- Disable Hyprland's compositor-level blur for ghostty. With ghostty
--- at low background-opacity (set per orchard-theme in ghostty.conf),
--- the wallpaper would otherwise show through *blurred*. Other layered
--- / translucent surfaces (fuzzel) keep their blur because the
--- rule is class-scoped.
-hl.window_rule({ match = { class = "com.mitchellh.ghostty" }, no_blur = true })
-
 -- --- hardware key bindings ---------------------------------------------
 -- These do the actual work (audio level, brightness). Each routes through a
 -- small script (volume / screen-brightness / kbd-brightness) that changes the

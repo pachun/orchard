@@ -1,0 +1,39 @@
+/* Event Horizon colors for waybar. Imported by config/waybar/style.css
+ * through ~/.config/orchard-themes/active/waybar.css. Structural rules
+ * (padding, fonts, animations) live in style.css; everything
+ * color-related lives here so set-theme can swap palettes by
+ * repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * foreground. */
+window#waybar {
+    background-color: #021114;
+    color: #cbced0;
+}
+
+
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #dcdfe4; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(203, 206, 208, 0.15); } /* foreground@15% */
+#workspaces button.active { background-color: rgba(203, 206, 208, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #cbced0; }
+#custom-dnd.linger   { color: #6f6f70; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #e95678; }
+#custom-music-levels        { color: #26bbd9; }
+#custom-weather              { color: #9da0a2; }
+#battery                     { color: #9da0a2; }
+#custom-nordvpn              { color: #9da0a2; }
+#custom-wifi-status          { color: #9da0a2; }
+#custom-network              { color: #9da0a2; }
+#custom-bluetooth            { color: #9da0a2; }
+#custom-audio                { color: #9da0a2; }
+#custom-updates              { color: #9da0a2; }
+#custom-ai-usage        { color: #9da0a2; }
+#custom-clock                { color: #9da0a2; }

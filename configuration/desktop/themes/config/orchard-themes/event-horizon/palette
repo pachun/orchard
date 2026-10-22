@@ -1,0 +1,26 @@
+# Event Horizon: Horizon Terminal Dark as OldJobobo packaged it for Omarchy
+# (github.com/OldJobobo/omarchy-event-horizon-theme). Ghostty has no
+# built-in for it, so the palette is laid out from the theme's colors.toml
+# the way Omarchy's own ghostty template does.
+palette = 0=#1c1e26
+palette = 1=#e95678
+palette = 2=#29d398
+palette = 3=#fac29a
+palette = 4=#26bbd9
+palette = 5=#ee64ac
+palette = 6=#59e1e3
+palette = 7=#cbced0
+palette = 8=#6f6f70
+palette = 9=#ec6a88
+palette = 10=#3fdaa4
+palette = 11=#fbc3a7
+palette = 12=#3fc4de
+palette = 13=#f075b5
+palette = 14=#6be4e6
+palette = 15=#e3e6ee
+background = #1c1e26
+foreground = #cbced0
+cursor-color = #e3e6ee
+cursor-text = #1c1e26
+selection-background = #26bbd9
+selection-foreground = #1c1e26

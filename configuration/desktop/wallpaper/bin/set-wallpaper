@@ -211,7 +211,7 @@ if [ -n "$recolour" ]; then
     # Read the colours out of the theme's own palette file rather than
     # naming one of lutgen's built-ins. Two reasons: a theme added later
     # works with no code change, and orchard's names don't match lutgen's
-    # anyway (our `everforest` is its `everforest-dark-medium`).
+    # anyway (our `everforest` isn't even the palette lutgen calls that).
     palette="$active_theme/palette"
     [ -f "$palette" ] || give_up "$theme has no palette file to recolour against"
     colours=$(grep -oE '#[0-9a-fA-F]{6}' "$palette" | sort -u)
