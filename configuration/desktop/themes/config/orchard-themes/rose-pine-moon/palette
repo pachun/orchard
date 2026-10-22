@@ -1,0 +1,37 @@
+# Rosé Pine Moon — the mid-dark variant of the Rosé Pine palette, as
+# Memnoc packaged it for Omarchy (github.com/Memnoc/omarchy-rose-pine-moon-theme).
+# ANSI colors mirror Ghostty's bundled "Rose Pine Moon" theme exactly so
+# terminal and editor render identical highlight colors. Green, cyan and
+# blue follow Rosé Pine's own terminal mapping (pine, rose, foam), which
+# is why "green" renders teal; every Rosé Pine port does the same.
+#
+# Palette reference (from rosepinetheme.com):
+#   base    #232136   surface  #2a273f   overlay  #393552
+#   muted   #6e6a86   subtle   #908caa   text     #e0def4
+#   love    #eb6f92   gold     #f6c177   rose     #ea9a97
+#   pine    #3e8fb0   foam     #9ccfd8   iris     #c4a7e7
+#   highlight low   #2a283e
+#   highlight med   #44415a
+#   highlight high  #56526e
+palette = 0=#393552
+palette = 1=#eb6f92
+palette = 2=#3e8fb0
+palette = 3=#f6c177
+palette = 4=#9ccfd8
+palette = 5=#c4a7e7
+palette = 6=#ea9a97
+palette = 7=#e0def4
+palette = 8=#6e6a86
+palette = 9=#eb6f92
+palette = 10=#3e8fb0
+palette = 11=#f6c177
+palette = 12=#9ccfd8
+palette = 13=#c4a7e7
+palette = 14=#ea9a97
+palette = 15=#e0def4
+background = #232136
+foreground = #e0def4
+cursor-color = #e0def4
+cursor-text = #232136
+selection-background = #44415a
+selection-foreground = #e0def4

@@ -1,0 +1,39 @@
+/* Rosé Pine Moon colors for waybar. Imported by config/waybar/style.css
+ * through ~/.config/orchard-themes/active/waybar.css. Structural rules
+ * (padding, fonts, animations) live in style.css; everything
+ * color-related lives here so set-theme can swap palettes by
+ * repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * text color. */
+window#waybar {
+    background-color: #2a283d;
+    color: #e0def4;
+}
+
+
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #908caa; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(224, 222, 244, 0.15); } /* text@15% */
+#workspaces button.active { background-color: rgba(224, 222, 244, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #e0def4; }
+#custom-dnd.linger   { color: #6e6a86; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #eb6f92; }
+#custom-music-levels        { color: #9ccfd8; }
+#custom-weather              { color: #908caa; }
+#battery                     { color: #908caa; }
+#custom-nordvpn              { color: #908caa; }
+#custom-wifi-status          { color: #908caa; }
+#custom-network              { color: #908caa; }
+#custom-bluetooth            { color: #908caa; }
+#custom-audio                { color: #908caa; }
+#custom-updates              { color: #908caa; }
+#custom-ai-usage        { color: #908caa; }
+#custom-clock                { color: #908caa; }
