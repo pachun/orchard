@@ -101,7 +101,13 @@ accent every theme agrees on), `ghostty.conf` (bundled `theme = "…"` +
 wallpaper's top edge: `magick wallpaper.png -crop 100%x2%+0+0 +repage
 -resize '1x1!' -format '%[hex:u.p{0,0}]' info:`), `chromium.json`
 (`BrowserThemeColor`), `gtk-theme-name` (one line; `Adwaita` when no GTK
-port exists), `wallpaper.png`. The nvim colorscheme plugin is declared
+port exists), `wallpaper.png`, `hyprlock.conf` (sourced by the lock
+feature's hyprlock.conf after its defaults; reassign any `$variable`
+listed there to move, resize or recolor the lock screen's pieces, or point
+`$background_image` at a theme-owned `lock.png` for a lock that doesn't
+show the wallpaper — every piece of information stays, only its placement
+and look are the theme's; a theme happy with the shared layout ships a
+partial that sets nothing). The nvim colorscheme plugin is declared
 bare in `configuration/cli/nvim/config/lua/plugins/<name>.lua` with
 `priority = 1000`; per-theme options live in the partial. After adding a
 theme: `link.sh` both config dirs, `nvim --headless "+Lazy! sync" +qa`,
