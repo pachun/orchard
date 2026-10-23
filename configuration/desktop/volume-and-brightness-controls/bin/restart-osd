@@ -18,9 +18,15 @@
 # that won't act on a catchable signal (a frozen or stopped process leaves TERM
 # pending and keeps its ghost surface on screen), and eww has no shutdown work
 # worth waiting for anyway.
+#
+# Only this daemon, though. The other panels (AI usage, the Apple TV remote)
+# run their own eww daemons on their own config dirs, and set-theme restarts
+# all three at once; killing every process named eww would take theirs down
+# mid-restart. This one is the only eww started with no --config, so its
+# command line is exactly "eww daemon".
 set -euo pipefail
 
-pkill -9 -x eww 2>/dev/null || true
+pkill -9 -f '^eww daemon$' 2>/dev/null || true
 eww daemon >/dev/null 2>&1 || true
 
 for _ in $(seq 1 20); do
