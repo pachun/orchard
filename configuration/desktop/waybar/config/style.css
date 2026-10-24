@@ -89,6 +89,8 @@
     to   { opacity: 1.00; }
 }
 #custom-updates     { padding: 0 8px; }
+#custom-two-factor  { padding: 0 8px; }
+#custom-two-factor.unavailable { opacity: 0.45; }
 #custom-ai-usage { padding: 0 8px; }
 #custom-ai-usage.signed-out,
 #custom-ai-usage.unavailable { opacity: 0.45; }
@@ -127,6 +129,7 @@
 #custom-dnd,
 #custom-updates,
 #custom-ai-usage,
+#custom-two-factor,
 #custom-apple-tv,
 #custom-audio,
 #custom-bluetooth {

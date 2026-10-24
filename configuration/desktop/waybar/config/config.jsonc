@@ -112,6 +112,18 @@
         "on-click": "$HOME/.local/bin/system-update"
     },
 
+    "custom/two-factor": {
+        "cursor": false,
+        // A key glyph; click (or Cmd+Shift+2) drops the two-factor codes
+        // panel (two-factor-panel) under the bar. Dimmed via .unavailable
+        // until Ente Auth has been signed in on this machine. Nothing changes
+        // between polls but that, so the poll is slow and there is no signal.
+        "exec": "$HOME/.local/bin/waybar-two-factor",
+        "return-type": "json",
+        "interval": 300,
+        "on-click": "$HOME/.local/bin/two-factor-panel"
+    },
+
     "custom/ai-usage": {
         "cursor": false,
         // Claude Code and Codex plan usage. A robot glyph; the numbers live in

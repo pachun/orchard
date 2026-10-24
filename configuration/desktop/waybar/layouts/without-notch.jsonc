@@ -26,6 +26,7 @@
         "custom/network",
         "custom/audio",
         "custom/bluetooth",
+        "custom/two-factor",
         "custom/ai-usage",
         "battery"
     ]

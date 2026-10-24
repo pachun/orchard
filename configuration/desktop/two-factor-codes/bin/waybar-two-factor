@@ -1,0 +1,19 @@
+#!/bin/sh
+# waybar custom/two-factor: a key glyph that opens the two-factor codes
+# dropdown (two-factor-panel). Always visible. Full strength once Ente Auth
+# has been signed in on this machine (its database exists), dimmed via the
+# `unavailable` class until then, with the tooltip saying what to do about
+# it. Only the file's existence is checked here — the keyring and decryption
+# happen when the panel opens, not on every poll.
+#
+# Phosphor codepoints:
+#   key  U+E2D6
+
+ICON_KEY=$(printf '\356\213\226')
+ente_auth_database="$HOME/.local/share/io.ente.auth/.ente.authenticator.db"
+
+if command -v enteauth-rs >/dev/null 2>&1 && [ -f "$ente_auth_database" ]; then
+    printf '{"text":"%s","tooltip":"Two-factor codes"}\n' "$ICON_KEY"
+else
+    printf '{"text":"%s","class":"unavailable","tooltip":"Two-factor codes — sign in to Ente Auth to use them here"}\n' "$ICON_KEY"
+fi

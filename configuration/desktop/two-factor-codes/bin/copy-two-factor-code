@@ -1,0 +1,18 @@
+#!/bin/sh
+# Copy one code from the panel: the row's place in the list, not the code
+# itself, so no code ever sits in a process's arguments. Reads the list again
+# for the code that is current now, copies it, closes the panel, and says
+# which account's code it was in the bar.
+#
+# Usage: copy-two-factor-code <index>
+set -eu
+
+index="$1"
+
+chosen=$("$HOME/.local/bin/list-two-factor-codes" | jq --argjson i "$index" '.codes[$i]')
+code=$(printf '%s' "$chosen" | jq -r '.code')
+account_name=$(printf '%s' "$chosen" | jq -r 'if .issuer != "" then .issuer else .account end')
+
+printf '%s' "$code" | wl-copy
+"$HOME/.local/bin/two-factor-panel"
+notify-send 'Two-factor codes' "Copied the $account_name code"

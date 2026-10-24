@@ -1,0 +1,58 @@
+; The two-factor codes dropdown: one row per account in Ente Auth, the code
+; large on the right with a bar under it draining through the code's period.
+; two-factor-panel opens this window under the bar's right end and flips
+; `open`, which gates the once-a-second poll so codes roll over on screen
+; while it is up and nothing runs while it is down. Clicking a row copies its
+; code and closes the panel. Colors come from colors.scss, regenerated per
+; theme by render-two-factor-theme.
+
+(defvar open false)
+(defpoll codes
+  :interval "1s"
+  :run-while open
+  :initial '{"available": true, "codes": []}'
+  "$HOME/.local/bin/list-two-factor-codes")
+
+(defwidget code-row [row]
+  (eventbox :class "row" :cursor "pointer"
+            :onclick "$HOME/.local/bin/copy-two-factor-code ${row.index}"
+    (box :space-evenly false
+      (box :class "who" :orientation "v" :hexpand true :valign "center" :space-evenly false
+        (label :class "issuer" :halign "start" :limit-width 26
+               :text {row.issuer != "" ? row.issuer : row.account})
+        (label :class "account" :halign "start" :limit-width 26
+               :visible {row.issuer != ""} :text {row.account}))
+      (box :class "code-and-time" :orientation "v" :valign "center" :space-evenly false
+        (label :class "code" :halign "end" :text {row.shown})
+        (progress :class "time ${row.ending ? "ending" : ""}"
+                  :orientation "h" :value {row.percent})))))
+
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (label :class "empty" :halign "start" :visible {!codes.available}
+           :text "Sign in to Ente Auth to see codes here")
+    (label :class "empty" :halign "start"
+           :visible {codes.available && arraylength(codes.codes) == 0}
+           :text "No codes yet")
+    ; In its own box: eww adds a loop's children when the data arrives, after
+    ; the siblings that were already there, so a bare loop here would put the
+    ; rows under the footer.
+    (box :orientation "v" :space-evenly false
+      (for row in {codes.codes}
+        (code-row :row row)))
+    ; The app is where accounts are added, and where codes added on the phone
+    ; arrive from: it syncs only while open.
+    (eventbox :class "open-app" :cursor "pointer"
+              :onclick "setsid -f enteauth >/dev/null 2>&1; $HOME/.local/bin/two-factor-panel"
+      (label :halign "end" :text "Open Ente Auth"))))
+
+; Offsets match Hyprland's gaps_out and window rounding so the panel's edges
+; and corners line up with a tiled window's outer border in that corner.
+(defwindow codes
+  :monitor 0
+  :namespace "two-factor"
+  :geometry (geometry :x "10px" :y "10px" :width "360px" :anchor "top right")
+  :stacking "overlay"
+  :exclusive false
+  :focusable false
+  (panel))

@@ -173,7 +173,7 @@ if tmux info >/dev/null 2>&1; then
 fi
 
 # The eww panels — the volume/brightness square, the AI usage dropdown, the
-# Apple TV remote card — each regenerate their themed colors from the new
+# two-factor codes dropdown, the Apple TV remote card — each regenerate their themed colors from the new
 # palette and restart their own daemon to repaint from them. A restart rather
 # than `eww reload`: reloading in place can strand a layer surface the daemon
 # then loses track of, leaving a ghost square stuck on screen (see restart-osd).
@@ -192,6 +192,12 @@ if [ -x "$HOME/.local/bin/render-ai-usage-theme" ]; then
     (
         "$HOME/.local/bin/render-ai-usage-theme" >/dev/null 2>&1 || true
         "$HOME/.local/bin/restart-ai-usage" >/dev/null 2>&1 || true
+    ) &
+fi
+if [ -x "$HOME/.local/bin/render-two-factor-theme" ]; then
+    (
+        "$HOME/.local/bin/render-two-factor-theme" >/dev/null 2>&1 || true
+        "$HOME/.local/bin/restart-two-factor" >/dev/null 2>&1 || true
     ) &
 fi
 if [ -x "$HOME/.local/bin/render-apple-tv-remote-theme" ]; then

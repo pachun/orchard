@@ -1,0 +1,107 @@
+// The dropdown: a frosted panel matching the OSD square and the AI usage
+// dropdown, blurred by Hyprland's layerrule on this window's namespace.
+// Colors ($panel / $track / $ink / $dim / $accent) are regenerated from the
+// active theme's palette by render-two-factor-theme into colors.scss.
+@import "colors";
+
+* {
+  all: unset;
+  font-family: "SF Pro", sans-serif;
+}
+
+window,
+.background {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+// The border is fuzzel's — 2px of the theme accent, radius 10 — so this
+// reads as one family with the menus and the AI usage dropdown.
+.panel {
+  background-color: $panel;
+  border: 2px solid $accent;
+  border-radius: 10px;
+  padding: 8px 8px 6px;
+  color: $ink;
+}
+
+.empty {
+  font-size: 15px;
+  color: $dim;
+  padding: 6px 8px 10px;
+}
+
+// Each row is its own target: it lights on hover so a click lands where
+// the eye already is, and the radius keeps the highlight inside the panel's
+// own corners.
+.row {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.row:hover {
+  background-color: $track;
+}
+
+.issuer {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.account {
+  font-size: 13px;
+  color: $dim;
+  margin-top: 1px;
+}
+
+// The code is the thing this panel exists to show, so it is the largest
+// type here. Tabular digits keep every code the same width, so the bars
+// beneath line up down the column and a rolling code does not shift. The
+// column is held open at the width of a grouped six-digit code; without
+// that, a long account name on the left squeezes the code into an ellipsis.
+.code-and-time,
+.code {
+  min-width: 124px;
+}
+
+.code {
+  font-size: 22px;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  letter-spacing: 1px;
+}
+
+// The time left in the code's period, draining left to right under the code
+// it belongs to. It fades to the dim ink in the last seconds: that code is
+// about to be replaced, and the next one is worth the wait.
+.time {
+  min-height: 3px;
+  margin-top: 5px;
+  border-radius: 999px;
+
+  trough {
+    background-color: $track;
+    border-radius: 999px;
+    min-height: 3px;
+  }
+
+  progress {
+    background-color: $accent;
+    border-radius: 999px;
+    min-height: 3px;
+  }
+}
+
+.time.ending progress {
+  background-color: $dim;
+}
+
+.open-app {
+  font-size: 13px;
+  color: $dim;
+  padding: 8px 10px 4px;
+}
+
+.open-app:hover {
+  color: $ink;
+}

@@ -217,6 +217,17 @@ hl.define_submap("ai-usage", function()
     bindScreenshotKeys()
 end)
 
+-- Two-factor codes panel under the bar (the two-factor-codes feature) — same
+-- toggle as clicking its key, same submap arrangement as the AI usage panel.
+-- On the 2, not the T: xremap turns Cmd+Shift+T into reopen closed tab before
+-- Hyprland sees it, and 2 is the number the thing is named by.
+hl.bind(modifier .. " + SHIFT + 2", runScript("two-factor-panel"))
+hl.define_submap("two-factor", function()
+    hl.bind("Escape", runScript("two-factor-panel"))
+    hl.bind(modifier .. " + SHIFT + 2", runScript("two-factor-panel"))
+    bindScreenshotKeys()
+end)
+
 -- Apple TV mode (the apple-tv-remote feature): Cmd+Shift+R opens the remote
 -- card in the bar's corner and enters this submap, where every key goes to
 -- apple-tv-key — picker, PIN entry, and the vim remote. Escape, q, or the
@@ -409,6 +420,8 @@ hl.layer_rule({ match = { namespace = "eww-osd" }, no_anim = true, blur = true, 
 -- Same frosting for the AI usage dropdown under the bar (ai-usage
 -- feature).
 hl.layer_rule({ match = { namespace = "ai-usage" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+-- And for the two-factor codes dropdown (two-factor-codes feature).
+hl.layer_rule({ match = { namespace = "two-factor" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the Apple TV remote card (apple-tv-remote feature).
 hl.layer_rule({ match = { namespace = "apple-tv-remote" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- waybar gets reloaded on theme switch (SIGUSR2). Without this rule the
@@ -651,6 +664,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("eww daemon")
     -- The AI usage dropdown's own eww daemon (see the ai-usage feature).
     hl.exec_cmd(localBin("restart-ai-usage"))
+
+    -- The two-factor codes dropdown's eww daemon (see the two-factor-codes feature).
+    hl.exec_cmd(localBin("restart-two-factor"))
 
     -- The Apple TV remote card's eww daemon (see the apple-tv-remote feature).
     hl.exec_cmd(localBin("restart-apple-tv-remote"))

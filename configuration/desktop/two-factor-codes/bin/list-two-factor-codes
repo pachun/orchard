@@ -1,0 +1,41 @@
+#!/bin/sh
+# The codes as the panel shows them: one record per account, sorted by
+# issuer, with the code grouped in threes the way sites print it, its place in
+# the list (what copy-two-factor-code takes), and how much of its period is
+# left as a percentage for the bar. `ending` marks the last seconds, when it
+# is better to wait for the next code than to type this one.
+#
+# `available` is false until Ente Auth has been signed in on this machine:
+# enteauth-rs needs the database the app keeps and the key the app parks in
+# the keyring, and fails without them. An empty list from a signed-in app is a
+# different thing, and the panel says so differently.
+set -eu
+
+seconds_that_count_as_ending=5
+ente_auth_database="$HOME/.local/share/io.ente.auth/.ente.authenticator.db"
+
+codes=$(enteauth-rs --json --no-copy 2>/dev/null) || codes=''
+if [ -z "$codes" ]; then
+    if [ -f "$ente_auth_database" ]; then
+        printf '{"available": true, "codes": []}\n'
+    else
+        printf '{"available": false, "codes": []}\n'
+    fi
+    exit 0
+fi
+
+printf '%s' "$codes" | jq -c --argjson ending "$seconds_that_count_as_ending" '
+    def grouped_in_threes: if length == 6 then .[0:3] + " " + .[3:6] else . end;
+    {
+        available: true,
+        codes: (
+            sort_by((.issuer | ascii_downcase), .account)
+            | to_entries
+            | map(.value + {
+                index: .key,
+                shown: (.value.code | grouped_in_threes),
+                percent: (.value.remaining * 100 / .value.period),
+                ending: (.value.remaining <= $ending)
+            })
+        )
+    }'
