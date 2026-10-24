@@ -41,7 +41,7 @@ font-family = "MonoLisaCode"
 # Repeated `font-family` directives form ghostty's fallback chain.
 font-family = "Symbols Nerd Font Mono"
 font-style = Medium
-font-size = 13
+font-size = 15
 
 # Disable programming ligatures (== stays "==", => stays "=>", etc.).
 font-feature = -calt, -liga, -dlig
