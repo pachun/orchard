@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Regenerate the switcher's colors from the active orchard theme: panel and
+# backdrop from the background, text from the foreground, the selection from
+# the theme's blue slot (ANSI 4), which every shipped palette uses for its
+# accent. Written as #AARRGGBB, the form QML's color type reads. Run by
+# install.sh and again by set-theme on every switch; the switcher watches the
+# file, so there is nothing to restart.
+set -euo pipefail
+
+palette="$HOME/.config/orchard-themes/active/palette"
+[ -f "$palette" ] || exit 0
+
+read_hex() { grep -E "^$1[[:space:]]*=" "$palette" | grep -oE '#[0-9a-fA-F]{6}' | head -n1; }
+background=$(read_hex background)
+foreground=$(read_hex foreground)
+accent=$(read_hex "palette = 4")
+[ -n "$background" ] && [ -n "$foreground" ] && [ -n "$accent" ] || exit 0
+
+with_alpha() { printf '#%s%s' "$1" "${2#\#}"; }
+mkdir -p "$HOME/.config/quickshell/window-switcher"
+cat > "$HOME/.config/quickshell/window-switcher/colors.json" <<JSON
+{
+  "backdrop": "$(with_alpha 40 "$background")",
+  "panel": "$(with_alpha cc "$background")",
+  "track": "$(with_alpha 26 "$foreground")",
+  "ink": "$foreground",
+  "dim": "$(with_alpha 99 "$foreground")",
+  "accent": "$accent",
+  "selected": "$(with_alpha 24 "$accent")"
+}
+JSON

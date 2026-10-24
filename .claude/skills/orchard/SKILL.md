@@ -189,6 +189,12 @@ symlink, into the repo.
   Window geometry that should line up with tiled windows uses
   `gaps_out` (10px) offsets and `rounding` (10px) radius; hyprland.lua
   `general`/`decoration` are the source. No drop shadows anywhere.
+- **Quickshell** only for the window switcher (`window-switcher/`): its
+  `ScreencopyView` can preview a window on another desktop, which eww
+  cannot. One instance on its own config dir
+  (`quickshell -c window-switcher`), driven by Hyprland global shortcuts
+  (`hl.dsp.global("orchard-window-switcher:<name>")`); colors come from a
+  `colors.json` the shell watches, so set-theme only re-renders.
 - **fuzzel** for pickers/menus (`system-menu`, `wifi-menu`,
   `bluetooth-menu`, `theme-menu`, `audio-menu`): `. "$HOME/.local/bin/_fuzzel-menu-toggle"`,
   build rows as `<phosphor glyph>  <label>`, pipe to

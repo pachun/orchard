@@ -200,6 +200,11 @@ if [ -x "$HOME/.local/bin/render-two-factor-theme" ]; then
         "$HOME/.local/bin/restart-two-factor" >/dev/null 2>&1 || true
     ) &
 fi
+# The window switcher watches its colors file, so a re-render is the whole
+# of its switch — no daemon to restart.
+if [ -x "$HOME/.local/bin/render-window-switcher-theme" ]; then
+    "$HOME/.local/bin/render-window-switcher-theme" >/dev/null 2>&1 || true
+fi
 if [ -x "$HOME/.local/bin/render-apple-tv-remote-theme" ]; then
     (
         "$HOME/.local/bin/render-apple-tv-remote-theme" >/dev/null 2>&1 || true

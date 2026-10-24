@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Bring the switcher's Quickshell instance up clean. Its own instance, on its
+# own config dir, so it can be restarted without touching anything else that
+# may run on Quickshell. Colors need no restart (the switcher watches
+# colors.json); this is for login and for changes to shell.qml itself.
+set -euo pipefail
+
+pkill -f 'quickshell -c window-switcher' 2>/dev/null || true
+setsid -f quickshell -c window-switcher >/dev/null 2>&1

@@ -343,20 +343,21 @@ end)
 hl.bind(modifier .. " + Q", hl.dsp.window.close())
 hl.bind(modifier .. " + SHIFT + Q", hl.dsp.window.kill())
 
--- Cmd+Tab cycles focus forward through the windows on the current
--- workspace; Cmd+` cycles backward through the same ring, so overshooting
--- is recoverable without releasing Cmd. cycle_next never leaves the current
--- workspace, which is the behavior we want: crossing spaces is already
--- Ctrl+←/→, so this stays the "what else is on this desktop" key.
---
--- Do not pair these with bring_to_top. Raising a window reorders the
--- very list cycle_next walks, so the newly-focused window becomes the
--- neighbor of the one you just left — which collapses the ring into a
--- ping-pong between two windows and makes Cmd+` useless. The cost is that
--- cycling to a buried floating window focuses it without raising it; the
--- cycle is worth more than the raise.
-hl.bind(modifier .. " + Tab", hl.dsp.window.cycle_next())
-hl.bind(modifier .. " + grave", hl.dsp.window.cycle_next({ next = false }))
+-- Cmd+Tab opens the window switcher (the window-switcher feature): a strip of
+-- live previews of every window on every desktop, most recently used first,
+-- with the previous window already selected. Tab again moves forward,
+-- Shift+Tab or ` moves back, and releasing Cmd focuses the selection — so the
+-- Cmd release is a bind too, one that fires on every Cmd release and is a
+-- no-op whenever the strip isn't up. The switcher is a Quickshell program;
+-- these binds reach it through its global shortcuts, and the strip also
+-- catches the release itself while it has the keyboard, so either path
+-- commits. Repeating, so holding Tab walks the strip.
+local windowSwitcher = "orchard-window-switcher"
+hl.bind(modifier .. " + Tab", hl.dsp.global(windowSwitcher .. ":next"), { repeating = true })
+hl.bind(modifier .. " + SHIFT + Tab", hl.dsp.global(windowSwitcher .. ":previous"), { repeating = true })
+hl.bind(modifier .. " + grave", hl.dsp.global(windowSwitcher .. ":previous"), { repeating = true })
+hl.bind(modifier .. " + Super_L", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
+hl.bind(modifier .. " + Super_R", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
 
 -- Ctrl+Cmd+Space opens an emoji picker (macOS-style). The actual flow —
 -- rofimoji into fuzzel, copy + ydotool-Ctrl+V because chromium ignores
@@ -422,6 +423,9 @@ hl.layer_rule({ match = { namespace = "eww-osd" }, no_anim = true, blur = true, 
 hl.layer_rule({ match = { namespace = "ai-usage" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the two-factor codes dropdown (two-factor-codes feature).
 hl.layer_rule({ match = { namespace = "two-factor" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+-- The window switcher's strip is frosted the same way; its full-screen
+-- backdrop sits under the alpha cutoff, so only the strip blurs.
+hl.layer_rule({ match = { namespace = "window-switcher" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the Apple TV remote card (apple-tv-remote feature).
 hl.layer_rule({ match = { namespace = "apple-tv-remote" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- waybar gets reloaded on theme switch (SIGUSR2). Without this rule the
@@ -670,6 +674,9 @@ hl.on("hyprland.start", function()
 
     -- The Apple TV remote card's eww daemon (see the apple-tv-remote feature).
     hl.exec_cmd(localBin("restart-apple-tv-remote"))
+
+    -- The window switcher's Quickshell instance (see the window-switcher feature).
+    hl.exec_cmd(localBin("restart-window-switcher"))
 
     -- --- auth agent ----------------------------------------------------
     -- Polkit auth agent — pops the GUI password prompt when apps need
