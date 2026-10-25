@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "two-factor-panel",
+  "aliases": [
+    "2fa",
+    "otp",
+    "authenticator",
+    "ente"
+  ]
+}

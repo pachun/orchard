@@ -1,0 +1,8 @@
+{
+  "icon": "",
+  "command": "focus-or-launch chromium chromium",
+  "aliases": [
+    "browser",
+    "web"
+  ]
+}

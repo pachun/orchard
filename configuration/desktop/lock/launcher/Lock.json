@@ -1,0 +1,8 @@
+{
+  "icon": "",
+  "command": "sh -c 'pidof hyprlock || hyprlock'",
+  "aliases": [
+    "screen",
+    "away"
+  ]
+}

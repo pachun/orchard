@@ -54,6 +54,7 @@ fi
 sudo pacman -S --needed --noconfirm "${packages[@]}"
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 
 POLICY_DIR="/etc/chromium/policies/managed"
 UPDATE_URL="https://clients2.google.com/service/update2/crx"

@@ -36,3 +36,4 @@ install_unless_identical "$HERE/pam/faillock.conf" /etc/security/faillock.conf
 
 bash "$TOOLS/link.sh" "$HERE/config/hypr" "$HOME/.config/hypr"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

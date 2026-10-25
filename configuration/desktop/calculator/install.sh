@@ -12,5 +12,9 @@
 # keyboard has no such key, use the bind in hyprland.lua.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm gnome-calculator
+
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

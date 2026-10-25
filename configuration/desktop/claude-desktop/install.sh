@@ -50,3 +50,5 @@ if [ -f "$packaged_launcher" ]; then
   command -v update-desktop-database >/dev/null 2>&1 &&
     update-desktop-database "$(dirname "$user_launcher")" 2>/dev/null || true
 fi
+
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

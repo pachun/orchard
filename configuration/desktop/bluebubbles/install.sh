@@ -72,3 +72,5 @@ bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" bluebubbles-bin
 drop_the_debug_package
 apply_preferred_client_settings
+
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

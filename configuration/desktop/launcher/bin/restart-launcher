@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Bring the launcher's Quickshell instance up clean. Its own instance, on its
+# own config dir, so it can be restarted without touching the window
+# switcher's. Colors need no restart (the launcher watches colors.json) and
+# neither do the entries (read on every open); this is for login and for
+# changes to shell.qml itself.
+set -euo pipefail
+
+pkill -f 'quickshell -c launcher' 2>/dev/null || true
+setsid -f quickshell -c launcher >/dev/null 2>&1

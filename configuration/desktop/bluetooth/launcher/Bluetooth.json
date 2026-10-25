@@ -1,0 +1,8 @@
+{
+  "icon": "",
+  "command": "bluetooth-menu",
+  "aliases": [
+    "headphones",
+    "devices"
+  ]
+}

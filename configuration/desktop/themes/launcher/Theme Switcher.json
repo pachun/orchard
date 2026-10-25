@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "theme-menu",
+  "aliases": [
+    "theme",
+    "colors",
+    "wallpaper",
+    "appearance"
+  ]
+}

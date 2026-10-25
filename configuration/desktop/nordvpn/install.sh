@@ -26,6 +26,7 @@ bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" nordvpn-bin
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 
 sudo systemctl enable --now nordvpnd.service
 

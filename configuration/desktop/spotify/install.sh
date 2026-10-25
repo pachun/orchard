@@ -21,3 +21,4 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm spotify-launcher
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

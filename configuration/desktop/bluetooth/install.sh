@@ -32,6 +32,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm bluez bluez-utils
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 sudo systemctl enable --now bluetooth.service
 
 # Idempotent INI patcher. Three input states per key: already set to the

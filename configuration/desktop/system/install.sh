@@ -16,3 +16,4 @@ sudo pacman -S --needed --noconfirm gnome-control-center
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/dbus-services" "$HOME/.local/share/dbus-1/services"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

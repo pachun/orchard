@@ -33,6 +33,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo pacman -S --needed --noconfirm nautilus sushi ydotool python-gobject at-spi2-core
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 
 "$HOME/.local/bin/render-nautilus-sidebar" "$HERE/sidebar-places"
 

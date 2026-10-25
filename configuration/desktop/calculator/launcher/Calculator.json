@@ -1,0 +1,7 @@
+{
+  "icon": "",
+  "command": "focus-or-launch --here org.gnome.Calculator gnome-calculator",
+  "aliases": [
+    "math"
+  ]
+}

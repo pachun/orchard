@@ -1,0 +1,7 @@
+{
+  "icon": "",
+  "command": "focus-or-launch spotify spotify-launcher",
+  "aliases": [
+    "music"
+  ]
+}

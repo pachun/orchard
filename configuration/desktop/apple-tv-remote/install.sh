@@ -25,6 +25,7 @@ bash "$TOOLS/aur-install.sh" eww
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 
 "$HOME/.local/bin/render-apple-tv-remote-theme"
 "$HOME/.local/bin/restart-apple-tv-remote"

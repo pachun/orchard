@@ -1,0 +1,8 @@
+{
+  "icon": "",
+  "command": "apple-tv-mode",
+  "aliases": [
+    "tv",
+    "remote"
+  ]
+}

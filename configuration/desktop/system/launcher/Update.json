@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "system-update",
+  "aliases": [
+    "upgrade",
+    "pacman",
+    "packages"
+  ]
+}

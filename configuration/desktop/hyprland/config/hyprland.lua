@@ -359,6 +359,12 @@ hl.bind(modifier .. " + grave", hl.dsp.global(windowSwitcher .. ":previous"), { 
 hl.bind(modifier .. " + Super_L", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
 hl.bind(modifier .. " + Super_R", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
 
+-- Cmd+Space opens the launcher (the launcher feature): a search over every
+-- app, menu and panel on the machine that has opted in. The same chord closes
+-- it; so does Escape, which the launcher handles itself while it has the
+-- keyboard.
+hl.bind(modifier .. " + space", hl.dsp.global("orchard-launcher:toggle"))
+
 -- Ctrl+Cmd+Space opens an emoji picker (macOS-style). The actual flow —
 -- rofimoji into fuzzel, copy + ydotool-Ctrl+V because chromium ignores
 -- synthetic typing of emoji, then restore the previous clipboard from
@@ -426,6 +432,8 @@ hl.layer_rule({ match = { namespace = "two-factor" }, no_anim = true, blur = tru
 -- The window switcher's strip is frosted the same way; its full-screen
 -- backdrop sits under the alpha cutoff, so only the strip blurs.
 hl.layer_rule({ match = { namespace = "window-switcher" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+-- And the launcher's box (launcher feature), same arrangement.
+hl.layer_rule({ match = { namespace = "launcher" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the Apple TV remote card (apple-tv-remote feature).
 hl.layer_rule({ match = { namespace = "apple-tv-remote" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- waybar gets reloaded on theme switch (SIGUSR2). Without this rule the
@@ -677,6 +685,9 @@ hl.on("hyprland.start", function()
 
     -- The window switcher's Quickshell instance (see the window-switcher feature).
     hl.exec_cmd(localBin("restart-window-switcher"))
+
+    -- The launcher's Quickshell instance (see the launcher feature).
+    hl.exec_cmd(localBin("restart-launcher"))
 
     -- --- auth agent ----------------------------------------------------
     -- Polkit auth agent — pops the GUI password prompt when apps need

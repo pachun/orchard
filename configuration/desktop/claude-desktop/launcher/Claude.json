@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "focus-or-launch com.anthropic.Claude claude-desktop --password-store=gnome-libsecret",
+  "aliases": [
+    "anthropic",
+    "ai",
+    "chat"
+  ]
+}

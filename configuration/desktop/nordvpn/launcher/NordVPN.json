@@ -1,0 +1,8 @@
+{
+  "icon": "",
+  "command": "nordvpn-menu",
+  "aliases": [
+    "vpn",
+    "privacy"
+  ]
+}

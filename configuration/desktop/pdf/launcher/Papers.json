@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "papers",
+  "aliases": [
+    "pdf",
+    "documents",
+    "reader"
+  ]
+}

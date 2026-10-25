@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "audio-menu",
+  "aliases": [
+    "audio",
+    "output",
+    "speakers",
+    "volume"
+  ]
+}

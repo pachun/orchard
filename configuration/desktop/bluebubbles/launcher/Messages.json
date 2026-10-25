@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "focus-or-launch bluebubbles bluebubbles",
+  "aliases": [
+    "imessage",
+    "bluebubbles",
+    "texts"
+  ]
+}

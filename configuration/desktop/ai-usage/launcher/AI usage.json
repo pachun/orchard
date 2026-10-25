@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "ai-usage-panel",
+  "aliases": [
+    "claude code",
+    "codex",
+    "limits"
+  ]
+}

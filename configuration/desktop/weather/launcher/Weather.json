@@ -1,0 +1,7 @@
+{
+  "icon": "",
+  "command": "focus-or-launch chrome-www.google.com__search-Default weather",
+  "aliases": [
+    "forecast"
+  ]
+}

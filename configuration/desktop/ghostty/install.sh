@@ -58,3 +58,4 @@ fi
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/ghostty"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

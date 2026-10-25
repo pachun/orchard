@@ -1,0 +1,7 @@
+{
+  "icon": "",
+  "command": "focus-or-launch chrome-calendar.google.com__-Default chromium --app=https://calendar.google.com",
+  "aliases": [
+    "google"
+  ]
+}

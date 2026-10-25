@@ -1,0 +1,9 @@
+{
+  "icon": "",
+  "command": "wifi-menu",
+  "aliases": [
+    "network",
+    "internet",
+    "wireless"
+  ]
+}
