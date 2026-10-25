@@ -9,7 +9,7 @@
 #   palette  U+E6C8  — per-theme rows
 set -eu
 
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 
 themes_dir="$HOME/.config/orchard-themes"
 ICON_THEME=$(printf '\356\233\210')   # U+E6C8 palette
@@ -36,7 +36,7 @@ list=$(
     done | sort -u | cut -f2-
 )
 
-choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt='theme: ' --width=32 --lines=8) || exit 0
+choice=$(printf '%s' "$list" | "$HOME/.local/bin/orchard-menu" --prompt 'theme: ') || exit 0
 
 # Strip leading "<icon>  " and trailing "  <dot>" if present, then turn
 # the display name back into the directory name.

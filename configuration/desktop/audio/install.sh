@@ -24,6 +24,7 @@ if is_apple_silicon; then
 fi
 sudo pacman -S --needed --noconfirm "${packages[@]}"
 
+bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 bash "$TOOLS/link.sh" "$HERE/systemd" "$HOME/.config/systemd/user"

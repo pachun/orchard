@@ -8,7 +8,7 @@
 # Phosphor codepoints used:
 #   image  U+E2CA  — screenshot rows
 set -eu
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 
 screenshots="$HOME/pictures/screenshots"
 ICON_IMAGE=$(printf '\356\213\212')   # U+E2CA image
@@ -23,7 +23,7 @@ if [ -z "$rows" ]; then
     exit 0
 fi
 
-choice=$(printf '%s\n' "$rows" | fuzzel --dmenu --prompt='annotate: ' --width=48 --lines=10) || exit 0
+choice=$(printf '%s\n' "$rows" | "$HOME/.local/bin/orchard-menu" --prompt 'annotate: ') || exit 0
 name=${choice#*  }
 annotated="$screenshots/${name%.*}-annotated.png"
 

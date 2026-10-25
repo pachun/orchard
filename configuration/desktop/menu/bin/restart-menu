@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Bring the picker's Quickshell instance up clean. Its own instance, on its
+# own config dir, so it can be restarted without touching the launcher's or
+# the window switcher's. Colors need no restart (the picker watches
+# colors.json); this is for login and for changes to shell.qml itself.
+set -euo pipefail
+
+pkill -f 'quickshell -c menu$' 2>/dev/null || true
+setsid -f quickshell -c menu >/dev/null 2>&1

@@ -1,6 +1,7 @@
 #!/bin/sh
-# Toggle protocol for fuzzel-driven menus. Sourced (not executed) by
-# wifi-menu, nordvpn-menu, system-menu near the top of each script.
+# Toggle protocol for the bar's menus. Sourced (not executed) by wifi-menu,
+# bluetooth-menu, audio-menu, nordvpn-menu, theme-menu and system-menu near
+# the top of each script, and by the fuzzel pickers that still exist.
 #
 # Behavior:
 #   - Same menu invoked again       → close it (toggle off)
@@ -14,6 +15,14 @@
 #
 # The lockfile is removed on EXIT/INT/TERM. SIGKILL leaves it stale,
 # which the next invocation cleans up via the kill -0 liveness check.
+
+# The picker is orchard-menu's resident program for the bar's menus, and
+# fuzzel for the pickers that still use it; dismissing "whatever is open"
+# means both.
+__close_any_open_picker() {
+    "$HOME/.local/bin/orchard-menu" --close 2>/dev/null || true
+    pkill -x fuzzel 2>/dev/null || true
+}
 
 __menu_name=$(basename "$0")
 __menu_lock="/tmp/$__menu_name.lock"
@@ -41,16 +50,16 @@ if [ -n "$__menu_pid" ] && [ "$__menu_pid" != "$$" ] \
    && __menu_is_still_open; then
     # This menu is already open in a different process — toggle off.
     kill "$__menu_pid" 2>/dev/null
-    pkill -x fuzzel 2>/dev/null   # backstop in case the shell dies before fuzzel
+    __close_any_open_picker
     exit 0
 fi
 
 # Stale lockfile (or no lockfile) — clear and proceed.
 rm -f "$__menu_lock"
 
-# A different menu may be open — close its fuzzel popup. That menu's shell
-# will exit via its own `choice=$(...) || exit 0`, releasing its lockfile.
-pkill -x fuzzel 2>/dev/null || true
+# A different menu may be open — close its picker. That menu's shell will
+# exit via its own `choice=$(...) || exit 0`, releasing its lockfile.
+__close_any_open_picker
 
 echo $$ > "$__menu_lock"
 trap 'rm -f "$__menu_lock"' EXIT INT TERM

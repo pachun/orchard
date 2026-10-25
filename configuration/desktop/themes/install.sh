@@ -28,6 +28,7 @@ bash "$TOOLS/aur-install.sh" \
     kvantum-theme-catppuccin-git
 
 # Config files + theme switcher scripts.
+bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

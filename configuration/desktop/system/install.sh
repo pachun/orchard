@@ -11,6 +11,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../fuzzel/install.sh"
+bash "$HERE/../menu/install.sh"
 
 sudo pacman -S --needed --noconfirm gnome-control-center
 

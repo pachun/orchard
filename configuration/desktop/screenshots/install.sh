@@ -13,4 +13,5 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm grim slurp wf-recorder hyprpicker satty
 
+bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

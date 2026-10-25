@@ -1,5 +1,5 @@
 #!/bin/sh
-# Fuzzel-driven Bluetooth picker. Toggles power, connects /
+# The bar's Bluetooth picker (orchard-menu). Toggles power, connects /
 # disconnects / pairs / forgets devices. Mirrors wifi-menu and
 # nordvpn-menu (icon-led rows, ● dot for currently-active devices,
 # special actions get their own glyph).
@@ -25,7 +25,7 @@
 #   trash                U+E4A6  — forget rows
 set -eu
 
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 
 if ! command -v bluetoothctl >/dev/null 2>&1; then
     notify-send 'Bluetooth' 'bluetoothctl not installed (need bluez-utils).'
@@ -54,7 +54,7 @@ powered=$(bluetoothctl show 2>/dev/null | awk -F': *' '/Powered:/ {print $2; exi
 # Bluetooth off — only show power-on as the action.
 if [ "$powered" != "yes" ]; then
     choice=$(printf '%s\n' "$POWER_ON_LABEL" \
-        | fuzzel --dmenu --prompt 'bluetooth: ' --width 32 --lines 3) || exit 0
+        | "$HOME/.local/bin/orchard-menu" --prompt 'bluetooth: ') || exit 0
     if [ "$choice" = "$POWER_ON_LABEL" ]; then
         bluetoothctl power on >/dev/null 2>&1 || true
         notify-send 'Bluetooth' 'Powered on'
@@ -120,14 +120,13 @@ if [ -z "${BLUETOOTH_MENU_NO_AUTOSCAN:-}" ] \
         wait "$btctl_pid" 2>/dev/null || true
 
         # Respawn the menu only if the user is still looking at it.
-        # Both checks (a fuzzel is up AND our shell is alive) defend
-        # against the menu having been replaced by a different
-        # fuzzel-driven menu (wifi-menu, etc.) — we don't want to
-        # nuke that one.
-        if pgrep -x fuzzel >/dev/null 2>&1 \
+        # Both checks (this menu's picker is up AND our shell is alive)
+        # defend against the menu having been replaced by a different
+        # menu (wifi-menu, etc.) — we don't want to nuke that one.
+        if pgrep -f 'orchard-menu --prompt bluetooth' >/dev/null 2>&1 \
            && kill -0 "$bluetooth_menu_pid" 2>/dev/null; then
             kill "$bluetooth_menu_pid" 2>/dev/null || true
-            pkill -x fuzzel 2>/dev/null || true
+            "$HOME/.local/bin/orchard-menu" --close
             sleep 0.3
             BLUETOOTH_MENU_NO_AUTOSCAN=1 "$0" >/dev/null 2>&1 &
         fi
@@ -186,7 +185,7 @@ list=$(
 )
 
 choice=$(printf '%s' "$list" \
-    | fuzzel --dmenu --prompt 'bluetooth: ' --width 38 --lines 14) || exit 0
+    | "$HOME/.local/bin/orchard-menu" --prompt 'bluetooth: ') || exit 0
 
 # bluetoothctl wrapper that records every step to LOG so failures
 # can be diagnosed (exit codes alone don't say *why* something

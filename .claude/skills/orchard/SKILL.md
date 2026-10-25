@@ -203,10 +203,15 @@ symlink, into the repo.
   (searched as names), and its install.sh links it with
   `bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"`.
   Nothing is indexed; plumbing features ship no entry.
-- **fuzzel** for pickers/menus (`system-menu`, `wifi-menu`,
-  `bluetooth-menu`, `theme-menu`, `audio-menu`): `. "$HOME/.local/bin/_fuzzel-menu-toggle"`,
-  build rows as `<phosphor glyph>  <label>`, pipe to
-  `fuzzel --dmenu --prompt=… --width=… --lines=…`.
+- **orchard-menu** (the `menu` feature, a Quickshell picker) for the bar's
+  menus (`system-menu`, `wifi-menu`, `bluetooth-menu`, `theme-menu`,
+  `audio-menu`, `nordvpn-menu`): `. "$HOME/.local/bin/_menu-toggle"`, build
+  rows as `<phosphor glyph>  <label>` (regular-weight codepoints), pipe to
+  `"$HOME/.local/bin/orchard-menu" --prompt '…: '`; it keeps fuzzel's dmenu
+  contract (chosen row on stdout, exit 1 on Escape; `--password` or empty
+  stdin asks for typed text). A feature with a menu calls
+  `bash "$HERE/../menu/install.sh"` from its install.sh. fuzzel remains only
+  for the emoji picker and clipboard history.
 - Notifications don't toast; they take the clock's slot in the bar
   (`waybar-clock` + `orchard-notifications`).
 

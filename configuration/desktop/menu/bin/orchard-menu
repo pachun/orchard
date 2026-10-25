@@ -1,0 +1,74 @@
+#!/bin/sh
+# The picker the bar's menus use, with fuzzel's dmenu contract: rows on
+# stdin, one per line; the chosen row on stdout; exit 1 when nothing was
+# chosen. --prompt names the menu. --password asks for typed text, masked,
+# instead of a choice; so does an empty stdin, unmasked. --close dismisses
+# whatever menu is open, for the toggle protocol in _menu-toggle.
+#
+# The picker itself is the resident Quickshell program in
+# ~/.config/quickshell/menu. The rows go to it in a file under the runtime
+# directory, named over Quickshell's IPC; the answer comes back in the file
+# the request names. Files rather than arguments so a typed password is never
+# in a process list, and the runtime directory because it is this user's
+# alone and in memory.
+#
+# Usage: printf '%s\n' rows... | orchard-menu --prompt 'wifi: ' [--password]
+#        orchard-menu --close
+set -eu
+
+prompt=''
+password=false
+close=false
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prompt)   prompt=$2; shift 2 ;;
+        --prompt=*) prompt=${1#--prompt=}; shift ;;
+        --password) password=true; shift ;;
+        --close)    close=true; shift ;;
+        *)          shift ;;
+    esac
+done
+
+picker() { quickshell -c menu ipc call menu "$@"; }
+
+if [ "$close" = true ]; then
+    picker close >/dev/null 2>&1 || true
+    exit 0
+fi
+
+exchange_dir="${XDG_RUNTIME_DIR:-/tmp}/orchard-menu"
+mkdir -p -m 700 "$exchange_dir"
+exchange_id="$$-$(date +%s%N)"
+request="$exchange_dir/$exchange_id.request.json"
+response="$exchange_dir/$exchange_id.response.json"
+# A caught INT or TERM has to exit explicitly, or the shell runs the trap
+# and carries on waiting — which is how a menu's shell outlives the menu.
+trap 'rm -f "$request" "$response"' EXIT
+trap 'exit 1' INT TERM
+
+if [ "$password" = true ]; then
+    rows='[]'
+else
+    rows=$(jq -R -s 'split("\n") | map(select(. != ""))')
+fi
+jq -n --arg prompt "$prompt" --argjson password "$password" --arg response "$response" --argjson rows "$rows" \
+    '{prompt: $prompt, password: $password, response: $response, rows: $rows}' > "$request"
+
+picker open "$request" >/dev/null
+
+picker_is_running() { pgrep -f 'quickshell -c menu$' >/dev/null 2>&1; }
+
+polls_between_liveness_checks=20
+polls=0
+while [ ! -s "$response" ]; do
+    sleep 0.05
+    polls=$((polls + 1))
+    if [ $((polls % polls_between_liveness_checks)) -eq 0 ] && ! picker_is_running; then
+        exit 1
+    fi
+done
+
+if [ "$(jq -r '.cancelled' "$response")" = true ]; then
+    exit 1
+fi
+jq -r '.chosen' "$response"

@@ -19,7 +19,7 @@
 # built the way it is (a hotkey-bound picker cannot afford to be slow).
 set -eu
 
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 . "$HOME/.local/bin/_audio-sinks"
 
 ACTIVE_DOT='●'
@@ -39,7 +39,7 @@ rows=$(
     ' | sort | cut -f2-
 )
 
-choice=$(printf '%s' "$rows" | fuzzel --dmenu --prompt 'output: ' --width 34 --lines 12) || exit 0
+choice=$(printf '%s' "$rows" | "$HOME/.local/bin/orchard-menu" --prompt 'output: ') || exit 0
 
 label=${choice#*  }
 case "$label" in
@@ -66,7 +66,7 @@ case "$sink" in
             '$1 == id { print ($3 == "false" && $4 == "true") ? "yes" : "no"; exit }')
         if [ "$needs_pin" = "yes" ]; then
             notify-send 'Output' "$label wants to verify this computer — read the PIN off its screen" >/dev/null 2>&1 || true
-            pin=$(printf '' | fuzzel --dmenu --prompt "PIN on $label: " --lines 0) || exit 0
+            pin=$(printf '' | "$HOME/.local/bin/orchard-menu" --prompt "PIN on $label: ") || exit 0
             [ -n "$pin" ] || exit 0
             curl -fsS -m 5 -X PUT "$OWNTONE_API/outputs/$id" \
                 --data "{\"pin\":\"$pin\"}" >/dev/null 2>&1 || true

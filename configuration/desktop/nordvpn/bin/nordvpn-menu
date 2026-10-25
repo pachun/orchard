@@ -1,5 +1,5 @@
 #!/bin/sh
-# Fuzzel-driven NordVPN picker. Toggles closed if already open. Two
+# The bar's NordVPN picker (orchard-menu). Toggles closed if already open. Two
 # levels: top picker offers Disconnect (when connected), Dedicated IP,
 # Quickest, then a sorted country list; selecting a country opens a
 # second picker with "Any city" + that country's cities. The city
@@ -24,7 +24,7 @@
 set -eu
 
 # Toggle protocol shared with wifi-menu / system-menu.
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 
 ICON_DISCONNECT=''
 ICON_DEDICATED=''
@@ -96,7 +96,7 @@ pick_country() {
         printf '%s\n' "$DEDICATED_LABEL"
         printf '%s\n' "$QUICKEST_LABEL"
         printf '%s\n' "$countries" | format_rows "$ICON_COUNTRY" "$active_country"
-    } | fuzzel --dmenu --prompt 'nordvpn: ' --width 38 --lines 15
+    } | "$HOME/.local/bin/orchard-menu" --prompt 'nordvpn: '
 }
 
 pick_city() {
@@ -111,7 +111,7 @@ pick_city() {
         printf '%s\n' "$BACK_LABEL"
         printf '%s  Any city in %s\n' "$ICON_COUNTRY" "$country_display"
         printf '%s\n' "$cities" | format_rows "$ICON_CITY" "$active_city"
-    } | fuzzel --dmenu --prompt "$country_display: " --width 38 --lines 15
+    } | "$HOME/.local/bin/orchard-menu" --prompt "$country_display: "
 }
 
 # Strip leading "<icon>  " and trailing "  <dot>" if present.

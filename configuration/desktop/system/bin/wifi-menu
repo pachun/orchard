@@ -1,6 +1,6 @@
 #!/bin/sh
-# Pick a wifi network via the Frappé-themed fuzzel picker. Connects with
-# saved credentials if available; falls back to a fuzzel password prompt
+# Pick a wifi network via the bar's picker (orchard-menu). Connects with
+# saved credentials if available; falls back to a masked password prompt
 # for secured networks. Open networks skip the password prompt entirely.
 # Triggered from waybar's network module on-click.
 #
@@ -21,11 +21,11 @@
 #   link-break    U+E2E4
 # Active marker uses U+25CF (●) — small and reads clearly at end of row.
 #
-# Toggle behavior is shared with the other fuzzel menus — see
-# _fuzzel-menu-toggle for the protocol.
+# Toggle behavior is shared with the other menus — see _menu-toggle for the
+# protocol.
 set -eu
 
-. "$HOME/.local/bin/_fuzzel-menu-toggle"
+. "$HOME/.local/bin/_menu-toggle"
 
 SIG_HIGH=''
 SIG_MED=''
@@ -129,7 +129,7 @@ while :; do
         printf '%s\n' "$networks"
     )
 
-    choice=$(printf '%s' "$list" | fuzzel --dmenu --prompt 'wifi: ' --width 48) || exit 0
+    choice=$(printf '%s' "$list" | "$HOME/.local/bin/orchard-menu" --prompt 'wifi: ') || exit 0
 
     case "$choice" in
         "$RESCAN_LABEL")
@@ -180,7 +180,7 @@ while :; do
         exit 0
     fi
 
-    pw=$(fuzzel --dmenu --password --prompt "password for $ssid: " --width 40) || exit 0
+    pw=$("$HOME/.local/bin/orchard-menu" --password --prompt "password for $ssid: ") || exit 0
     spinner_on
     if nmcli device wifi connect "$ssid" password "$pw"; then
         notify-send 'WiFi' "Connected to $ssid"

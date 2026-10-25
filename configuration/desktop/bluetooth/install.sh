@@ -31,6 +31,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo pacman -S --needed --noconfirm bluez bluez-utils
 
+bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 sudo systemctl enable --now bluetooth.service

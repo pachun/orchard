@@ -434,6 +434,8 @@ hl.layer_rule({ match = { namespace = "two-factor" }, no_anim = true, blur = tru
 hl.layer_rule({ match = { namespace = "window-switcher" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And the launcher's box (launcher feature), same arrangement.
 hl.layer_rule({ match = { namespace = "launcher" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+-- And the bar's menus (menu feature), same arrangement.
+hl.layer_rule({ match = { namespace = "menu" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- And for the Apple TV remote card (apple-tv-remote feature).
 hl.layer_rule({ match = { namespace = "apple-tv-remote" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
 -- waybar gets reloaded on theme switch (SIGUSR2). Without this rule the
@@ -688,6 +690,9 @@ hl.on("hyprland.start", function()
 
     -- The launcher's Quickshell instance (see the launcher feature).
     hl.exec_cmd(localBin("restart-launcher"))
+
+    -- The bar's menus' picker, a Quickshell instance (see the menu feature).
+    hl.exec_cmd(localBin("restart-menu"))
 
     -- --- auth agent ----------------------------------------------------
     -- Polkit auth agent — pops the GUI password prompt when apps need

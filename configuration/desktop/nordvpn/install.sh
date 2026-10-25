@@ -25,6 +25,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" nordvpn-bin
 
+bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
 
