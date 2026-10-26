@@ -22,7 +22,7 @@ if is_apple_silicon; then
     exit 1
   fi
 
-  INSTALLED_VER=$(pacman -Qi ghostty-git 2>/dev/null | awk '/^Version/ {print $3}')
+  INSTALLED_VER=$(pacman -Qi ghostty-git 2>/dev/null | awk '/^Version/ {print $3}') || INSTALLED_VER=
   if [[ "$INSTALLED_VER" != "${LATEST_TAG#v}.r0."* ]]; then
     WORK=$(mktemp -d)
     trap 'rm -rf "$WORK"' EXIT

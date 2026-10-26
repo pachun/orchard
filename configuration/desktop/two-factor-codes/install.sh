@@ -37,7 +37,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bash "$HERE/../themes/install.sh"
 
 bash "$TOOLS/install-yay.sh"
-bash "$TOOLS/aur-install.sh" ente-auth-bin eww
+case "$(uname -m)" in
+  aarch64) ente_auth_package=ente-auth ;;
+  *) ente_auth_package=ente-auth-bin ;;
+esac
+bash "$TOOLS/aur-install.sh" "$ente_auth_package" eww
 
 install_enteauth_rs_without_lto() {
   WORK="$(mktemp -d)"
@@ -53,7 +57,7 @@ install_enteauth_rs_without_lto() {
   fi
   sed -i "s/^makedepends=/options=('!lto' '!debug')\nmakedepends=/" PKGBUILD
 
-  makepkg -fi --noconfirm
+  makepkg -fi --noconfirm --ignorearch
 
   cd "$HERE"
 }

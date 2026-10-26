@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Codex, OpenAI's terminal coding agent, set up to run GPT-6 Astra on the
-# ChatGPT Pro plan. Arch packages it in extra, so it rides system-update like
-# everything else, and `codex` opens on Astra without a /model step.
+# ChatGPT Pro plan. x86 uses Arch's package; ARM uses the upstream installer.
 #
 # ~/.codex/config.toml is Codex's own file, not a link into this repo: Codex
 # writes per-machine state into it as you work (which projects you've trusted,
@@ -20,6 +19,9 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm openai-codex
+case "$(uname -m)" in
+  aarch64) curl -fsSL https://chatgpt.com/codex/install.sh | sh ;;
+  *) sudo pacman -S --needed --noconfirm openai-codex ;;
+esac
 
 bash "$HERE/setup.sh"
