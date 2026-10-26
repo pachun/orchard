@@ -28,6 +28,7 @@ ShellRoot {
   property int selectedIndex: 0
   property int pendingSteps: 0
   property bool queryWanted: false
+  property bool commitWhenQueryLands: false
   property var targetScreen: null
 
   readonly property int cardWidth: 260
@@ -143,9 +144,24 @@ ShellRoot {
     windows = []
     pendingSteps = 0
     queryWanted = false
+    commitWhenQueryLands = false
   }
 
+  function focusWindow(address) {
+    if (address)
+      Qt.callLater(function() {
+        Hyprland.dispatch('hl.dsp.focus({ window = "address:' + address + '" })')
+      })
+  }
+
+  // A Cmd release that arrives while the client list is still loading is a
+  // quick tap: the switch happens the moment the list lands, with no strip,
+  // the way a quick Cmd+Tab on a Mac goes straight to the previous window.
   function commit() {
+    if (!opened && queryWanted) {
+      commitWhenQueryLands = true
+      return
+    }
     if (!opened || selectedIndex < 0 || selectedIndex >= windows.length) {
       cancel()
       return
@@ -153,16 +169,9 @@ ShellRoot {
 
     var address = windows[selectedIndex].address
     cancel()
-
-    if (address)
-      Qt.callLater(function() {
-        Hyprland.dispatch('hl.dsp.focus({ window = "address:' + address + '" })')
-      })
+    focusWindow(address)
   }
 
-  // A Cmd release that arrives while the client list is still loading
-  // (a quick tap of Cmd+Tab) clears queryWanted, and the late result is
-  // dropped here rather than opening a strip nobody is holding a key for.
   function finishWindowQuery(text) {
     if (!queryWanted) return
 
@@ -189,6 +198,13 @@ ShellRoot {
     pendingSteps = 0
     queryWanted = false
     selectedIndex = ((steps % windows.length) + windows.length) % windows.length
+
+    if (commitWhenQueryLands) {
+      var address = windows[selectedIndex].address
+      cancel()
+      focusWindow(address)
+      return
+    }
 
     opened = true
     Qt.callLater(function() {

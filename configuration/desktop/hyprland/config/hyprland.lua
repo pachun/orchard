@@ -346,18 +346,39 @@ hl.bind(modifier .. " + SHIFT + Q", hl.dsp.window.kill())
 -- Cmd+Tab opens the window switcher (the window-switcher feature): a strip of
 -- live previews of every window on every desktop, most recently used first,
 -- with the previous window already selected. Tab again moves forward,
--- Shift+Tab or ` moves back, and releasing Cmd focuses the selection — so the
--- Cmd release is a bind too, one that fires on every Cmd release and is a
--- no-op whenever the strip isn't up. The switcher is a Quickshell program;
--- these binds reach it through its global shortcuts, and the strip also
--- catches the release itself while it has the keyboard, so either path
--- commits. Repeating, so holding Tab walks the strip.
+-- Shift+Tab or ` moves back, and releasing Cmd focuses the selection. A quick
+-- tap, Cmd released before the strip has even appeared, goes straight to the
+-- previous window, as it does on a Mac. The switcher is a Quickshell program
+-- and these reach it through its global shortcuts. Repeating, so holding Tab
+-- walks the strip.
+--
+-- The Cmd release is not a release bind. Hyprland fires a key's release bind
+-- only if no other key was pressed while it was held, and Tab always was, so
+-- a bind on Cmd's release never fires here. The raw key event does: Cmd's
+-- release is keycode 133 (134 for the right one) going up, and it is
+-- forwarded to the switcher only while a Cmd+Tab has armed it, so an
+-- ordinary Cmd+C costs nothing.
 local windowSwitcher = "orchard-window-switcher"
-hl.bind(modifier .. " + Tab", hl.dsp.global(windowSwitcher .. ":next"), { repeating = true })
-hl.bind(modifier .. " + SHIFT + Tab", hl.dsp.global(windowSwitcher .. ":previous"), { repeating = true })
-hl.bind(modifier .. " + grave", hl.dsp.global(windowSwitcher .. ":previous"), { repeating = true })
-hl.bind(modifier .. " + Super_L", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
-hl.bind(modifier .. " + Super_R", hl.dsp.global(windowSwitcher .. ":commit"), { release = true })
+local leftCommandKeycode = 133
+local rightCommandKeycode = 134
+local keyReleased = 0
+local switcherArmed = false
+local function switcherStep(shortcut)
+    return function()
+        switcherArmed = true
+        hl.dispatch(hl.dsp.global(windowSwitcher .. ":" .. shortcut))
+    end
+end
+hl.bind(modifier .. " + Tab", switcherStep("next"), { repeating = true })
+hl.bind(modifier .. " + SHIFT + Tab", switcherStep("previous"), { repeating = true })
+hl.bind(modifier .. " + grave", switcherStep("previous"), { repeating = true })
+hl.on("input.keyboard.key", function(keycode, _, state)
+    if not switcherArmed or state ~= keyReleased then return end
+    if keycode == leftCommandKeycode or keycode == rightCommandKeycode then
+        switcherArmed = false
+        hl.dispatch(hl.dsp.global(windowSwitcher .. ":commit"))
+    end
+end)
 
 -- Cmd+Space opens the launcher (the launcher feature): a search over every
 -- app, menu and panel on the machine that has opted in. The same chord closes
