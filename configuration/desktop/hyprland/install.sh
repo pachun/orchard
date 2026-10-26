@@ -11,6 +11,8 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+bash "$TOOLS/check-desktop-packages.sh"
+
 sudo pacman -S --needed --noconfirm hyprland xdg-desktop-portal-hyprland
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/hypr"

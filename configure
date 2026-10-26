@@ -14,6 +14,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export ORCHARD_MODE="$MODE"
 export TOOLS="$HERE/tools"
 
+if [[ "$MODE" == "desktop" ]]; then
+  bash "$TOOLS/check-desktop-packages.sh"
+fi
+
 # Phase 1: source every feature's prompts.sh (if it has one) so all
 # interactive prompts happen up front. Each prompts.sh is idempotent;
 # it skips itself when its inputs are already collected or already
