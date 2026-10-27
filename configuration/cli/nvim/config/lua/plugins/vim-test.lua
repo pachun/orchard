@@ -42,10 +42,23 @@ return {
       return (cmd_str:gsub("\\\\([%(%)%[%]])", "\\%1"))
     end
 
+    -- vitest matches -t against a test's full name, which joins the
+    -- enclosing describe names and the test name with " > ", while
+    -- vim-test joins them with a plain space. Let each space in the
+    -- pattern match either separator so the nearest test is found
+    -- rather than skipped.
+    local function accept_vitest_name_separator(cmd_str)
+      local before, pattern, after = cmd_str:match("^(.-vitest run %-t ')(.-)('.*)$")
+      if pattern then
+        return before .. pattern:gsub(" ", "( > | )") .. after
+      end
+      return cmd_str
+    end
+
     vim.g["test#custom_strategies"] = {
       send_to_tmux_pane = function(cmd)
         local cmd_str = type(cmd) == "table" and table.concat(cmd, " ") or cmd
-        send_to_pane(unescape_double_escaped_metachars(cmd_str))
+        send_to_pane(accept_vitest_name_separator(unescape_double_escaped_metachars(cmd_str)))
       end,
     }
     vim.g["test#strategy"] = "send_to_tmux_pane"
