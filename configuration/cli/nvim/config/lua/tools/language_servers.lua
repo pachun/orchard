@@ -12,6 +12,11 @@
 --       },
 --     },
 --   },
+local function upstream_config(server_name)
+  local path = vim.api.nvim_get_runtime_file("lsp/" .. server_name .. ".lua", false)[1]
+  return dofile(path)
+end
+
 return {
   lua_ls = {
     settings = {
@@ -47,9 +52,20 @@ return {
   -- delegate that to prettier (added to lua/tools/formatters.lua
   -- separately); ts_ls's built-in formatter conflicts with prettier
   -- on style decisions and we don't want it racing on save.
+  -- ts_ls only attaches when the project's TypeScript still ships
+  -- tsserver.js (versions before 7); otherwise its initialize request
+  -- fails with an error popup and tsc below serves the project.
   ts_ls = {
     on_attach = function(client, _)
       client.server_capabilities.documentFormattingProvider = false
+    end,
+    root_dir = function(bufnr, on_dir)
+      upstream_config("ts_ls").root_dir(bufnr, function(root)
+        local tsserver = vim.fs.joinpath(root, "node_modules/typescript/lib/tsserver.js")
+        if vim.uv.fs_stat(tsserver) then
+          on_dir(root)
+        end
+      end)
     end,
   },
 
