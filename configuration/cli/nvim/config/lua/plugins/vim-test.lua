@@ -47,10 +47,15 @@ return {
     -- vim-test joins them with a plain space. Let each space in the
     -- pattern match either separator so the nearest test is found
     -- rather than skipped.
+    -- The name is shell-quoted, so a quote inside it arrives as '\'' and
+    -- would otherwise read as the end of the pattern.
     local function accept_vitest_name_separator(cmd_str)
-      local before, pattern, after = cmd_str:match("^(.-vitest run %-t ')(.-)('.*)$")
+      local quote_inside_name = "'\\''"
+      local placeholder = "\1"
+      local before, pattern, after =
+        cmd_str:gsub(quote_inside_name, placeholder):match("^(.-vitest run %-t ')(.-)('.*)$")
       if pattern then
-        return before .. pattern:gsub(" ", "( > | )") .. after
+        return ((before .. pattern:gsub(" ", "( > | )") .. after):gsub(placeholder, quote_inside_name))
       end
       return cmd_str
     end
