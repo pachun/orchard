@@ -53,5 +53,16 @@ return {
     end,
   },
 
+  -- TypeScript 7+ (the native compiler) ships its language server as
+  -- `tsc --lsp` and no longer includes the tsserver.js that ts_ls
+  -- wraps. lspconfig's tsc config attaches only when the project's
+  -- node_modules/.bin/tsc is version 7 or newer, so ts_ls keeps
+  -- serving older projects and this serves the new ones.
+  tsc = {
+    on_attach = function(client, _)
+      client.server_capabilities.documentFormattingProvider = false
+    end,
+  },
+
   rust_analyzer = {},
 }

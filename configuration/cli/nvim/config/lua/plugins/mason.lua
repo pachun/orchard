@@ -20,8 +20,16 @@ return {
     require("mason").setup()
     require("mason-lspconfig").setup({ automatic_enable = false })
 
+    -- tsc is TypeScript itself, resolved from each project's
+    -- node_modules by lspconfig; a Mason-global copy would also attach
+    -- in projects still served by ts_ls.
+    local installed_by_each_project = { tsc = true }
+    local mason_language_servers = vim.tbl_filter(function(name)
+      return not installed_by_each_project[name]
+    end, vim.tbl_keys(require("tools.language_servers")))
+
     local tools = {}
-    vim.list_extend(tools, vim.tbl_keys(require("tools.language_servers")))
+    vim.list_extend(tools, mason_language_servers)
     vim.list_extend(tools, vim.tbl_keys(require("tools.formatters")))
     vim.list_extend(tools, vim.tbl_keys(require("tools.linters")))
     require("mason-tool-installer").setup({ ensure_installed = tools })
