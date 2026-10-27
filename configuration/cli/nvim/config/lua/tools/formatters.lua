@@ -9,6 +9,13 @@
 --   stylua   = { "lua" },
 return {
   stylua = { "lua" },
+  biome = {
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact",
+    "json",
+  },
   prettier = {
     "javascript",
     "typescript",
