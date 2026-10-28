@@ -33,7 +33,12 @@ return {
 
     require("conform").setup({
       formatters_by_ft = by_ft,
-      formatters = { biome = { require_cwd = true } },
+      formatters = {
+        biome = {
+          require_cwd = true,
+          args = { "check", "--write", "--stdin-file-path", "$FILENAME" },
+        },
+      },
       format_on_save = { timeout_ms = 1000, lsp_format = "fallback" },
     })
   end,
