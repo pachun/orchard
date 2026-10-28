@@ -74,9 +74,21 @@ return {
   -- wraps. lspconfig's tsc config attaches only when the project's
   -- node_modules/.bin/tsc is version 7 or newer, so ts_ls keeps
   -- serving older projects and this serves the new ones.
+  -- tsc never asks the editor to re-check a file's dependents after
+  -- another file changes, so a type edited in one buffer left stale
+  -- errors in every other open buffer until a manual :LspRestart.
+  -- Saving any buffer now re-pulls diagnostics for all of them.
   tsc = {
     on_attach = function(client, _)
       client.server_capabilities.documentFormattingProvider = false
+      vim.api.nvim_create_autocmd("LspNotify", {
+        group = vim.api.nvim_create_augroup("tsc_refresh_dependents_" .. client.id, { clear = true }),
+        callback = function(event)
+          if event.data.client_id == client.id and event.data.method == "textDocument/didSave" then
+            vim.lsp.diagnostic.on_refresh(nil, nil, { client_id = client.id })
+          end
+        end,
+      })
     end,
   },
 
