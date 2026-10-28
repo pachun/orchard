@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Open the URL under the mouse in the given pane line, if there is one.
+# Usage: tmux-open-url-under-mouse <line text> <column>
+# Exits 1 when no URL spans the column, so tmux can fall back.
+set -euo pipefail
+line="$1"
+column="$2"
+
+url_under_column() {
+  grep -ob -E 'https?://[^[:space:]]+' <<<"$line" | while IFS=: read -r offset url; do
+    url="${url%%[\)\]\>\"\'.,;]}"
+    end=$((offset + ${#url}))
+    if ((column >= offset && column < end)); then
+      printf '%s\n' "$url"
+      return 0
+    fi
+  done
+}
+
+url="$(url_under_column | head -n1)"
+[[ -n "$url" ]] || exit 1
+xdg-open "$url" >/dev/null 2>&1 &
