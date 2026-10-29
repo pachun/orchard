@@ -37,6 +37,8 @@ window#waybar {
 #custom-wifi-status         { color: #b8c0e0; }
 #custom-network             { color: #b8c0e0; }
 #custom-bluetooth           { color: #b8c0e0; }
+#custom-apple-tv            { color: #b8c0e0; }
+#custom-two-factor          { color: #b8c0e0; }
 #custom-audio               { color: #b8c0e0; }
 #custom-updates             { color: #b8c0e0; }
 #custom-ai-usage        { color: #b8c0e0; }

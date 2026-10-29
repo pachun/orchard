@@ -48,6 +48,8 @@ window#waybar {
 #custom-wifi-status         { color: #333333; }
 #custom-network             { color: #333333; }
 #custom-bluetooth           { color: #333333; }
+#custom-apple-tv            { color: #333333; }
+#custom-two-factor          { color: #333333; }
 #custom-audio               { color: #333333; }
 #custom-updates             { color: #333333; }
 #custom-ai-usage        { color: #333333; }
