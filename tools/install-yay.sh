@@ -35,6 +35,13 @@ touch "$makepkg_conf"
 sed -i '/^MAKEFLAGS=/d' "$makepkg_conf"
 printf 'MAKEFLAGS="-j$(nproc)"\n' >> "$makepkg_conf"
 
+# Skip the -debug split package. /etc/makepkg.conf enables `debug`, which
+# makes every AUR build run gdb-add-index over each binary; for prebuilt
+# -bin packages that is a screenful of "No debugging symbols" errors per
+# build and a useless -debug package to install.
+sed -i '/^OPTIONS+=(!debug)/d' "$makepkg_conf"
+printf 'OPTIONS+=(!debug)\n' >> "$makepkg_conf"
+
 if command -v yay >/dev/null 2>&1; then
   exit 0
 fi
