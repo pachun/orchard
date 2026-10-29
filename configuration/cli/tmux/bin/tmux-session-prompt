@@ -24,7 +24,8 @@ done | sed 's/ *$//')
 label="session"
 [ -n "$sessions" ] && label="session [$sessions]"
 
-# -T target enables tab-completion against existing session/window/
-# pane names — close enough to "tab-complete sessions" in practice.
-tmux command-prompt -T target -p "${label}:" \
+# tmux 3.8 dropped the `target` prompt type (only `command` and
+# `search` remain), so there is no session-name tab-completion; the
+# inline session list above is the picker.
+tmux command-prompt -p "${label}:" \
     "run-shell '$HOME/.local/bin/tmux-session-switch \"%%\"'"
