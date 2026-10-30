@@ -55,7 +55,12 @@ return {
   -- ts_ls only attaches when the project's TypeScript still ships
   -- tsserver.js (versions before 7); otherwise its initialize request
   -- fails with an error popup and tsc below serves the project.
+  -- Auto-imports use the project's path aliases (tsconfig paths or
+  -- package.json imports) instead of ../../ relative specifiers.
   ts_ls = {
+    init_options = {
+      preferences = { importModuleSpecifierPreference = "non-relative" },
+    },
     on_attach = function(client, _)
       client.server_capabilities.documentFormattingProvider = false
     end,
@@ -78,7 +83,13 @@ return {
   -- another file changes, so a type edited in one buffer left stale
   -- errors in every other open buffer until a manual :LspRestart.
   -- Saving any buffer now re-pulls diagnostics for all of them.
+  -- Auto-imports use the project's path aliases, as for ts_ls above;
+  -- the native server reads the editor-style settings sections.
   tsc = {
+    settings = {
+      typescript = { preferences = { importModuleSpecifier = "non-relative" } },
+      javascript = { preferences = { importModuleSpecifier = "non-relative" } },
+    },
     on_attach = function(client, _)
       client.server_capabilities.documentFormattingProvider = false
       vim.api.nvim_create_autocmd("LspNotify", {
