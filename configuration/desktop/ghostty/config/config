@@ -22,6 +22,7 @@ keybind = ctrl+-=unbind
 # Don't pop a "Potentially Unsafe Paste" warning for content with newlines
 # or escape sequences. Paste normally and trust the source.
 clipboard-paste-protection = false
+middle-click-action = ignore
 
 # MonoLisaCode ships named instances (Light, Regular, Medium, SemiBold,
 # Bold, ExtraBold, ...) across two variable files — Upright and Italic.
