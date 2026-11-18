@@ -9,7 +9,9 @@
 // orchard-menu writes each request to a file and names it over Quickshell's
 // IPC; the answer goes back the same way, to the path the request names, so
 // nothing a person types is ever a process's argument. Rows are text as the
-// menus already build them: a Phosphor glyph, two spaces, the label.
+// menus already build them: a Phosphor glyph, two spaces, the label — and,
+// after a tab, what the row is currently set to, which the system menu uses
+// to show each setting's state.
 //
 // The same frame, keys and search as the launcher. Colors come from
 // colors.json, written from the active theme by render-menu-theme and
@@ -42,6 +44,7 @@ ShellRoot {
   readonly property int padding: 8
   readonly property int cornerRadius: 10
   readonly property int borderWidth: 2
+  readonly property real widestDetailShareOfRow: 0.55
 
   FileView {
     path: Quickshell.shellDir + "/colors.json"
@@ -78,7 +81,10 @@ ShellRoot {
   // from the private-use range the icon fonts live in, then two spaces.
   function splitRow(text) {
     var match = /^([-])  (.*)$/.exec(String(text))
-    return match ? { icon: match[1], label: match[2] } : { icon: "", label: String(text) }
+    var named = match ? { icon: match[1], label: match[2] } : { icon: "", label: String(text) }
+    var detailStartsAt = named.label.indexOf("\t")
+    if (detailStartsAt < 0) return { icon: named.icon, label: named.label, detail: "" }
+    return { icon: named.icon, label: named.label.slice(0, detailStartsAt), detail: named.label.slice(detailStartsAt + 1) }
   }
 
   function openRequest(path) {
@@ -100,7 +106,7 @@ ShellRoot {
     request = loaded
     rows = (Array.isArray(loaded.rows) ? loaded.rows : []).map(function(row) {
       var parts = splitRow(row)
-      return { text: String(row), icon: parts.icon, label: parts.label }
+      return { text: String(row), icon: parts.icon, label: parts.label, detail: parts.detail }
     })
     targetScreen = focusedScreen()
     searchField.text = ""
@@ -400,7 +406,7 @@ ShellRoot {
           Text {
             anchors {
               left: row.modelData.icon !== "" ? glyph.right : parent.left
-              right: parent.right
+              right: detail.left
               leftMargin: 14
               rightMargin: 14
               verticalCenter: parent.verticalCenter
@@ -411,6 +417,21 @@ ShellRoot {
             font.family: "SF Pro"
             font.pixelSize: 15
             font.weight: row.selected ? Font.DemiBold : Font.Normal
+          }
+
+          Text {
+            id: detail
+            anchors {
+              right: parent.right
+              rightMargin: row.modelData.detail !== "" ? 14 : 0
+              verticalCenter: parent.verticalCenter
+            }
+            width: Math.min(implicitWidth, row.width * root.widestDetailShareOfRow)
+            text: row.modelData.detail
+            color: theme.dim
+            elide: Text.ElideRight
+            font.family: "SF Pro"
+            font.pixelSize: 15
           }
         }
       }

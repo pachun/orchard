@@ -1,50 +1,106 @@
 #!/bin/sh
-# The system menu in the bar's picker (orchard-menu), opened with Cmd+comma.
+# The system menu in the bar's picker (orchard-menu), opened with Cmd+comma:
+# every setting with what it is currently set to, then update, lock, reboot
+# and shut down. Choosing a setting opens that setting's own menu.
 #
-# Five actions: pick an orchard-theme, full system update, lock, reboot, shut
-# down. Update opens a dedicated ghostty window — see ./system-update. Theme
-# exec's theme-menu, a nested picker.
+# A setting's row appears only on a machine that has its menu, and its state
+# comes from the <thing>-summary script the owning feature ships beside the
+# menu. The summaries run side by side: one after another, the slowest
+# (NordVPN, an AirPlay lookup) would be felt between the keypress and the
+# menu.
 #
 # Lock is here as well as on Cmd+Ctrl+Q because the menu is where you look when
 # you don't remember the key.
 #
 # Phosphor icons:
-#   palette           U+E6C8   — switch theme
+#   speaker-high      U+E44A   — sound
+#   wifi-high         U+E4EA   — Wi-Fi
+#   bluetooth         U+E0DA   — Bluetooth
+#   shield-check      U+E40C   — VPN
+#   palette           U+E6C8   — theme
+#   stack             U+E466   — update channel
 #   download-simple   U+E20C   — pulling system updates
 #   lock-simple       U+E308   — lock the screen
 #   arrow-clockwise   U+E036   — single rotation, "restart"
 #   power             U+E3DA   — shut down
-#
 set -eu
 
 # Toggle protocol shared with wifi-menu / nordvpn-menu.
 . "$HOME/.local/bin/_menu-toggle"
 
-ICON_UPDATE=''
-ICON_REBOOT=''
-ICON_SHUTDOWN=''
+PATH="$HOME/.local/bin:$PATH"
 
-ICON_THEME=$(printf '\356\233\210')   # U+E6C8 palette
-ICON_LOCK=$(printf '\356\214\210')    # U+E308 lock-simple
+ICON_SOUND=$(printf '\356\221\212')
+ICON_WIFI=$(printf '\356\223\252')
+ICON_BLUETOOTH=$(printf '\356\203\232')
+ICON_VPN=$(printf '\356\220\214')
+ICON_THEME=$(printf '\356\233\210')
+ICON_UPDATE_CHANNEL=$(printf '\356\221\246')
+ICON_UPDATE=$(printf '\356\210\214')
+ICON_LOCK=$(printf '\356\214\210')
+ICON_REBOOT=$(printf '\356\200\266')
+ICON_SHUTDOWN=$(printf '\356\217\232')
 
-THEME_LABEL="$ICON_THEME  Theme"
-UPDATE_LABEL="$ICON_UPDATE  Update"
-LOCK_LABEL="$ICON_LOCK  Lock"
-REBOOT_LABEL="$ICON_REBOOT  Reboot"
-SHUTDOWN_LABEL="$ICON_SHUTDOWN  Shut down"
+# Lock is guarded: a second lock request while one is up would stack a second
+# hyprlock on the first, each wanting its own password.
+entry() {
+    icon=$1; label=$2; action=$3; summary=${4:-}
+    printf '%s\t%s\t%s\t%s\n' "$icon" "$label" "$action" "$summary"
+}
 
-choice=$(printf '%s\n%s\n%s\n%s\n%s\n' \
-            "$THEME_LABEL" "$UPDATE_LABEL" "$LOCK_LABEL" \
-            "$REBOOT_LABEL" "$SHUTDOWN_LABEL" \
-         | "$HOME/.local/bin/orchard-menu" --prompt '')
+entries=$(
+    entry "$ICON_SOUND"          'Sound'          'audio-menu'                 'sound-summary'
+    entry "$ICON_WIFI"           'Wi-Fi'          'wifi-menu'                  'wifi-summary'
+    entry "$ICON_BLUETOOTH"      'Bluetooth'      'bluetooth-menu'             'bluetooth-summary'
+    entry "$ICON_VPN"            'VPN'            'nordvpn-menu'               'nordvpn-summary'
+    entry "$ICON_THEME"          'Theme'          'theme-menu'                 'theme-summary'
+    entry "$ICON_UPDATE_CHANNEL" 'Update channel' 'update-channel-menu'        'update-channel-summary'
+    entry "$ICON_UPDATE"         'Update now'     'system-update'
+    entry "$ICON_LOCK"           'Lock'           'pidof hyprlock || hyprlock'
+    entry "$ICON_REBOOT"         'Reboot'         'systemctl reboot'
+    entry "$ICON_SHUTDOWN"       'Shut down'      'systemctl poweroff'
+)
 
-case "$choice" in
-    "$THEME_LABEL")     exec "$HOME/.local/bin/theme-menu" ;;
-    "$UPDATE_LABEL")    exec "$HOME/.local/bin/system-update" ;;
-    # Guarded: a second lock request while one is up would stack a second
-    # hyprlock on the first, each wanting its own password.
-    "$LOCK_LABEL")      exec sh -c 'pidof hyprlock || hyprlock' ;;
-    "$REBOOT_LABEL")    exec systemctl reboot ;;
-    "$SHUTDOWN_LABEL")  exec systemctl poweroff ;;
-    *)                  exit 0 ;;  # user pressed Esc
-esac
+TAB=$(printf '\t')
+
+is_installed() {
+    command -v "${1%% *}" >/dev/null 2>&1
+}
+
+available_entries=$(
+    printf '%s\n' "$entries" | while IFS=$TAB read -r icon label action summary; do
+        is_installed "$action" && entry "$icon" "$label" "$action" "$summary"
+    done
+)
+
+summaries=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/system-menu.XXXXXX")
+printf '%s\n' "$available_entries" | {
+    while IFS=$TAB read -r icon label action summary; do
+        [ -n "$summary" ] && is_installed "$summary" || continue
+        "$summary" > "$summaries/$label" 2>/dev/null &
+    done
+    wait
+}
+
+rows=$(
+    printf '%s\n' "$available_entries" | while IFS=$TAB read -r icon label action summary; do
+        state=$(cat "$summaries/$label" 2>/dev/null || true)
+        if [ -n "$state" ]; then
+            printf '%s  %s\t%s\n' "$icon" "$label" "$state"
+        else
+            printf '%s  %s\n' "$icon" "$label"
+        fi
+    done
+)
+rm -rf "$summaries"
+
+choice=$(printf '%s\n' "$rows" | orchard-menu --prompt '') || exit 0
+
+chosen_label=${choice#*  }
+chosen_label=${chosen_label%%"$TAB"*}
+
+chosen_action=$(printf '%s\n' "$available_entries" \
+    | awk -F'\t' -v label="$chosen_label" '$2 == label { print $3; exit }')
+[ -n "$chosen_action" ] || exit 0
+
+exec sh -c "$chosen_action"

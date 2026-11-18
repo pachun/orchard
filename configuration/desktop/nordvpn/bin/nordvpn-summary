@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+status=$(nordvpn status 2>/dev/null || true)
+
+if printf '%s' "$status" | grep -q '^Status: Connected'; then
+    printf '%s' "$status" | awk -F': ' '/^City:/ { city = $2 } /^Country:/ { country = $2 } END { print city ", " country }'
+else
+    echo Off
+fi

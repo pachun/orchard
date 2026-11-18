@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+. "$HOME/.local/bin/_audio-sinks"
+
+label_of() {
+    devices=$1; device=$2
+    printf '%s\n' "$devices" | awk -F'\t' -v device="$device" '$1 == device { print $2; exit }'
+}
+
+output=$(label_of "$(audio_outputs)" "$(audio_current_sink)")
+microphone=$(label_of "$(audio_inputs)" "$(audio_current_source)")
+
+if [ -n "$microphone" ] && [ "$microphone" != "$output" ]; then
+    printf '%s, %s microphone\n' "$output" "$microphone"
+else
+    printf '%s\n' "$output"
+fi

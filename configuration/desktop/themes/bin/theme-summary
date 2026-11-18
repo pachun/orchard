@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec "$HOME/.local/bin/theme-display-name" "$(readlink "$HOME/.config/orchard-themes/active")"

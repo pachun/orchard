@@ -210,7 +210,13 @@ symlink, into the repo.
   `"$HOME/.local/bin/orchard-menu" --prompt '…: '`; it keeps fuzzel's dmenu
   contract (chosen row on stdout, exit 1 on Escape; `--password` or empty
   stdin asks for typed text). A feature with a menu calls
-  `bash "$HERE/../menu/install.sh"` from its install.sh. fuzzel remains only
+  `bash "$HERE/../menu/install.sh"` from its install.sh. A row may carry
+  what it is currently set to after a tab (`<glyph>  <label>\t<state>`),
+  drawn dimmed at the row's right edge. `system-menu` is the settings list:
+  one row per setting, opening that setting's own menu, with its state from
+  the `<thing>-summary` script the owning feature ships in `bin/` (one line
+  on stdout); a new setting is a line in `system-menu`'s entries plus those
+  two scripts. fuzzel remains only
   for the emoji picker and clipboard history.
 - Notifications don't toast; they take the clock's slot in the bar
   (`waybar-clock` + `orchard-notifications`).

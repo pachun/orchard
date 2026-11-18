@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+if nmcli -t -f TYPE,STATE device status 2>/dev/null \
+        | awk -F: '$1 == "ethernet" && $2 == "connected" { wired = 1 } END { exit !wired }'; then
+    echo Wired
+    exit 0
+fi
+
+network=$(nmcli -t -f IN-USE,SSID device wifi list --rescan no 2>/dev/null \
+          | awk -F: '$1 == "*" { sub(/^\*:/, ""); print; exit }')
+printf '%s\n' "${network:-Not connected}"
