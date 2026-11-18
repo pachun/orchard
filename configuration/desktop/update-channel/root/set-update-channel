@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+follow_live_mirrors() {
+  systemctl disable --now advance-update-batch.timer
+  systemctl enable --now reflector.timer
+  systemctl start reflector.service
+}
+
+hold_at_weekly_batches() {
+  systemctl disable --now reflector.timer
+  /usr/local/bin/advance-update-batch
+  systemctl enable --now advance-update-batch.timer
+}
+
+case "${1:-}" in
+  edge)    follow_live_mirrors ;;
+  batched) hold_at_weekly_batches ;;
+  *)
+    echo "usage: set-update-channel edge|batched" >&2
+    exit 64
+    ;;
+esac

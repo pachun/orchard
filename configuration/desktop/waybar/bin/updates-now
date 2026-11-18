@@ -65,7 +65,17 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
         touch "$LOCK"
         trap 'rm -f "$LOCK"' EXIT
         repo=$(checkupdates 2>/dev/null | wc -l)
-        aur=$(timeout 30 yay -Qua 2>/dev/null | wc -l)
+        # On the batched update channel the AUR waits for the week's batch:
+        # it publishes daily, and counting it alone would light the badge on
+        # the days the batch is there to keep quiet.
+        aur_waits_for_the_batch=0
+        if [ -x "$HOME/.local/bin/update-channel" ] \
+           && [ "$("$HOME/.local/bin/update-channel")" = batched ] \
+           && [ "$repo" -eq 0 ]; then
+            aur_waits_for_the_batch=1
+        fi
+        aur=0
+        [ "$aur_waits_for_the_batch" -eq 1 ] || aur=$(timeout 30 yay -Qua 2>/dev/null | wc -l)
         # fwupdmgr get-updates exits 0 only when a device has an update
         # waiting; 2 (or other non-zero) means nothing to flash.
         fw=0

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mirrorlist=/etc/pacman.d/mirrorlist
+archive=https://archive.archlinux.org/repos
+# Today's snapshot is still being filled in while the day's packages land.
+newest_complete_snapshot_age_in_days=1
+oldest_acceptable_snapshot_age_in_days=3
+
+snapshot_is_published() {
+  local snapshot=$1
+  curl -fsI --max-time 20 "$archive/$snapshot/core/os/$(uname -m)/core.db" >/dev/null
+}
+
+newest_published_snapshot() {
+  local age_in_days snapshot
+  for age_in_days in $(seq "$newest_complete_snapshot_age_in_days" "$oldest_acceptable_snapshot_age_in_days"); do
+    snapshot=$(date -u -d "$age_in_days days ago" +%Y/%m/%d)
+    if snapshot_is_published "$snapshot"; then
+      echo "$snapshot"
+      return
+    fi
+  done
+  echo "no Arch Linux Archive snapshot from the last $oldest_acceptable_snapshot_age_in_days days is reachable" >&2
+  return 1
+}
+
+snapshot=$(newest_published_snapshot)
+printf 'Server = %s/%s/$repo/os/$arch\n' "$archive" "$snapshot" > "$mirrorlist"

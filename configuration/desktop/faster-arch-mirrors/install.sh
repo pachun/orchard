@@ -24,5 +24,11 @@ sudo tee /etc/xdg/reflector/reflector.conf >/dev/null <<'EOF'
 --sort rate
 EOF
 
+# On the batched update channel the mirror list is held at a dated snapshot;
+# ranking live mirrors into it here would end the batch early.
+if [ -x "$HOME/.local/bin/update-channel" ] && [ "$("$HOME/.local/bin/update-channel")" = batched ]; then
+  exit 0
+fi
+
 sudo reflector @/etc/xdg/reflector/reflector.conf
 sudo systemctl enable --now reflector.timer

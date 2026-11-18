@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "update-channel-menu",
+  "aliases": [
+    "edge",
+    "batched",
+    "stable",
+    "updates"
+  ]
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Release a week of updates each Monday
+
+[Timer]
+OnCalendar=Mon *-*-* 00:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

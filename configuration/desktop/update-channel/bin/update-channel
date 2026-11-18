@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+if grep -q 'archive\.archlinux\.org' /etc/pacman.d/mirrorlist 2>/dev/null; then
+    echo batched
+else
+    echo edge
+fi

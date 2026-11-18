@@ -1,0 +1,10 @@
+[Unit]
+Description=Move pacman to this week's Arch Linux Archive snapshot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/advance-update-batch
+Restart=on-failure
+RestartSec=15min

@@ -1,0 +1,43 @@
+#!/bin/sh
+# Choose how updates arrive: Edge (as Arch ships them) or Batched (a week at
+# a time). Opened from the system menu's Updates row. The switch itself runs
+# as root through pkexec, so the password prompt is the polkit agent's.
+#
+# Phosphor icons:
+#   lightning  U+E2DE  — edge
+#   stack      U+E466  — batched
+set -eu
+
+. "$HOME/.local/bin/_menu-toggle"
+
+ICON_EDGE=$(printf '\356\213\236')
+ICON_BATCHED=$(printf '\356\221\246')
+ACTIVE_DOT='●'
+
+EDGE_ROW="$ICON_EDGE  Edge: every update as Arch ships it"
+BATCHED_ROW="$ICON_BATCHED  Batched: a week of updates each Monday"
+
+current=$("$HOME/.local/bin/update-channel")
+case "$current" in
+    edge)    EDGE_ROW="$EDGE_ROW  $ACTIVE_DOT" ;;
+    batched) BATCHED_ROW="$BATCHED_ROW  $ACTIVE_DOT" ;;
+esac
+
+choice=$(printf '%s\n%s\n' "$EDGE_ROW" "$BATCHED_ROW" \
+         | "$HOME/.local/bin/orchard-menu" --prompt 'updates: ') || exit 0
+
+case "$choice" in
+    "$EDGE_ROW")    chosen=edge ;;
+    "$BATCHED_ROW") chosen=batched ;;
+    *)              exit 0 ;;
+esac
+[ "$chosen" = "$current" ] && exit 0
+
+if ! pkexec /usr/local/bin/set-update-channel "$chosen"; then
+    notify-send --urgency=critical 'Updates' "Still on $current: the switch to $chosen did not finish" >/dev/null 2>&1 || true
+    exit 1
+fi
+
+rm -f /tmp/waybar-updates.cache
+[ -x "$HOME/.local/bin/refresh-updates-badge" ] && "$HOME/.local/bin/refresh-updates-badge"
+notify-send 'Updates' "$("$HOME/.local/bin/update-channel-summary")" >/dev/null 2>&1 || true
