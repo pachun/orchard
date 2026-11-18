@@ -1,11 +1,13 @@
 #!/bin/sh
-# Pick where sound comes out. Lists every usable output — the laptop itself,
-# headphones, HDMI, bluetooth, and any AirPlay speaker the airplay feature has
-# discovered — and switches to the chosen one. Bound to Cmd+Shift+A, and to a
+# Pick where sound comes out and which microphone it comes in from. Lists
+# every usable output — the laptop itself, headphones, HDMI, bluetooth, and
+# any AirPlay speaker the airplay feature has discovered — then every usable
+# microphone, and switches to the chosen one. Bound to Cmd+Shift+A, and to a
 # click on waybar's speaker icon.
 #
-# Switching is audio_switch_to in _audio-sinks (shared with the Bluetooth
-# watcher): set the default sink and move every stream already playing.
+# Switching is audio_switch_to and audio_switch_input_to in _audio-sinks
+# (the first shared with the Bluetooth watcher): set the default device and
+# move every stream already using the old one.
 #
 # Why an OS-level picker exists at all: the Spotify web player's own device
 # list only enumerates Spotify Connect and Google Cast devices — it cannot see
@@ -14,7 +16,9 @@
 # audio to a HomePod from this menu and Spotify is none the wiser.
 #
 # Row format mirrors wifi-menu / nordvpn-menu: leading icon, name, and a
-# trailing ● on the current output. The sink list and icons are shared with
+# trailing ● on the current output and the current microphone. Microphones
+# all wear the microphone icon, which is what tells a headset's microphone
+# from the same headset's speakers. The device lists and icons are shared with
 # waybar's module — see _audio-sinks, which also explains why the listing is
 # built the way it is (a hotkey-bound picker cannot afford to be slow).
 set -eu
@@ -24,29 +28,46 @@ set -eu
 
 ACTIVE_DOT='●'
 
-current=$(audio_current_sink)
+current_output=$(audio_current_sink)
+current_input=$(audio_current_source)
 # The pipe sink itself never belongs in the picker — choosing it would send
 # audio to whatever OwnTone last had enabled, or nowhere. The speakers it
 # feeds are listed individually.
 outputs=$(audio_outputs | awk -F'\t' '$1 != "airplay_sink"')
+inputs=$(audio_inputs)
 
-# Current output first (the 0/1 sort key), then alphabetical.
-rows=$(
-    printf '%s\n' "$outputs" | awk -F'\t' -v current="$current" -v dot="$ACTIVE_DOT" '
+# Current device first (the 0/1 sort key), then alphabetical.
+rows_for() {
+    devices=$1; current=$2
+    printf '%s\n' "$devices" | awk -F'\t' -v current="$current" -v dot="$ACTIVE_DOT" '
         $1 == "" { next }
         $1 == current { printf "0\t%s  %s  %s\n", $3, $2, dot; next }
                       { printf "1\t%s  %s\n",     $3, $2 }
     ' | sort | cut -f2-
-)
+}
 
-choice=$(printf '%s' "$rows" | "$HOME/.local/bin/orchard-menu" --prompt 'output: ') || exit 0
+rows=$(rows_for "$outputs" "$current_output"; rows_for "$inputs" "$current_input")
 
-label=${choice#*  }
-case "$label" in
-    *"  $ACTIVE_DOT") label=${label%"  $ACTIVE_DOT"} ;;
+choice=$(printf '%s' "$rows" | "$HOME/.local/bin/orchard-menu" --prompt 'sound: ') || exit 0
+
+chosen_row=$choice
+case "$chosen_row" in
+    *"  $ACTIVE_DOT") chosen_row=${chosen_row%"  $ACTIVE_DOT"} ;;
 esac
+label=${chosen_row#*  }
 
-sink=$(printf '%s\n' "$outputs" | awk -F'\t' -v l="$label" '$2 == l { print $1; exit }')
+device_shown_as_chosen_row() {
+    devices=$1
+    printf '%s\n' "$devices" | awk -F'\t' -v row="$chosen_row" '$3 "  " $2 == row { print $1; exit }'
+}
+
+input=$(device_shown_as_chosen_row "$inputs")
+if [ -n "$input" ]; then
+    audio_switch_input_to "$input" "$label"
+    exit 0
+fi
+
+sink=$(device_shown_as_chosen_row "$outputs")
 [ -n "$sink" ] || exit 0
 
 # An AirPlay speaker is an OwnTone output, not a PipeWire sink: enable it

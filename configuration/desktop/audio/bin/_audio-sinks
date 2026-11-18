@@ -1,8 +1,8 @@
 #!/bin/sh
 # Sourced by audio-menu (the picker) and waybar-audio (the bar icon). Both
-# need to answer the same questions — which outputs exist, what each one is
-# called, what icon it gets — so the answers live here once rather than
-# drifting apart in two scripts.
+# need to answer the same questions — which outputs and inputs exist, what
+# each one is called, what icon it gets — so the answers live here once rather
+# than drifting apart in two scripts.
 #
 # Speed matters here in a way it doesn't for the other menus: this is bound to
 # a hotkey, and a picker that takes a beat to appear reads as a keypress that
@@ -18,7 +18,7 @@
 #   speaker-high U+E44A   speaker-low  U+E44C   speaker-none  U+E44E
 #   speaker-slash U+E45A  headphones   U+E2A6   monitor       U+E32E
 #   bluetooth    U+E0DA   television   U+E754   airplay       U+E004
-#   laptop       U+E586
+#   laptop       U+E586   microphone   U+E326
 
 ICON_SPEAKER=$(printf '\356\221\212')
 ICON_SPEAKER_LOW=$(printf '\356\221\214')
@@ -30,6 +30,7 @@ ICON_BLUETOOTH=$(printf '\356\203\232')
 ICON_APPLE_TV=$(printf '\356\235\224')
 ICON_HOMEPOD=$(printf '\356\200\204')
 ICON_MAC=$(printf '\356\226\206')
+ICON_MICROPHONE=$(printf '\356\214\246')
 
 OWNTONE_API="http://localhost:3689/api"
 
@@ -163,6 +164,52 @@ audio_outputs() {
             if ($2 ~ /[Mm]ac|[Bb]ook/)     icon = i_mac
             print "owntone:" $1 "\t" $2 "\t" icon
         }'
+}
+
+audio_current_source() {
+    pactl get-default-source 2>/dev/null || true
+}
+
+# "<source>\t<label>\t<icon>" for every microphone worth offering. The same
+# rules as audio_outputs: the short nick over the sound card's description,
+# nothing whose only port has nothing plugged into it, and the built-in
+# microphones named "This Computer". Every sink also lists a monitor source
+# that records what the sink is playing; those are not microphones.
+audio_inputs() {
+    pactl list sources 2>/dev/null | awk -v i_microphone="$ICON_MICROPHONE" '
+        function flush(   label) {
+            if (name == "" || is_monitor || (ports > 0 && usable == 0)) return
+            label = (nick != "" ? nick : description)
+            if (name ~ /^alsa_input\.(pci|platform)/ && profile ~ /Microphone/ && profile !~ /Head/) label = "This Computer"
+            print name "\t" label "\t" i_microphone
+        }
+        /^Source #/            { flush(); name=""; nick=""; description=""; profile=""; is_monitor=0; ports=0; usable=0; in_ports=0 }
+        /^\tName: /            { name = $2 }
+        /^\tDescription: /     { $1=""; sub(/^ /,""); description = $0 }
+        /device\.class = "monitor"/ { is_monitor = 1 }
+        /node\.nick = "/       { nick = $0; sub(/^.*node\.nick = "/,"",nick); sub(/".*$/,"",nick) }
+        /device\.profile\.description = "/ { profile = $0; sub(/^.*device\.profile\.description = "/,"",profile); sub(/".*$/,"",profile) }
+        /^\tPorts:/            { in_ports = 1; next }
+        in_ports && /^\t\t/    { ports++; if ($0 !~ /not available/) usable++; next }
+        in_ports && /^\t[^\t]/ { in_ports = 0 }
+        END                    { flush() }
+    '
+}
+
+# Record from a source: make it the default, and move every stream already
+# recording from a microphone. Streams recording a monitor stay where they
+# are — the music visualizer listens to what is playing, and moving it to a
+# microphone would have it draw the room instead.
+audio_switch_input_to() {
+    _target=$1; _label=$2
+    pactl set-default-source "$_target"
+    _microphones=$(pactl list sources short 2>/dev/null | awk '$2 !~ /\.monitor$/ { print $1 }')
+    pactl list source-outputs short 2>/dev/null | while read -r _id _source _; do
+        if printf '%s\n' "$_microphones" | grep -qx "$_source"; then
+            pactl move-source-output "$_id" "$_target" 2>/dev/null || true
+        fi
+    done
+    notify-send 'Input' "$_label" >/dev/null 2>&1 || true
 }
 
 # The bar shows a speaker, always — not the icon of whatever device is playing.

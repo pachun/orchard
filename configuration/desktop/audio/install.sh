@@ -4,8 +4,8 @@
 # daemon the kernel driver needs to un-mute the Mac speakers); both are
 # Asahi-only packages with no x86 equivalent.
 #
-# Also owns audio-menu, the output picker (Cmd+O). It's what routes sound to
-# an AirPlay speaker: those arrive as ordinary PipeWire sinks via the airplay
+# Also owns audio-menu, the output and microphone picker (Cmd+Shift+A). It's
+# what routes sound to an AirPlay speaker: those arrive as ordinary PipeWire sinks via the airplay
 # feature, and no application picker can see them — the Spotify web player's
 # device list only knows about Spotify Connect and Google Cast — so choosing
 # an output has to happen at the OS.

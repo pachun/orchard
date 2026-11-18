@@ -4,6 +4,8 @@
   "aliases": [
     "audio",
     "output",
+    "input",
+    "microphone",
     "speakers",
     "volume"
   ]
