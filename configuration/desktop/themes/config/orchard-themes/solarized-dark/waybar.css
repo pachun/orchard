@@ -1,0 +1,41 @@
+/* Solarized Dark colors for waybar. Imported by config/waybar/style.css
+ * through ~/.config/orchard-themes/active/waybar.css. Structural rules
+ * (padding, fonts, animations) live in style.css; everything
+ * color-related lives here so set-theme can swap palettes by
+ * repointing the active symlink. */
+
+/* Bar background sampled from the wallpaper's top edge so the bar
+ * blends with the image behind it. Foreground default is the theme's
+ * foreground. */
+window#waybar {
+    background-color: #002B36;
+    color: #839496;
+}
+
+
+/* Workspace active state = soft fill, digit hidden. See
+ * catppuccin-macchiato/waybar.css for the reasoning. */
+#workspaces button        { color: #93a1a1; font-weight: 600; }
+#workspaces button:hover  { background-color: rgba(131, 148, 150, 0.15); } /* foreground@15% */
+#workspaces button.active { background-color: rgba(131, 148, 150, 0.25); color: transparent; }
+
+/* DND tri-state: bright = on, deeper grey = linger, hidden = off */
+#custom-dnd          { color: #839496; }
+#custom-dnd.linger   { color: #586e75; }
+
+/* Right-side ambient modules are dim by default; the ones that go
+ * bright are actively demanding attention. */
+#custom-recording           { color: #dc322f; }
+#custom-music-levels        { color: #268bd2; }
+#custom-weather              { color: #93a1a1; }
+#battery                     { color: #93a1a1; }
+#custom-nordvpn              { color: #93a1a1; }
+#custom-wifi-status          { color: #93a1a1; }
+#custom-network              { color: #93a1a1; }
+#custom-bluetooth            { color: #93a1a1; }
+#custom-apple-tv             { color: #93a1a1; }
+#custom-two-factor           { color: #93a1a1; }
+#custom-audio                { color: #93a1a1; }
+#custom-updates              { color: #93a1a1; }
+#custom-ai-usage        { color: #93a1a1; }
+#custom-clock                { color: #93a1a1; }
