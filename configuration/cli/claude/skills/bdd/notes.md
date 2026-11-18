@@ -944,3 +944,90 @@ undriven branch; a dedicated `onRefusal` handler, shaped like
 `onUnauthorized`, keeps both arms covered. Test for a server refusal that
 needs action: does the user have to carry anything out of the message? If
 so, it is not a flash.
+
+## 2026-10-31 — Skipping delivery does not skip expensive extraction
+
+Two Outlook webhook jobs exhausted 20 attempts each during 40 API memory
+kills. Both belonged to a user with no phone number, whose record last
+changed before the incident. The sender checked phone eligibility only
+after extracting a 2FA code. A synthetic 4 MiB inline image expanded into
+HTML drove the real parser above the production container's memory limit;
+the original messages were not retrieved, so their exact contents remain
+unverified.
+
+Nick explicitly requested a no-extraction call assertion. Extend the
+existing no-phone sender scenario, using a TestSeam for Get2FACode while
+other sender tests continue exercising real extraction. The assertion
+failed on the actual extraction call and drove an early return for users
+without a phone number. This is an explicitly requested performance seam
+exception to the normal rule of exercising business logic through.
+Skipping this work protects users without phone numbers; parsing expanded
+inline images for users with phone numbers remains a separate defect.
+
+## 2026-10-31 — Memory regressions need an observable allocation budget
+
+Finding the correct 2FA code alone cannot drive the inline-image memory fix:
+the old parser eventually returned the correct code while consuming hundreds
+of megabytes. The extraction test now runs real business logic in a monitored
+process with a 64 MiB maximum heap and asserts its returned code. With a
+synthetic 4 MiB inline image, the original implementation terminates with
+:killed; removing base64 image payloads before HTML parsing makes it pass.
+No mocks or production memory-limit behavior are introduced by this test.
+The heap cap specifically catches the parser's list allocations, not total
+RSS or all binary allocations, so a separate local RSS probe complements it.
+
+The same probe dropped from roughly 724 MiB to 144 MiB for a 4 MiB image.
+A 25 MiB image still peaked around 459 MiB because the Outlook serialization
+path constructs several image/body copies before extraction. Do not describe
+this parser fix as a complete bound on notification memory; avoiding attachment
+loading and expansion in webhook processing remains separate work.
+
+## 2026-10-31 — Keep allocation machinery out of the behavior example
+
+Nick found the inline-image regression's title and body unclear: process
+spawning, monitor messages, word conversions, and heap settings buried the
+email and expected code. Keep the example in email terms, name the image
+size and extraction budget at the call sites, and put the mechanics in
+small private helpers. The title states the observable requirement:
+"finds the code without running out of memory on an embedded image."
+A code-only assertion passes the old implementation too; preserve the
+allocation check while making its purpose and failure message explicit.
+
+## 2026-11-02 — Test recovery after partial account setup
+
+A notification-subscription timeout can happen after an account row is
+inserted. Returning a readable error is only half the behavior: retrying
+must finish setup for that saved account instead of treating its existence
+as proof that setup succeeded. Exercise the onboarding command with a saved
+account missing its subscription, assert the subscription and inbox state
+are persisted, and mark already-connected fixtures with a subscription ID.
+Mock transport timeouts at the external API seam, not the business command.
+Keep scheduled Oban work in manual mode so the recovery example tests
+onboarding rather than immediately executing tomorrow's renewal job.
+
+## 2026-11-05 — Preserve job retries when replacing parser crashes
+
+Expo returned a plain-text upstream failure while sending a push. The SDK
+raised while decoding JSON, which caused Oban to retry successfully. Fixing
+the SDK to return an error exposed a second contract: Emma's worker ignored
+return values and always completed. Drive the SDK through its public push
+function with the HTTP boundary mocked, then drive the worker through the
+real send command with only the push API stubbed. Assert the Oban-compatible
+error tuple so removing the exception cannot silently discard delivery.
+
+A separate Outlook incident left an account with no saved Set Aside folder.
+The existing GetThreads tests stub ParseParams, so the folder-recovery test
+lives at that established request-to-folder contract and exercises the real
+EnsureFolder command through Bypass. It asserts both the usable folder URL
+and the persisted mapping, rather than asserting a helper call.
+
+## 2026-11-13 — Startup must be usable while providers are waiting
+
+The native splash stayed visible until every account finished loading. A
+slow Outlook request hid Settings even though the inbox screen had mounted.
+Drive the cold-launch feature with both inbox and Set Aside HTTP responses
+held pending; assert the native splash is hidden and Settings opens before
+releasing either response. Rendering a button alone cannot prove this: the
+native splash overlays the React tree outside the test renderer. Mock only
+the native splash boundary, and release pending responses inside act even
+when the assertion fails so the red stays free of cleanup warnings.
