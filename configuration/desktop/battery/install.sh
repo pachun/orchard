@@ -16,6 +16,8 @@
 # power-saver on battery (which biases the CPU to its efficient EPP), balanced
 # on AC — because PPD ships without that behaviour. The rule file carries the
 # measured reasoning.
+# The DA14260 uses balanced on battery as an experimental EC-fault mitigation;
+# see README.md for the evidence and limitations.
 # The Apple-silicon Mac manages its own power and thermals and skips all
 # of this.
 set -euo pipefail
@@ -44,7 +46,14 @@ fi
 sudo pacman -S --needed --noconfirm "${packages[@]}"
 sudo systemctl enable --now "${services[@]}"
 
-sudo install -Dm644 "$HERE/99-orchard-power-profile.rules" \
+power_rules="$HERE/99-orchard-power-profile.rules"
+battery_profile=power-saver
+if is_dell && grep -qx 'XPS 14 DA14260' /sys/class/dmi/id/product_name; then
+  power_rules="$HERE/dell-xps-14/99-orchard-power-profile.rules"
+  battery_profile=balanced
+fi
+
+sudo install -Dm644 "$power_rules" \
     /etc/udev/rules.d/99-orchard-power-profile.rules
 sudo udevadm control --reload
 sudo udevadm trigger --subsystem-match=power_supply
@@ -60,7 +69,7 @@ on_battery() {
     return 1
 }
 sleep 1
-on_battery && wanted=power-saver || wanted=balanced
+on_battery && wanted="$battery_profile" || wanted=balanced
 got="$(powerprofilesctl get 2>/dev/null || true)"
 [ "$got" = "$wanted" ] \
     || echo "battery: power-profile auto-switch didn't take (got '$got', wanted '$wanted') — udev may be blocked from setting it" >&2

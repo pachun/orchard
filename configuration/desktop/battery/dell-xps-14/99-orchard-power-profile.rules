@@ -1,0 +1,3 @@
+# Experimental mitigation, not a firmware repair: ../README.md
+# https://github.com/omacom/omarchy/issues/5953
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="[01]", RUN+="/usr/bin/systemd-run --no-block --collect --unit=orchard-power-profile /usr/bin/powerprofilesctl set balanced"
