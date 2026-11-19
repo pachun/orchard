@@ -25,9 +25,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The restart at the bottom needs the PipeWire stack present, and audio/
 # sorts after this feature alphabetically, so on a fresh machine it would
-# not be yet. jq is for audio-menu's OwnTone API calls.
+# not be yet. jq is for audio-menu's OwnTone API calls, playerctl for
+# airplay-now-playing.
 bash "$HERE/../audio/install.sh"
-sudo pacman -S --needed --noconfirm avahi jq
+sudo pacman -S --needed --noconfirm avahi jq playerctl
 sudo systemctl enable --now avahi-daemon.service
 
 bash "$TOOLS/install-yay.sh"
@@ -49,11 +50,24 @@ fi
 sudo chown "$USER:owntone" /var/lib/owntone/library/airplay.fifo
 sudo chmod 640 /var/lib/owntone/library/airplay.fifo
 
+# A second pipe beside the first carries what is playing (see
+# airplay-now-playing): OwnTone looks for it under exactly this name.
+if [ ! -p /var/lib/owntone/library/airplay.fifo.metadata ]; then
+    sudo mkfifo /var/lib/owntone/library/airplay.fifo.metadata
+fi
+sudo chown "$USER:owntone" /var/lib/owntone/library/airplay.fifo.metadata
+sudo chmod 640 /var/lib/owntone/library/airplay.fifo.metadata
+
 sudo install -Dm644 "$HERE/owntone.conf" /etc/owntone.conf
 sudo systemctl enable owntone.service
 sudo systemctl restart owntone.service
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
+bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
+bash "$TOOLS/link.sh" "$HERE/systemd" "$HOME/.config/systemd/user"
+systemctl --user daemon-reload
+systemctl --user enable --now airplay-now-playing.service
+systemctl --user try-restart airplay-now-playing.service
 
 # PipeWire reads its module list at startup, so the drop-in above does
 # nothing until it restarts. Restarting the user services is enough — no

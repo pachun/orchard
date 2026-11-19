@@ -1,0 +1,11 @@
+[Unit]
+Description=Tell AirPlay speakers what is playing
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/airplay-now-playing
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

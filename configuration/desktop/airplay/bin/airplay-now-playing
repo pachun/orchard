@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+# Tell the AirPlay speaker what is playing. OwnTone streams a bare pipe of
+# sound, and an Apple TV given sound with no track behind it counts itself
+# idle: screensaver, then sleep, mid-song. OwnTone reads a second pipe
+# beside the audio one for the track, its artwork and how far along it is
+# (shairport-sync's metadata format) and passes them on, so the TV shows
+# the song and knows it is in use.
+#
+# OwnTone only holds the pipe open while sound is flowing to a speaker, and
+# nothing is asked of the players on this machine until it does.
+import base64
+import errno
+import os
+import subprocess
+import time
+from urllib.parse import unquote, urlparse
+
+METADATA_PIPE = "/var/lib/owntone/library/airplay.fifo.metadata"
+
+SECONDS_BETWEEN_LOOKS = 2
+# OwnTone reopens the pipe for each stretch of playback without saying so,
+# so everything is repeated now and then rather than only when it changes.
+SECONDS_BETWEEN_REPEATS = 30
+
+# OwnTone turns progress back into time with its pipe_sample_rate.
+FRAMES_PER_SECOND = 44100
+MICROSECONDS_PER_SECOND = 1_000_000
+# Progress is three frame counts and OwnTone rejects a zero in any of them.
+FRAME_THE_TRACK_STARTS_AT = FRAMES_PER_SECOND
+OWNTONE_LARGEST_PICTURE_BYTES = 1_048_576
+
+PLAYER_FIELDS = ["status", "title", "artist", "album", "mpris:length", "position", "mpris:artUrl"]
+FIELD_SEPARATOR = "\t"
+
+
+def playing_track():
+    listing = subprocess.run(
+        ["playerctl", "--all-players", "metadata", "--format",
+         FIELD_SEPARATOR.join("{{" + field + "}}" for field in PLAYER_FIELDS)],
+        capture_output=True, text=True,
+    ).stdout
+    for line in listing.splitlines():
+        values = line.split(FIELD_SEPARATOR)
+        if len(values) != len(PLAYER_FIELDS):
+            continue
+        player = dict(zip(PLAYER_FIELDS, values))
+        if player["status"] == "Playing":
+            return {
+                "title": player["title"],
+                "artist": player["artist"],
+                "album": player["album"],
+                "length_seconds": whole_number(player["mpris:length"]) / MICROSECONDS_PER_SECOND,
+                "reported_position_seconds": whole_number(player["position"]) / MICROSECONDS_PER_SECOND,
+                "artwork_url": player["mpris:artUrl"],
+            }
+    return None
+
+
+def whole_number(text):
+    return int(text) if text.isdigit() else 0
+
+
+def same_track(one, other):
+    identity = ("title", "artist", "album", "length_seconds")
+    return one is not None and other is not None and all(one[key] == other[key] for key in identity)
+
+
+def artwork_of(track):
+    location = urlparse(track["artwork_url"])
+    if location.scheme != "file":
+        return None
+    try:
+        with open(unquote(location.path), "rb") as picture_file:
+            picture = picture_file.read(OWNTONE_LARGEST_PICTURE_BYTES + 1)
+    except OSError:
+        return None
+    return picture if len(picture) <= OWNTONE_LARGEST_PICTURE_BYTES else None
+
+
+def item(kind, code, payload):
+    return (
+        f"<item><type>{kind.encode().hex()}</type><code>{code.encode().hex()}</code>"
+        f"<length>{len(payload)}</length>\n"
+        f'<data encoding="base64">\n{base64.b64encode(payload).decode()}</data></item>\n'
+    ).encode()
+
+
+def description_of(track):
+    labels = {"minm": track["title"], "asar": track["artist"], "asal": track["album"]}
+    return b"".join(item("core", code, text.encode()) for code, text in labels.items() if text)
+
+
+def progress_through(track, seconds_played):
+    if track["length_seconds"] > 0:
+        seconds_played = min(seconds_played, track["length_seconds"])
+    now_at = FRAME_THE_TRACK_STARTS_AT + int(seconds_played * FRAMES_PER_SECOND)
+    ends_at = FRAME_THE_TRACK_STARTS_AT + int(track["length_seconds"] * FRAMES_PER_SECOND)
+    # A stream with no known length ends where it starts, which OwnTone
+    # reads as "length unknown".
+    return item("ssnc", "prgr", f"{FRAME_THE_TRACK_STARTS_AT}/{now_at}/{ends_at}".encode())
+
+
+def pipe_owntone_is_listening_on():
+    try:
+        pipe = os.open(METADATA_PIPE, os.O_WRONLY | os.O_NONBLOCK)
+    except OSError as failure:
+        if failure.errno in (errno.ENXIO, errno.ENOENT):
+            return None
+        raise
+    # Artwork is larger than a pipe's buffer; a blocking write waits for
+    # OwnTone to drain it instead of failing part-way.
+    os.set_blocking(pipe, True)
+    return pipe
+
+
+def tell_owntone(pipe, track, seconds_played, include_artwork):
+    message = description_of(track) + progress_through(track, seconds_played)
+    if include_artwork:
+        picture = artwork_of(track)
+        if picture:
+            message += item("ssnc", "PICT", picture)
+    try:
+        os.write(pipe, message)
+    except BrokenPipeError:
+        pass
+
+
+def main():
+    told_about = None
+    started_playing_at = 0.0
+    last_told_at = 0.0
+    owntone_was_listening = False
+
+    while True:
+        pipe = pipe_owntone_is_listening_on()
+        if pipe is None:
+            owntone_was_listening = False
+            time.sleep(SECONDS_BETWEEN_LOOKS)
+            continue
+
+        try:
+            track = playing_track()
+            now = time.monotonic()
+            if track is not None:
+                track_changed = not same_track(track, told_about)
+                if track_changed:
+                    # Browsers report a position only when it jumps, so the
+                    # time since the track appeared is the better clock.
+                    started_playing_at = now - track["reported_position_seconds"]
+                repeat_is_due = now - last_told_at >= SECONDS_BETWEEN_REPEATS
+                if track_changed or repeat_is_due or not owntone_was_listening:
+                    tell_owntone(pipe, track, now - started_playing_at, include_artwork=True)
+                    told_about = track
+                    last_told_at = now
+            owntone_was_listening = True
+        finally:
+            os.close(pipe)
+        time.sleep(SECONDS_BETWEEN_LOOKS)
+
+
+if __name__ == "__main__":
+    main()
