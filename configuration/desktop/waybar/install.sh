@@ -28,7 +28,11 @@ bash "$TOOLS/install-yay.sh"
 # waybar-git conflicts with extra's waybar, and a --noconfirm install answers
 # no to pacman's "remove it?", so the swap has to be explicit. The running
 # bar keeps its binary until restart-waybar below replaces it.
-if pacman -Qq waybar >/dev/null 2>&1; then
+stable_waybar_is_installed() {
+    [[ "$(pacman -Qq waybar 2>/dev/null)" == "waybar" ]]
+}
+
+if stable_waybar_is_installed; then
     sudo pacman -R --noconfirm waybar
 fi
 bash "$TOOLS/aur-install.sh" ttf-phosphor-icons waybar-git
