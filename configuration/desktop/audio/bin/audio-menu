@@ -74,30 +74,56 @@ sink=$(device_shown_as_chosen_row "$outputs")
 # there, walk through device verification if the speaker wants it (the PIN
 # appears on its screen), and then route audio into the pipe sink OwnTone
 # reads from.
+ask_owntone_to_play_on() {
+    curl -fsS -m 3 -X PUT "$OWNTONE_API/outputs/set" \
+        --data "{\"outputs\":[\"$1\"]}" >/dev/null 2>&1 || true
+}
+
+# "playing", "wants_pin", or "refused" once OwnTone has finished trying.
+# OwnTone answers the request before it has connected, so the speaker's
+# flags only settle a beat later; a speaker that turns the connection down
+# never flips any of them.
+answer_from_speaker() {
+    polls_remaining=$((slowest_expected_connection_seconds * polls_per_second))
+    while [ "$polls_remaining" -gt 0 ]; do
+        answer=$(owntone_airplay_outputs | awk -F'\t' -v id="$1" '
+            $1 == id && $3 == "true" { print "playing"; exit }
+            $1 == id && $4 == "true" { print "wants_pin"; exit }')
+        if [ -n "$answer" ]; then
+            printf '%s\n' "$answer"
+            return
+        fi
+        sleep 0.25
+        polls_remaining=$((polls_remaining - 1))
+    done
+    printf 'refused\n'
+}
+slowest_expected_connection_seconds=4
+polls_per_second=4
+
 case "$sink" in
     owntone:*)
         id=${sink#owntone:}
-        curl -fsS -m 3 -X PUT "$OWNTONE_API/outputs/set" \
-            --data "{\"outputs\":[\"$id\"]}" >/dev/null 2>&1 || true
+        ask_owntone_to_play_on "$id"
+        answer=$(answer_from_speaker "$id")
 
-        # Verification is demanded lazily: the flags flip only once OwnTone
-        # has actually tried to connect, a beat after the PUT above.
-        sleep 1
-        needs_pin=$(owntone_airplay_outputs | awk -F'\t' -v id="$id" \
-            '$1 == id { print ($3 == "false" && $4 == "true") ? "yes" : "no"; exit }')
-        if [ "$needs_pin" = "yes" ]; then
+        if [ "$answer" = "wants_pin" ]; then
             notify-send 'Output' "$label wants to verify this computer — read the PIN off its screen" >/dev/null 2>&1 || true
             pin=$(printf '' | "$HOME/.local/bin/orchard-menu" --prompt "PIN on $label: ") || exit 0
             [ -n "$pin" ] || exit 0
             curl -fsS -m 5 -X PUT "$OWNTONE_API/outputs/$id" \
                 --data "{\"pin\":\"$pin\"}" >/dev/null 2>&1 || true
-            curl -fsS -m 3 -X PUT "$OWNTONE_API/outputs/set" \
-                --data "{\"outputs\":[\"$id\"]}" >/dev/null 2>&1 || true
-            if ! owntone_airplay_outputs | awk -F'\t' -v id="$id" \
-                '$1 == id && $3 == "true" { found = 1 } END { exit !found }'; then
+            ask_owntone_to_play_on "$id"
+            if [ "$(answer_from_speaker "$id")" != "playing" ]; then
                 notify-send --urgency=critical 'Output' "$label did not accept the PIN — pick it again for a fresh one" >/dev/null 2>&1 || true
                 exit 1
             fi
+        fi
+
+        # Switching to the pipe anyway would send sound to no speaker at all.
+        if [ "$answer" = "refused" ]; then
+            notify-send --urgency=critical 'Output' "$label turned the connection down — sound stays where it was" >/dev/null 2>&1 || true
+            exit 1
         fi
         sink="airplay_sink"
         ;;
