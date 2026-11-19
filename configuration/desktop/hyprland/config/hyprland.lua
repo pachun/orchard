@@ -178,7 +178,7 @@ hl.bind(modifier .. " + SHIFT + N", focusOrLaunch("chromium-incognito", browserA
 -- focuses or hides an existing one — and the window rule below keeps that
 -- window on the current workspace.
 hl.bind(modifier .. " + E", hl.dsp.exec_cmd("nautilus --new-window"))
-hl.bind(modifier .. " + I", focusOrLaunch(messagesApplication, messagesApplication))
+hl.bind(modifier .. " + I", runScript('focus-or-launch --name "Messages" ' .. messagesApplication .. " " .. messagesApplication))
 hl.bind(modifier .. " + SHIFT + D", runScript('focus-or-launch --name "Beekeeper Studio" beekeeper-studio beekeeper-studio'))
 hl.bind(modifier .. " + SHIFT + C", focusOrLaunch(calendarWindowClass, calendarApplication))
 hl.bind(modifier .. " + SHIFT + M", focusOrLaunch(mapsWindowClass, mapsApplication))
@@ -598,9 +598,9 @@ hl.window_rule({ match = { class = "projectMSDL" }, fullscreen = true })
 -- launch-hidden's reactive move can't beat the first frame, so the window
 -- flashes on the current desktop and fades out. Placing it at map time
 -- here keeps it off any real workspace; launch-hidden's move then no-ops.
--- Trade-off this reintroduces (why launch-hidden avoided a static rule): a
--- manual Cmd+I relaunch after a quit opens into the scratchpad, so the
--- first press shows nothing and a second brings it out.
+-- A manual Cmd+I relaunch after a quit opens into the scratchpad too;
+-- focus-or-launch watches for that and brings the window out when it
+-- appears, so one press is enough.
 hl.window_rule({ match = { class = "bluebubbles" }, workspace = "special:bluebubbles silent" })
 
 -- xdg-desktop-portal-gtk hosts file pickers and other system dialogs for

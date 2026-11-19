@@ -4,7 +4,12 @@
 # app you treat as a window you bring forward, hide, and bring back
 # — rather than launching a fresh instance every time.
 #
-#   1. Not running                  → launch ($@ exec'd verbatim)
+#   1. Not running                  → launch ($@ exec'd verbatim). If a
+#                                     window rule opens the app straight
+#                                     into its scratchpad (BlueBubbles,
+#                                     so its login start is never seen),
+#                                     the window is brought out as soon
+#                                     as it appears — you asked to see it
 #   2. Running, currently focused   → minimize: stash to a special
 #                                     workspace named special:<class>
 #                                     (Hyprland's scratchpad — the
@@ -72,7 +77,7 @@ announce_launch_until_window_appears() {
         -h boolean:x-orchard-silent:true "Opening $launch_name…" 2>/dev/null)" || return 0
     polls_remaining=$((slowest_expected_launch_ms / 1000 * polls_per_second))
     while [ "$polls_remaining" -gt 0 ]; do
-        if hyprctl clients -j | jq -e --arg cls "$class" 'any(.[]; .class == $cls)' >/dev/null; then
+        if window_of_this_class_is_open; then
             break
         fi
         sleep 0.1
@@ -83,6 +88,35 @@ announce_launch_until_window_appears() {
         --object-path /org/freedesktop/Notifications \
         --method org.freedesktop.Notifications.CloseNotification \
         "$notice_id" >/dev/null 2>&1 || true
+}
+
+window_of_this_class_is_open() {
+    hyprctl clients -j | jq -e --arg cls "$class" 'any(.[]; .class == $cls)' >/dev/null
+}
+
+window_opened_into_its_scratchpad() {
+    hyprctl clients -j | jq -e --arg cls "$class" --arg ws "$special" \
+        'any(.[]; .class == $cls and .workspace.name == $ws)' >/dev/null
+}
+
+# Runs beside the launch, like the announcement. Restoring is this script's
+# own state 3, so it calls itself; the command is unused on that path.
+bring_out_window_that_opens_stashed() {
+    polls_remaining=$((slowest_expected_launch_ms / 1000 * polls_per_second))
+    while [ "$polls_remaining" -gt 0 ]; do
+        if window_of_this_class_is_open; then
+            if window_opened_into_its_scratchpad; then
+                if [ "$restore_here" = true ]; then
+                    "$0" --here "$class" true
+                else
+                    "$0" "$class" true
+                fi
+            fi
+            return 0
+        fi
+        sleep 0.1
+        polls_remaining=$((polls_remaining - 1))
+    done
 }
 
 clients="$(hyprctl clients -j)"
@@ -127,6 +161,7 @@ if [ -z "$visible_addr" ]; then
     if [ -n "$launch_name" ]; then
         announce_launch_until_window_appears &
     fi
+    bring_out_window_that_opens_stashed >/dev/null 2>&1 &
     exec "$@"
 fi
 

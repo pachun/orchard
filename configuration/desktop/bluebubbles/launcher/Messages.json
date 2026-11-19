@@ -1,6 +1,6 @@
 {
   "icon": "",
-  "command": "focus-or-launch bluebubbles bluebubbles",
+  "command": "focus-or-launch --name Messages bluebubbles bluebubbles",
   "aliases": [
     "imessage",
     "bluebubbles",
