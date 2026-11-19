@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep an Apple TV awake while sound is playing through it
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/keep-playing-apple-tv-awake
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -14,7 +14,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # theme system has to be in place before the daemon starts.
 bash "$HERE/../themes/install.sh"
 
-sudo pacman -S --needed --noconfirm uv
+# jq is for keep-playing-apple-tv-awake, which reads OwnTone's API.
+sudo pacman -S --needed --noconfirm uv jq
 # Pinned: pyatv 0.18.0 boots through asyncio.get_event_loop(), which
 # Python 3.14 removed, so atvremote built against 3.14 crashes at startup
 # and every scan comes back empty. Unpin when a pyatv release runs on 3.14.
@@ -26,6 +27,10 @@ bash "$TOOLS/aur-install.sh" eww
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
+bash "$TOOLS/link.sh" "$HERE/systemd" "$HOME/.config/systemd/user"
+systemctl --user daemon-reload
+systemctl --user enable --now keep-playing-apple-tv-awake.service
+systemctl --user try-restart keep-playing-apple-tv-awake.service
 
 "$HOME/.local/bin/render-apple-tv-remote-theme"
 "$HOME/.local/bin/restart-apple-tv-remote"

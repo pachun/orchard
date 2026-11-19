@@ -1,0 +1,94 @@
+#!/bin/sh
+# Keep an Apple TV awake while this computer is playing sound through it.
+# The TV does not count AirPlay sound from OwnTone as being in use, even
+# when told what track is playing, so it goes to its screensaver and then
+# to sleep in the middle of a song, taking the sound with it. What it does
+# count is someone using its remote, so every few minutes, for as long as
+# OwnTone is streaming to a TV this computer is paired with (see
+# apple-tv-key), it is sent the remote's wake button and a tap on the
+# remote's touch surface. The TV's own sleep timer is untouched and takes
+# over once the sound stops.
+#
+# Each nudge is written to the journal with the TV's power state, so a TV
+# that sleeps anyway shows whether the nudges were arriving.
+set -eu
+
+owntone_api="http://localhost:3689/api"
+paired_apple_tvs="$HOME/.config/orchard/apple-tvs"
+addresses_seen="$HOME/.local/state/orchard/apple-tv-hardware.json"
+
+seconds_between_looks=60
+# The shortest sleep timer tvOS offers is 15 minutes; this leaves room for
+# a nudge that fails to arrive to be followed by one that does.
+seconds_between_nudges=300
+touch_surface_center="500,500"
+touch_down=1
+touch_up=4
+
+owntone_is_streaming() {
+    [ "$(curl -fsS -m 2 "$owntone_api/player" 2>/dev/null | jq -r '.state' 2>/dev/null)" = "play" ]
+}
+
+speakers_being_played_to() {
+    curl -fsS -m 2 "$owntone_api/outputs" 2>/dev/null \
+        | jq -r '.outputs[] | select(.selected) | .name' 2>/dev/null || true
+}
+
+paired_apple_tv_named() {
+    [ -f "$paired_apple_tvs" ] || return 0
+    awk -v name="$1" '{ id = $1; $1 = ""; sub(/^ /, "") } $0 == name { print id; exit }' "$paired_apple_tvs"
+}
+
+address_of() {
+    jq -r --arg id "$1" '.[$id].ip // empty' "$addresses_seen" 2>/dev/null || true
+}
+
+remote_for() {
+    _id=$1; shift
+    _address=$(address_of "$_id")
+    if [ -n "$_address" ]; then
+        timeout 20 "$HOME/.local/bin/atvremote" -s "$_address" --id "$_id" "$@" 2>/dev/null
+    else
+        timeout 20 "$HOME/.local/bin/atvremote" --id "$_id" "$@" 2>/dev/null
+    fi
+}
+
+nudge() {
+    _power=$(remote_for "$1" power_state | tail -n 1 || true)
+    if remote_for "$1" turn_on \
+            "action=$touch_surface_center,$touch_down" \
+            "action=$touch_surface_center,$touch_up" >/dev/null; then
+        echo "nudged $1, which was ${_power:-not answering}"
+    else
+        echo "could not nudge $1, which was ${_power:-not answering}"
+    fi
+}
+
+apple_tvs_being_played_to() {
+    owntone_is_streaming || return 0
+    speakers_being_played_to | while IFS= read -r _speaker; do
+        paired_apple_tv_named "$_speaker"
+    done
+}
+
+seconds_since_nudge=$seconds_between_nudges
+was_playing_to=""
+while :; do
+    apple_tvs=$(apple_tvs_being_played_to)
+    if [ "$apple_tvs" != "$was_playing_to" ]; then
+        echo "now playing to: ${apple_tvs:-no paired Apple TV}"
+        was_playing_to=$apple_tvs
+    fi
+    if [ -z "$apple_tvs" ]; then
+        # The first nudge comes as soon as sound starts, since the TV may
+        # already be most of the way to sleep.
+        seconds_since_nudge=$seconds_between_nudges
+    elif [ "$seconds_since_nudge" -ge "$seconds_between_nudges" ]; then
+        for apple_tv in $apple_tvs; do
+            nudge "$apple_tv"
+        done
+        seconds_since_nudge=0
+    fi
+    sleep "$seconds_between_looks"
+    seconds_since_nudge=$((seconds_since_nudge + seconds_between_looks))
+done
