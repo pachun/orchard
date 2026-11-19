@@ -10,7 +10,16 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../../cli/rust/install.sh"
-cargo install --locked xremap --features wlroots
+
+install_with_the_dependencies_xremap_pinned() {
+  cargo install --locked xremap --features wlroots
+}
+
+install_with_current_dependencies() {
+  cargo install xremap --features wlroots
+}
+
+install_with_the_dependencies_xremap_pinned || install_with_current_dependencies
 
 # Input permissions: user in `input` group + udev rule that gives
 # the input group RW on /dev/uinput.
