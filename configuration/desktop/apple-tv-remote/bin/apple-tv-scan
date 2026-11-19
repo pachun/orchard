@@ -12,6 +12,9 @@ mkdir -p "$(dirname "$results")"
 
 "$HOME/.local/bin/atvremote" scan --scan-timeout 6 2>/dev/null | python3 -c '
 import json, re, sys
+# pyatv prints "Apple TV 4K" for models it knows and the raw identifier
+# ("AppleTV18,1") for ones released after it.
+apple_tv_model = re.compile(r"Apple ?TV")
 found = []
 for block in sys.stdin.read().split("\n\n"):
     name = re.search(r"^ *Name: (.+)$", block, re.M)
@@ -19,7 +22,7 @@ for block in sys.stdin.read().split("\n\n"):
     address = re.search(r"^ *Address: (.+)$", block, re.M)
     mac = re.search(r"^ - ([0-9A-F]{2}(?::[0-9A-F]{2}){5})$", block, re.M)
     companion = re.search(r"Protocol: Companion.*Pairing: Mandatory", block)
-    if name and model and mac and address and companion and "Apple TV" in model.group(1):
+    if name and model and mac and address and companion and apple_tv_model.search(model.group(1)):
         found.append({"id": mac.group(1), "name": name.group(1), "ip": address.group(1)})
 json.dump(found, sys.stdout)
 ' > "$results.new"
