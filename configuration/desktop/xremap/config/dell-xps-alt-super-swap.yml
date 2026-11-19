@@ -17,6 +17,9 @@
 # two-way swap doesn't ping-pong.
 modmap:
   - name: swap left alt ⇄ super (dell xps → mac thumb layout)
+    device:
+      not:
+        - Adv360 Pro Keyboard
     remap:
       Alt_L: Super_L
       Super_L: Alt_L
