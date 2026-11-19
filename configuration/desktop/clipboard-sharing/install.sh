@@ -23,4 +23,6 @@ bash "$HERE/../tailscale/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 
 inside_a_desktop_session() { [ -n "${WAYLAND_DISPLAY:-}" ]; }
-inside_a_desktop_session && "$HERE/bin/restart-shared-clipboard"
+if inside_a_desktop_session; then
+  "$HERE/bin/restart-shared-clipboard"
+fi
