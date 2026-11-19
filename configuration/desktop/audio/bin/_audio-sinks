@@ -45,6 +45,24 @@ owntone_airplay_outputs() {
         | @tsv' 2>/dev/null || true
 }
 
+# OwnTone starts streaming by itself when sound first reaches its pipe, but
+# only on that first arrival. If the start fails (a speaker that has gone
+# to sleep, OwnTone still scanning its library after a restart) it never
+# tries again: the pipe fills, the sink behind it stalls, and a speaker
+# shown as chosen plays silence. Asking outright is what gets it going.
+owntone_start_streaming_the_pipe() {
+    _state=$(curl -fsS -m 1 "$OWNTONE_API/player" 2>/dev/null | jq -r '.state' 2>/dev/null || true)
+    [ "$_state" = "play" ] && return 0
+    _pipe=$(curl -fsS -m 2 -G "$OWNTONE_API/search" \
+        --data-urlencode 'type=tracks' \
+        --data-urlencode 'expression=data_kind is pipe' 2>/dev/null \
+        | jq -r '.tracks.items[0].uri // empty' 2>/dev/null || true)
+    [ -n "$_pipe" ] || return 0
+    curl -fsS -m 3 -X POST \
+        "$OWNTONE_API/queue/items/add?uris=$_pipe&clear=true&playback=start" \
+        >/dev/null 2>&1 || true
+}
+
 # Route sound to a sink: make it the default so anything that starts later
 # goes there, and move every stream already playing, or the switch looks
 # like it did nothing. Leaving AirPlay also deselects OwnTone's outputs: the
@@ -60,6 +78,9 @@ audio_switch_to() {
     pactl list sink-inputs short 2>/dev/null | while read -r _id _; do
         [ -n "$_id" ] && pactl move-sink-input "$_id" "$_target" 2>/dev/null || true
     done
+    if [ "$_target" = "airplay_sink" ]; then
+        owntone_start_streaming_the_pipe
+    fi
     notify-send 'Output' "$_label" >/dev/null 2>&1 || true
 }
 
