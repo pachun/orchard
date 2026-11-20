@@ -54,6 +54,30 @@ vim.opt.tabstop = 2
 -- nowhere nvim can see. Backed by wl-copy/wl-paste on Wayland.
 vim.opt.clipboard:append("unnamedplus")
 
+local function over_ssh()
+  return vim.env.SSH_TTY ~= nil
+end
+
+if over_ssh() then
+  local through_the_terminal = require("vim.ui.clipboard.osc52")
+
+  local function what_was_last_yanked_here()
+    return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+  end
+
+  vim.g.clipboard = {
+    name = "the clipboard of the machine the terminal runs on",
+    copy = {
+      ["+"] = through_the_terminal.copy("+"),
+      ["*"] = through_the_terminal.copy("*"),
+    },
+    paste = {
+      ["+"] = what_was_last_yanked_here,
+      ["*"] = what_was_last_yanked_here,
+    },
+  }
+end
+
 -- Never remember files under ~/icloud. It is an sshfs automount to the
 -- mac mini, so merely stat-ing a path there can block for as long as the
 -- ssh connection takes to come up or time out. Telescope's recent-files
