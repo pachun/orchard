@@ -23,6 +23,9 @@ copy Emma's dependency versions or assume `latest` tags align.
 - [Update download and application](https://docs.expo.dev/eas-update/download-updates/)
 - [First native build](https://docs.expo.dev/build/setup/)
 - [Internal distribution](https://docs.expo.dev/build/internal-distribution/)
+- [App variants](https://docs.expo.dev/build-reference/variants/)
+- [Development builds](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Using a development build](https://docs.expo.dev/develop/development-builds/use-development-builds/)
 
 Prefer Expo's explicit current recommendation if it favors a package
 manager. Otherwise use Bun, Nick's preference among supported options.
@@ -46,8 +49,12 @@ setup commits below whenever creating a new Expo app. That standing
 instruction is limited to the new project's setup; it does not authorize
 committing unrelated work, rewriting history, pushing, publishing an
 update, submitting to the App Store, or deploying other projects. Nick
-also requests the initial iPhone build and necessary Expo/Apple Developer
-setup as part of new-project initialization, as described below.
+also requests initial development and release iPhone builds and necessary
+Expo/Apple Developer setup as part of new-project initialization, as
+described below. For later setup and convention changes, follow the
+shared guidance's end-to-end completion authorization, including scoped
+commits, pushes to existing remotes, Orchard sync, and development build
+delivery when needed.
 A session's explicit instruction
 not to commit takes precedence. Do not ask again for already-authorized
 local setup commits.
@@ -176,9 +183,44 @@ and arrange hook setup for fresh checkouts. Agents still run the full
 gate before commits rather than assuming a hook ran. No tests in watch
 mode, automatic formatter fixes, or hidden skipped checks in this gate.
 
-All configuration/tooling setup is complete before the next commit.
+### 5. Separate development and release apps
 
-### 5. OTA updates — always the final setup commit
+Configure two installable variants before adding OTA behavior:
+
+- **Development:** a clearly labeled app such as `App Dev`, with its own
+  iOS bundle ID (for example, the release ID plus `.dev`). Install the
+  SDK-compatible `expo-dev-client`; use a `development` EAS profile with
+  `developmentClient: true` and internal distribution.
+- **Release:** the normal app name and stable production bundle ID,
+  compiled without development mode. An internal `preview` profile can
+  install this variant during setup; the `production` profile is for
+  store distribution. Those profiles share the release identity, so
+  they replace each other, while the development app remains installed.
+
+Use dynamic Expo configuration with an explicit variant selector such
+as `APP_VARIANT`. Set it consistently for EAS builds and local Metro
+commands. Give Android variants distinct package names when configuring
+Android. Keep custom URL schemes distinct and enable the dev client's
+generated scheme only for the development variant so its QR codes open
+the correct app. Preserve an existing app's release identity.
+
+Provide a `dev` package command that selects the development variant
+and runs `expo start --dev-client`. Expose explicit build commands for
+each profile. Evaluate the resolved Expo configuration for both variants
+and check their names, identifiers, schemes, and profile selections
+before committing. Run the full check command too.
+
+The daily prompting loop is: start Metro on the runner, open the
+development app on the phone, and review edits through Fast Refresh.
+Verify the phone can reach the advertised Metro address over the local
+network or tailnet; use Expo's tunnel option when needed. Share the
+actual connection link or QR code. Metro must remain running and
+reachable; this is not an offline preview. Native module, native config,
+or SDK changes require a new development build.
+
+All configuration/tooling setup is complete before the final OTA commit.
+
+### 6. OTA updates — always the final setup commit
 
 This is the first added product behavior. Drive it with failing
 behavioral tests, one scenario at a time, using the tooling above.
@@ -187,9 +229,15 @@ identity, channels, and runtime compatibility, and provide the project's
 update command. Never copy Emma's identifiers or credentials. Resolve
 missing account/project details through available context, then ask for
 what is still needed; do not invent values or claim OTA is configured
-with placeholders. The initial native phone build is authorized as part
+with placeholders. The initial native phone builds are authorized as part
 of this workflow. Publishing updates and App Store submission remain
 separate actions requiring authorization.
+
+Keep OTA channels and publication environments explicit for release
+profiles. Bundle IDs alone do not isolate update delivery. Select the
+matching app variant when publishing, and never publish an OTA merely
+to preview an edit during prompting. The development command uses
+Metro; release update checks must not interrupt that development session.
 
 The requested behavior is:
 
@@ -234,40 +282,46 @@ finds an earlier tooling problem, fix and commit that before the OTA
 commit rather than adding a setup-only follow-up after it. Never publish
 an update merely to finish this workflow without authorization.
 
-## Finish with an installable iPhone build
+## Finish with both apps installed on the iPhone
 
-New-project setup includes getting the initial native build onto Nick's
+New-project setup includes getting both native variants onto Nick's
 phone, not stopping at a local scaffold or Expo Go. Configure the real
-Expo owner/project and Apple Developer team, unique bundle identifier,
+Expo owner/project and Apple Developer team, both bundle identifiers,
 signing credentials, and device provisioning through EAS. Reuse the
 session's selected accounts; when multiple Apple teams exist, resolve
 ownership before creating identifiers or credentials. Do not copy
 another app's identity or revoke existing signing certificates.
 
-Prepare build configuration before the final OTA commit. Use an internal
-preview build with an update channel for the first standalone install;
-use a development client when the task actually needs one. Register the
-phone through `eas device:create` if it is not already registered, and
-ensure the provisioning profile includes it. Give Nick the actual device
+Prepare both build profiles before the final OTA commit. Build the
+development client and an internal preview of the release variant with
+an explicit update channel. Use store distribution for the release
+variant instead only when separately authorized. Register the phone
+through `eas device:create` if it is not already registered, and ensure
+both provisioning profiles include it. Give Nick the actual device
 registration URL when phone interaction is required. If Apple sign-in
 or two-factor authentication is required, arrange an interactive CLI on
 the machine Nick is driving; keep credentials out of chat and logs.
 
-After checks and the final OTA setup commit, start the iOS build, follow
-it to completion, and provide its actual installation link or QR code.
-Confirm the app opens on the phone and report device verification as
-pending until it is confirmed. Creating the first build and necessary
-Expo/Apple records is part of the standing setup request; App Store
+After checks and the final OTA setup commit, start both iOS builds,
+follow each to completion, and provide clearly labeled installation
+links or QR codes. Confirm both apps coexist: the release app opens
+without Metro, and the development app loads Metro and displays a small
+edit through Fast Refresh without an OTA publication. Remove any
+temporary verification edit afterward and rerun affected checks. Report
+device verification as pending until confirmed. Creating both initial
+builds and necessary Expo/Apple records is part of the standing setup
+request; App Store
 submission, paid plan changes, and subsequent OTA publications are not.
 Do not mark setup finished if authentication, provisioning, the build,
 or installation is still blocked. Preserve progress and name the exact
 remaining step.
 
-### Text the initial installation link
+### Text the initial installation links
 
-Nick requests one text with the installation link after the initial
-internal iPhone build succeeds. On the Framework runner, save the finished
-build record with `eas build:view BUILD_ID --json`, then call
+Nick requests one text per initial internal iPhone build with its
+installation link, labeled with the variant's app name (`App Dev` or
+`App`). On the Framework runner, save each finished build record with
+`eas build:view BUILD_ID --json`, then call
 `notify-build --app APP_NAME /path/to/completed-build.json`. Run this from
 the successful completion step, never from a polling loop. The CLI
 verifies the build is finished and records attempts to prevent duplicate

@@ -15,10 +15,26 @@ code in these projects should read.
 Before scaffolding a new Expo app, read
 [New project setup](references/new-project-setup.md). It defines the
 ordered setup commits, current Expo tooling selection, first-commit
-provenance, checks before every commit, OTA behavior added last, and an
-initial native build installed on Nick's phone.
+provenance, checks before every commit, separate development and release
+apps installed on Nick's phone, and OTA behavior added last.
 Continue applying this skill throughout the project's lifetime. Do not
 rerun scaffolding or impose the setup commit sequence on existing apps.
+Follow the shared guidance's end-to-end completion policy: apply setup
+changes to the active project when relevant, run checks, commit and push
+the scoped work, sync Orchard machines, and deliver any required new
+development build's installation link by text.
+
+## Preview changes while prompting
+
+New projects start with two app variants that coexist on the phone:
+the normal release app and a clearly labeled development client with a
+different bundle identifier. Use the development app with Metro and
+Fast Refresh to preview edits during a prompting session. Routine
+development previews do not require publishing OTA updates. Rebuild
+the development client when its native dependencies or configuration
+change. Keep release OTA publication explicit and separate from the
+development command. Follow the setup reference for build profiles,
+variant selection, installation, and phone connectivity.
 
 ## Emma is the style reference
 

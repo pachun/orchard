@@ -96,6 +96,25 @@ dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
+- **Finish Expo setup changes end to end.** When Nick requests an Expo
+  setup or shared Expo convention change, carry it through the relevant
+  project configuration, checks, scoped commits, and pushes to existing
+  remotes. For Orchard, sync online configured machines after pushing.
+  When the change requires a development build, build it and text the
+  completed installation link using the private notifier configuration.
+  These steps are authorized without a separate follow-up request.
+  Reuse a matching build when possible; a documentation-only change
+  does not require a new binary. This does not authorize unrelated git
+  changes, production OTA releases, or App Store submissions.
+
+- **Slightly prefer Ruby for small tools.** When creating standalone
+  CLI tools, scripts, or automation utilities, favor Ruby when it is a
+  reasonable fit. This is a soft preference: use another language when
+  the existing project, deployment constraints, or a substantially better
+  library or runtime makes it the better choice. Explain meaningful
+  departures briefly. Do not rewrite existing tools solely to change
+  languages unless asked.
+
 - **Synchronize Orchard after a successful push.** When you finish an
   authorized Orchard change and push it successfully, run
   `python tools/sync_orchard.py` from that checkout before calling the
