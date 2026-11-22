@@ -1,6 +1,6 @@
 ---
 name: expo-conventions
-description: React, React Native, and Expo coding conventions — a functional, immutable house style. Function components only, const-only and never mutate, and types that make impossible states impossible. Comments are disallowed except to flag a genuinely non-obvious decision (e.g. a link to a GitHub issue); names carry the meaning instead. Apply whenever writing, refactoring, or reviewing React / React Native / Expo / TypeScript code — components, hooks, state, and type definitions.
+description: Create new Expo apps with checked setup commits, TypeScript, formatting, TDD tooling, Expo Doctor, and OTA updates; apply Emma's functional, immutable house style throughout development. Use before scaffolding any Expo app and whenever writing, refactoring, or reviewing React, React Native, Expo, or TypeScript code.
 ---
 
 # React / React Native / Expo conventions
@@ -9,6 +9,44 @@ Apply these whenever writing, refactoring, or reviewing React / React
 Native / Expo / TypeScript code. This is a living list — it grows as
 more conventions are added; treat it as the source of truth for how
 code in these projects should read.
+
+## New Expo projects
+
+Before scaffolding a new Expo app, read
+[New project setup](references/new-project-setup.md). It defines the
+ordered setup commits, current Expo tooling selection, first-commit
+provenance, checks before every commit, and OTA behavior added last.
+Continue applying this skill throughout the project's lifetime. Do not
+rerun scaffolding or impose the setup commit sequence on existing apps.
+
+## Emma is the style reference
+
+Read the shared personal guidance in `~/.claude/CLAUDE.md` (and
+`~/.claude/CLAUDE.MD` when present), especially naming and commit
+messages. Keep those files and this skill as the sources of truth;
+new projects reference them instead of copying their full contents.
+
+For a style or structure decision these instructions leave open, use
+the mobile Emma project as the reference. Nick deliberately made its
+small design decisions by hand; use an analogous implementation before
+inventing another convention. Look in `~/code/emma` first, then read
+`pachun/emma` on GitHub through an available authenticated connection.
+`emma-desktop` is a different project, not a substitute. Read Emma's
+applicable guidance and the relevant example, not the entire repository.
+
+This includes naming, file organization, component and function shape,
+test organization, and formatting. Match the pattern's intent without
+copying unrelated product behavior, secrets, app identifiers, broad
+test exclusions, or obsolete tool versions. Explicit user instructions
+and the current house conventions take precedence over historical
+Emma code. Current Expo compatibility requirements still apply.
+
+When a materially better alternative to an Emma convention appears,
+explain the specific benefit and tradeoff and get Nick's decision
+before adopting it. Continue independent work while that decision is
+pending. Do not silently substitute a preferred architecture or style.
+If the needed Emma example is inaccessible, say what is missing instead
+of claiming that a guessed pattern matches Emma.
 
 ## Functional & immutable
 

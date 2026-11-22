@@ -27,10 +27,13 @@ in the code being touched.
   for any new Claude API integration.
 
 - **React / React Native / Expo / TypeScript code:** invoke the
-  `expo-conventions` skill. It carries the functional, immutable
-  house style — function components only, `const`-only, no mutation,
-  make-impossible-states-impossible types, and a strict no-comments
-  rule — that governs all RN/Expo/React work.
+  `expo-conventions` skill, including before scaffolding any new Expo
+  app. It carries the functional, immutable house style, Emma as the
+  reference for unresolved style decisions, and the new-project setup
+  workflow with checked commits and OTA behavior added last. Follow it
+  throughout development, not just during setup. Its source of truth is
+  `~/.claude/skills/expo-conventions/SKILL.md`, also discovered by Codex
+  through the shared skill links.
 
 - **Custom-config slash commands the user types literally
   (`/foo`):** if the skill is in the available-skills list, call it
