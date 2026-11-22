@@ -103,6 +103,23 @@ dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
+- **Keep Expo development clients usable during every session.** Load
+  `expo-conventions` when starting work in an Expo project, including an
+  Otto-started session. When native dependencies, plugins, permissions,
+  SDK, or native configuration change, run the full checks and automatically
+  build the development variant as soon as that configuration is ready.
+  Reuse a matching build, keep Metro available, and text the finished
+  install link through the private notifier. Do not wait for the feature's
+  final commit or ask again for this development build. Production and
+  TestFlight releases happen through the checked commit/push workflow once
+  the feature is verified complete or at an explicitly requested checkpoint,
+  not during routine prompting previews. Existing git permissions still
+  apply to the commit and push.
+  For Otto-started sessions, apply `otto-session` to whichever project is
+  being developed. Its dev-build installation text and release-workflow
+  TestFlight notification both use private runner configuration; no phone
+  number belongs in these shared instructions.
+
 - **Finish Expo setup changes end to end.** When Nick requests an Expo
   setup or shared Expo convention change, carry it through the relevant
   project configuration, checks, scoped commits, and pushes to existing

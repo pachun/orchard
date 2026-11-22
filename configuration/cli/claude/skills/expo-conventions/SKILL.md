@@ -30,15 +30,39 @@ development build's installation link by text.
 
 ## Preview changes while prompting
 
+Apply this at the start of every Expo coding session, including sessions
+started by Otto, and whenever native dependencies or configuration change.
+Inspect the current development client's compatibility before relying on
+Fast Refresh. Do not wait for Nick to discover a missing native module.
+
 New projects start with two app variants that coexist on the phone:
 the normal release app and a clearly labeled development client with a
 different bundle identifier. Use the development app with Metro and
 Fast Refresh to preview edits during a prompting session. Routine
 development previews do not require publishing OTA updates. Rebuild
 the development client when its native dependencies or configuration
-change. Keep release OTA publication explicit and separate from the
-development command. Follow the setup reference for build profiles,
-variant selection, installation, and phone connectivity.
+change. Run the full check command, including Expo Doctor and native peer
+dependency checks, then automatically start the required development build
+as soon as the native configuration is ready. This happens during the
+prompting session; it does not wait for the feature's final commit. Reuse
+a completed or running build only when its native configuration, runtime,
+and development app identity match. Keep Metro reachable while it builds
+and text the completed installation link using the private notifier.
+These development builds and notifications are authorized without asking
+again. Never report a queued or failed build as installable.
+
+Production/TestFlight follows a separate cadence: finish and verify the
+feature, or reach a checkpoint Nick explicitly requests, then use the
+authorized commit and push to trigger the checked release workflow. A new
+release version produces and submits a binary; a compatible existing
+version receives an OTA. Do not build or publish production artifacts for
+intermediate prompting edits. Follow the setup reference for build
+profiles, variant selection, installation, and phone connectivity.
+For Otto-started sessions, the target project's finished development
+build sends its installation link by text, and its release workflow sends
+the TestFlight link when the new build is available. Follow
+[Otto session guidance](../otto-session/SKILL.md) for private notification
+configuration and delivery-state reporting.
 
 ## Emma is the style reference
 

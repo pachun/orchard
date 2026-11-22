@@ -220,7 +220,13 @@ Verify the phone can reach the advertised Metro address over the local
 network or tailnet; use Expo's tunnel option when needed. Share the
 actual connection link or QR code. Metro must remain running and
 reachable; this is not an offline preview. Native module, native config,
-or SDK changes require a new development build.
+or SDK changes require a new development build. This is an automatic
+responsibility in every coding session, not just initial setup: run the
+aggregate checks (including Doctor's required native peers), start the
+development build as soon as its native configuration is ready, and text
+its finished installation link. Reuse a matching build already running
+or completed. Do not wait for feature completion to make the dev client
+usable. Keep private notification settings outside shared configuration.
 
 All configuration/tooling setup is complete before the final OTA commit.
 
@@ -259,6 +265,18 @@ Apple team, bundle ID, and App Store Connect app ID; never copy Emma's.
 Repository creation, initial push, and configuration of this release
 workflow are part of Nick's setup request. Routine prompting still uses
 Metro in the development app; do not publish just to preview an edit.
+Production/TestFlight artifacts follow the authorized commit and push
+after feature verification or an explicitly requested checkpoint. An
+automatic development-client rebuild does not itself trigger a production
+release or authorize an unrelated commit.
+Wire release completion notifications into this workflow, so they happen
+even after the prompting session ends. For a TestFlight release, notify
+the privately configured recipient with its TestFlight link when Apple
+processing and any required tester review/access are complete. A finished
+EAS build or successful upload is not yet an installable TestFlight build.
+Use a supported completion event or provider-managed wait; do not add
+application polling. Keep phone numbers and sender credentials outside the
+repository, and deduplicate each build's notifications.
 Report missing CI credentials, signing, or submission setup as unfinished.
 
 - https://docs.expo.dev/build/building-on-ci/
