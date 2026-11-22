@@ -47,8 +47,12 @@ conventions; confirm material style departures with Nick.
 Nick requests the local repository initialization, staging, and ordered
 setup commits below whenever creating a new Expo app. That standing
 instruction is limited to the new project's setup; it does not authorize
-committing unrelated work, rewriting history, pushing, publishing an
-update, submitting to the App Store, or deploying other projects. Nick
+committing unrelated work, rewriting history, or deploying other projects. Nick
+also requests GitHub repository creation and initial pushes, plus an
+Emma-style workflow for authorized release-branch deployments: build and
+submit when the app version changes; otherwise publish a compatible OTA.
+Submission uploads to App Store Connect/TestFlight; it does not authorize
+making an App Store listing public. Nick
 also requests initial development and release iPhone builds and necessary
 Expo/Apple Developer setup as part of new-project initialization, as
 described below. For later setup and convention changes, follow the
@@ -220,6 +224,47 @@ or SDK changes require a new development build.
 
 All configuration/tooling setup is complete before the final OTA commit.
 
+### GitHub remote and deployment workflow
+
+Include this configuration before the final OTA behavior commit. Read
+mobile Emma's current `.github/workflows/main.yml` and build, submission,
+and OTA scripts. Preserve the behavior, not outdated tooling or fragile
+implementation details.
+
+Create a GitHub repository under the selected owner, add its remote, and
+push the checked setup. Reuse existing remotes. Infer visibility from an
+explicit preference or comparable repositories; choose private when
+uncertain. Do not overwrite an existing repository or change visibility.
+
+Pull requests run the aggregate checks. Pushes to the configured release
+branch, normally `main`, check before deploying the exact checked revision.
+A new Expo app version builds a production iOS binary and submits that
+exact build to App Store Connect. An unchanged version with a compatible
+production binary publishes an OTA to the explicit production channel
+and environment. First deployments need a binary.
+
+Evaluate resolved release Expo config, not `package.json` or the dev
+variant. Handle first pushes, multi-commit pushes, and failed deployments:
+an immediate-parent comparison alone does not establish which version
+was successfully built/deployed. Verify the native runtime baseline;
+native dependency/configuration changes require a version bump and build,
+even if someone forgot to update the version.
+
+Pin tooling consistently with local setup. Serialize deployments without
+canceling submissions. Prefer build-specific submission or EAS auto-submit
+over `--latest`, which could select an unrelated concurrent build. Keep
+credentials in supported secret stores. Configure the real Expo project,
+Apple team, bundle ID, and App Store Connect app ID; never copy Emma's.
+
+Repository creation, initial push, and configuration of this release
+workflow are part of Nick's setup request. Routine prompting still uses
+Metro in the development app; do not publish just to preview an edit.
+Report missing CI credentials, signing, or submission setup as unfinished.
+
+- https://docs.expo.dev/build/building-on-ci/
+- https://docs.expo.dev/build/automate-submissions/
+- https://docs.expo.dev/eas-update/github-actions/
+
 ### 6. OTA updates — always the final setup commit
 
 This is the first added product behavior. Drive it with failing
@@ -230,8 +275,9 @@ update command. Never copy Emma's identifiers or credentials. Resolve
 missing account/project details through available context, then ask for
 what is still needed; do not invent values or claim OTA is configured
 with placeholders. The initial native phone builds are authorized as part
-of this workflow. Publishing updates and App Store submission remain
-separate actions requiring authorization.
+of this workflow. Release publication and binary submission run through
+the authorized deployment workflow above; manual publications outside
+that workflow need separate authorization.
 
 Keep OTA channels and publication environments explicit for release
 profiles. Bundle IDs alone do not isolate update delivery. Select the
@@ -310,8 +356,9 @@ edit through Fast Refresh without an OTA publication. Remove any
 temporary verification edit afterward and rerun affected checks. Report
 device verification as pending until confirmed. Creating both initial
 builds and necessary Expo/Apple records is part of the standing setup
-request; App Store
-submission, paid plan changes, and subsequent OTA publications are not.
+request. The release workflow above covers subsequent authorized
+deployments and binary submissions. Paid plan changes and making an
+App Store listing public require separate authorization.
 Do not mark setup finished if authentication, provisioning, the build,
 or installation is still blocked. Preserve progress and name the exact
 remaining step.

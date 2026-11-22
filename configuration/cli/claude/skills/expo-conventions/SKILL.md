@@ -19,6 +19,10 @@ provenance, checks before every commit, separate development and release
 apps installed on Nick's phone, and OTA behavior added last.
 Continue applying this skill throughout the project's lifetime. Do not
 rerun scaffolding or impose the setup commit sequence on existing apps.
+New apps also receive a GitHub remote and a checked deployment workflow
+following mobile Emma: a new release version builds and submits a native
+binary; a compatible existing release version publishes an OTA update.
+Read the setup reference's GitHub deployment section before configuring it.
 Follow the shared guidance's end-to-end completion policy: apply setup
 changes to the active project when relevant, run checks, commit and push
 the scoped work, sync Orchard machines, and deliver any required new

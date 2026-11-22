@@ -35,6 +35,13 @@ in the code being touched.
   `~/.claude/skills/expo-conventions/SKILL.md`, also discovered by Codex
   through the shared skill links.
 
+- **Elixir / Phoenix code and project setup:** invoke
+  `~/.claude/skills/elixir-conventions/SKILL.md`. Use `emma_api` as the
+  reference for manually established backend decisions. The skill covers
+  test-first development, checked setup, GitHub remotes, and CI deployment;
+  Gigalixir is the default, while explicitly local runners use their
+  actual host.
+
 - **Custom-config slash commands the user types literally
   (`/foo`):** if the skill is in the available-skills list, call it
   via the Skill tool. Don't guess slash-command names from memory.
