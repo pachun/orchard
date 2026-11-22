@@ -96,6 +96,24 @@ dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
+- **Synchronize Orchard after a successful push.** When you finish an
+  authorized Orchard change and push it successfully, run
+  `python tools/sync_orchard.py` from that checkout before calling the
+  work complete. Nick's private machine list includes the Framework
+  and XPS; both should receive the pushed change when online on the
+  tailnet. The command uses fast-forward pulls, preserves local work,
+  and verifies the pushed commit. Report offline or blocked machines.
+  Never stash, reset, switch branches, or overwrite work to force a
+  sync. These follow-up pulls are authorized; this does not authorize
+  otherwise-unrequested commits or pushes. Keep personal host lists in
+  `~/.config/orchard-private/orchard-machines.json`, outside the repo.
+
+- **Keep needed project references on the Framework.** When a task needs
+  one of Nick's projects that exists on the Dell but is missing on the
+  Framework, clone it into `~/code` using its actual remote. Nick
+  authorizes these task-related clones. Preserve existing checkouts and
+  uncommitted work; a clone does not include uncommitted Dell changes.
+
 - **Don't try to run `sudo` via Bash — not even with a permission
   request.** This machine blocks sudo entirely; every attempt fails,
   and the permission prompt itself is wasted friction. Hand me the

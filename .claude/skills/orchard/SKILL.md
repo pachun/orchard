@@ -238,3 +238,12 @@ imperative, no period ("Show Claude Code usage in the bar", "Speed up
 system updates that build from source"). Body optional. No AI
 attribution anywhere. Only commit when asked. Report git state only
 after running `git status` in the same turn.
+
+After successfully pushing finished, authorized changes, run
+`python tools/sync_orchard.py`. It reads the private machine list at
+`~/.config/orchard-private/orchard-machines.json` and fast-forwards online
+tailnet checkouts to include the pushed commit. Nick authorizes these
+follow-up pulls on the Framework and XPS. Preserve dirty checkouts and
+diverged branches; report blocks and offline machines. Do not run a full
+system configure merely to pull guidance changes. Apply only the changed
+feature's necessary setup when it is authorized and safe to run.

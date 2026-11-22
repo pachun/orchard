@@ -21,6 +21,8 @@ copy Emma's dependency versions or assume `latest` tags align.
 - [Update setup](https://docs.expo.dev/eas-update/getting-started/)
 - [Update runtime compatibility](https://docs.expo.dev/eas-update/runtime-versions/)
 - [Update download and application](https://docs.expo.dev/eas-update/download-updates/)
+- [First native build](https://docs.expo.dev/build/setup/)
+- [Internal distribution](https://docs.expo.dev/build/internal-distribution/)
 
 Prefer Expo's explicit current recommendation if it favors a package
 manager. Otherwise use Bun, Nick's preference among supported options.
@@ -43,7 +45,10 @@ Nick requests the local repository initialization, staging, and ordered
 setup commits below whenever creating a new Expo app. That standing
 instruction is limited to the new project's setup; it does not authorize
 committing unrelated work, rewriting history, pushing, publishing an
-update, submitting a build, or deploying. A session's explicit instruction
+update, submitting to the App Store, or deploying other projects. Nick
+also requests the initial iPhone build and necessary Expo/Apple Developer
+setup as part of new-project initialization, as described below.
+A session's explicit instruction
 not to commit takes precedence. Do not ask again for already-authorized
 local setup commits.
 
@@ -142,7 +147,10 @@ Exercise the scaffold's rendered behavior to verify the harness; prove
 that a failing assertion fails the command. Do not retain placeholder
 tests or use `passWithNoTests` to manufacture a green gate.
 
-Keep tests behavior-oriented. Write one failing test, run it and read
+Follow the parent skill's outside-in testing section and linked BDD
+discipline. Start with the user's situation, action, and observable
+result through the real app; use Emma's examples. Narrow seam tests
+need a concrete reason, not just convenience. Write one failing test, run it and read
 the failure, make the minimum change to advance it, then refactor under
 green. Use Emma's 100% lines/branches/functions/statements standard for
 application source; include all application source and explicitly
@@ -154,12 +162,16 @@ in CI and before commits. Keep dependency compatibility checks too.
 Do not copy Emma's Doctor exclusions or reinstall/delete dependencies
 as a generic Doctor fix. Resolve reported problems individually.
 
-Create `checks.config.json` for the existing checks runner, covering
-typecheck, lint, format-check, tests with coverage, Expo dependency
-compatibility, and Doctor. Provide one project script for that full
-gate; install/resolve the runner reproducibly for a fresh checkout.
-On Nick's configured machines, use `mise exec -- checks` when appropriate
-to the shared guidance. Wire pre-commit and CI to the same complete gate
+Provide a single `check` package script, such as `bun run check`, that
+runs formatting, lint, typecheck, Expo dependency compatibility, Doctor,
+and finally tests with coverage. Run sequentially and stop at the first
+failure; do not start slow checks or tests while earlier checks are
+still running. Adjust the earlier order using actual timings while
+keeping tests last. A shell `&&` chain of package scripts is sufficient;
+do not add a custom runner just to sequence commands. If using an
+existing `checks.config.json`, verify that its runner supports this
+ordering and fail-fast behavior rather than assuming parallel execution
+meets the requirement. Wire pre-commit and CI to the same complete gate
 and arrange hook setup for fresh checkouts. Agents still run the full
 gate before commits rather than assuming a hook ran. No tests in watch
 mode, automatic formatter fixes, or hidden skipped checks in this gate.
@@ -175,37 +187,43 @@ identity, channels, and runtime compatibility, and provide the project's
 update command. Never copy Emma's identifiers or credentials. Resolve
 missing account/project details through available context, then ask for
 what is still needed; do not invent values or claim OTA is configured
-with placeholders. Publishing and native builds need their own user
-authorization; setup commits alone do not authorize them.
+with placeholders. The initial native phone build is authorized as part
+of this workflow. Publishing updates and App Store submission remain
+separate actions requiring authorization.
 
 The requested behavior is:
 
-- On cold start, check/download and automatically apply an available
-  compatible update without a permission prompt.
-- On returning from the background, do the same automatically.
-- When an update is found while the user remains in the open app,
-  ask before restarting. Acceptance applies it; declining keeps the
-  current session running. The next cold start or foreground is still
-  eligible for automatic application.
+- Check on cold start and return to the foreground. Ask permission
+  before downloading and restarting, regardless of sign-in state.
+- Acceptance downloads and applies the compatible update. Declining
+  leaves the current session running; a later launch or foreground can
+  offer it again. Do not pre-download a declined update that Expo would
+  silently apply on the next cold launch. Configure native automatic
+  checks consistently with this policy.
+- Prompts feel friendly, personal, warm, and encouraging without
+  pressure. Name the app, make the restart clear, and offer an equally
+  clear "Not now" choice. Avoid technical jargon, urgency, invented
+  release benefits, or promises about saved work and restart duration.
 
-Define an explicit mechanism for discovering updates during continuous
-active use, using supported Expo APIs. An EAS publication is not itself
-a push notification. If periodic checks are needed, use a documented
-cadence with a named duration and test the behavior; ask Nick about a
-material interaction tradeoff instead of inventing one silently.
+Never poll for updates. Do not add intervals, recurring checks, or an
+OS-scheduled background polling task. Check on lifecycle events and
+respond to actual native update events. Trace Emma's implementation
+before proposing additional mechanisms. An EAS publication is not
+itself a push notification; do not promise instant discovery during
+uninterrupted foreground use without an actual delivery signal.
 
 Coordinate launch, foreground, download, and prompt handling so an
 in-flight operation cannot cause duplicate prompts or restart loops.
-Use lifecycle events, not arbitrary delays, to decide whether an update
-is part of entry or active use. Handle unavailable networks and update
+Use lifecycle events, not arbitrary delays, to decide when to check.
+Handle unavailable networks and update
 failures without trapping the user at startup; never claim that a newly
 published update is instantly available on an offline device. Use a
-bounded startup wait and fall back to the installed working bundle.
+non-blocking check so the installed working bundle remains usable.
 
 Read Emma's update integration and existing helper packages before
 choosing an implementation; reuse them if they satisfy the requested
 behavior and current SDK. Do not blindly copy its sign-in-based restart
-policy. Test automatic entry updates, active-use accept/decline,
+policy. Test launch/foreground invitations, accept/decline,
 failures, and overlapping lifecycle events at the relevant boundary.
 Verify real delivery/reload behavior in an authorized preview/release
 build; Expo Go and mocked tests cannot prove OTA delivery. Report that
@@ -215,6 +233,55 @@ Run the full gate and commit the OTA implementation last. If verification
 finds an earlier tooling problem, fix and commit that before the OTA
 commit rather than adding a setup-only follow-up after it. Never publish
 an update merely to finish this workflow without authorization.
+
+## Finish with an installable iPhone build
+
+New-project setup includes getting the initial native build onto Nick's
+phone, not stopping at a local scaffold or Expo Go. Configure the real
+Expo owner/project and Apple Developer team, unique bundle identifier,
+signing credentials, and device provisioning through EAS. Reuse the
+session's selected accounts; when multiple Apple teams exist, resolve
+ownership before creating identifiers or credentials. Do not copy
+another app's identity or revoke existing signing certificates.
+
+Prepare build configuration before the final OTA commit. Use an internal
+preview build with an update channel for the first standalone install;
+use a development client when the task actually needs one. Register the
+phone through `eas device:create` if it is not already registered, and
+ensure the provisioning profile includes it. Give Nick the actual device
+registration URL when phone interaction is required. If Apple sign-in
+or two-factor authentication is required, arrange an interactive CLI on
+the machine Nick is driving; keep credentials out of chat and logs.
+
+After checks and the final OTA setup commit, start the iOS build, follow
+it to completion, and provide its actual installation link or QR code.
+Confirm the app opens on the phone and report device verification as
+pending until it is confirmed. Creating the first build and necessary
+Expo/Apple records is part of the standing setup request; App Store
+submission, paid plan changes, and subsequent OTA publications are not.
+Do not mark setup finished if authentication, provisioning, the build,
+or installation is still blocked. Preserve progress and name the exact
+remaining step.
+
+### Text the initial installation link
+
+Nick requests one text with the installation link after the initial
+internal iPhone build succeeds. On the Framework runner, save the finished
+build record with `eas build:view BUILD_ID --json`, then call
+`notify-build --app APP_NAME /path/to/completed-build.json`. Run this from
+the successful completion step, never from a polling loop. The CLI
+verifies the build is finished and records attempts to prevent duplicate
+texts. Report provider acceptance separately from confirmed delivery.
+
+The reusable notifier lives in `~/code/notifications`; Orchard installs
+a command wrapper when configuring its build-notifications feature.
+Personal opt-in, recipient, Messaging Service, and dedicated Twilio key
+are stored only in `~/.config/orchard-private/notifications.json` on the
+runner (directory 0700, file 0600). Never put actual phone numbers or
+credentials in skills, project code, public examples, command arguments,
+or logs. Other users supply their own configuration; missing configuration
+means texting is disabled, with no fallback recipient. Do not read Emma's
+production configuration during normal build notifications.
 
 ## Emma reference and formatter provenance
 
@@ -230,10 +297,10 @@ The baseline was read from mobile Emma on 2026-11-22 at revision
 - `src/layouts/app/hooks/useOverTheAirUpdates.ts` and
   `src/layouts/app/functions/askPermissionToApplyUpdate.ts`: check at
   launch/focus, but ask before restarting when signed in. Nick's
-  explicit entry-versus-active-use policy above supersedes that detail.
+  permission-prompt policy above applies regardless of sign-in state.
 - `src/untested/localDependencies/downloadAndApplyOtaUpdatesInTheBackground/index.ts`:
   background update task; its scheduling is not a guarantee of prompt
-  delivery and is not mandatory setup for every new app.
+  delivery. Do not copy it: Nick explicitly prohibits OTA polling.
 - Emma's first commit, `4a67334fe1b7e7c8cae99ce79c2cd636eca609e1`,
   recorded a Bun `blank-typescript` scaffold. Separate lint, formatting,
   and Jest commits followed. Preserve the useful sequence, not old

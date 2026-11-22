@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+notifier="$HOME/code/notifications/notify_build.py"
+if [[ -x "$notifier" ]]; then
+  exec "$notifier" "$@"
+else
+  printf '%s\n' 'Build notifier is not installed on this machine; no text sent.'
+fi

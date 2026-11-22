@@ -15,7 +15,8 @@ code in these projects should read.
 Before scaffolding a new Expo app, read
 [New project setup](references/new-project-setup.md). It defines the
 ordered setup commits, current Expo tooling selection, first-commit
-provenance, checks before every commit, and OTA behavior added last.
+provenance, checks before every commit, OTA behavior added last, and an
+initial native build installed on Nick's phone.
 Continue applying this skill throughout the project's lifetime. Do not
 rerun scaffolding or impose the setup commit sequence on existing apps.
 
@@ -29,8 +30,11 @@ new projects reference them instead of copying their full contents.
 For a style or structure decision these instructions leave open, use
 the mobile Emma project as the reference. Nick deliberately made its
 small design decisions by hand; use an analogous implementation before
-inventing another convention. Look in `~/code/emma` first, then read
-`pachun/emma` on GitHub through an available authenticated connection.
+inventing another convention. Look in `~/code/emma` first. Clone needed
+reference projects onto the Framework when missing; Nick authorizes
+those clones, including projects already available on the Dell. Use the
+repository's actual remote and preserve existing checkouts. Read
+`pachun/emma` on GitHub through an authenticated connection if needed.
 `emma-desktop` is a different project, not a substitute. Read Emma's
 applicable guidance and the relevant example, not the entire repository.
 
@@ -47,6 +51,35 @@ before adopting it. Continue independent work while that decision is
 pending. Do not silently substitute a preferred architecture or style.
 If the needed Emma example is inaccessible, say what is missing instead
 of claiming that a guessed pattern matches Emma.
+
+## Tests and checks in Expo projects
+
+Read [the BDD discipline](../bdd/SKILL.md) before writing tests or
+production behavior, and consult its relevant worked examples in
+[the testing notes](../bdd/notes.md). Emma is the reference for test
+structure as well as implementation style. Start outside-in: arrange
+the user's situation, perform their action, and assert the outcome
+they can observe. Work hard to keep that perspective even when an
+internal helper test would be easier. Mock external boundaries, not
+the application behavior being proved. When a stable seam genuinely
+needs a narrower test, explain why; do not default to implementation
+call assertions or change product behavior to simplify a test.
+
+Every new Expo project exposes one non-mutating `check` command. Run
+checks sequentially, stopping on the first nonzero exit: formatting,
+lint, typecheck, dependency compatibility, Expo Doctor, then tests with
+coverage last. Adjust the earlier order based on observed speed;
+tests remain last. Use the same command locally, in pre-commit hooks,
+and in CI. Formatting fixes belong in a separate command. Existing
+projects keep their entry point, with this fail-fast behavior whenever
+their check workflow is being configured or changed.
+
+Never add polling for OTA updates. Use lifecycle checks and actual
+update events; inspect Emma's implementation before proposing a new
+delivery mechanism.
+Ask before downloading and restarting, including on launch/foreground.
+Use warm, personal, unpressured wording with clear restart and defer
+choices; see the setup reference for the full policy.
 
 ## Functional & immutable
 
