@@ -75,7 +75,7 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
             aur_waits_for_the_batch=1
         fi
         aur=0
-        [ "$aur_waits_for_the_batch" -eq 1 ] || aur=$(timeout 30 yay -Qua 2>/dev/null | wc -l)
+        [ "$aur_waits_for_the_batch" -eq 1 ] || aur=$(timeout 30 yay -Qua --ignore "$("$HOME/.local/bin/packages-the-aur-must-not-upgrade")" 2>/dev/null | wc -l)
         # fwupdmgr get-updates exits 0 only when a device has an update
         # waiting; 2 (or other non-zero) means nothing to flash.
         fw=0
