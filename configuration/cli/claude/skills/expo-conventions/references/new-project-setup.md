@@ -392,7 +392,7 @@ the successful completion step, never from a polling loop. The CLI
 verifies the build is finished and records attempts to prevent duplicate
 texts. Report provider acceptance separately from confirmed delivery.
 
-The reusable notifier lives in `~/code/notifications`; Orchard installs
+The reusable notifier lives in `~/code/build-notifier`; Orchard installs
 a command wrapper when configuring its build-notifications feature.
 Personal opt-in, recipient, Messaging Service, and dedicated Twilio key
 are stored only in `~/.config/orchard-private/notifications.json` on the

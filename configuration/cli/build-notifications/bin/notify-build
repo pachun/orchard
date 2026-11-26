@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-notifier="$HOME/code/notifications/notify_build.py"
+notifier="$HOME/code/build-notifier/notify_build.py"
 if [[ -x "$notifier" ]]; then
   exec "$notifier" "$@"
 else
