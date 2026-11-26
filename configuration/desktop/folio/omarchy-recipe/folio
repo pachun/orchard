@@ -1,0 +1,8 @@
+# Nautilus and Folio both ship the D-Bus service file that answers other
+# apps' "Show in folder", and pacman refuses to install two packages
+# owning one file. Folio's copy is left out, so Nautilus keeps answering.
+eval "omarchy_$(declare -f package)"
+package() {
+  omarchy_package
+  rm "$pkgdir/usr/share/dbus-1/services/org.freedesktop.FileManager1.service"
+}

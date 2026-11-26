@@ -1,6 +1,6 @@
 #!/bin/sh
-# updates-now: pending pacman + AUR package updates and available device
-# firmware, as one JSON blob for the bar. Empty (effectively hidden) when
+# updates-now: pending pacman + AUR package updates, newer versions of the
+# apps built from Omarchy's recipes, and available device firmware, as one JSON blob for the bar. Empty (effectively hidden) when
 # there's nothing to do, when offline, or while the very first refresh is
 # still running. Package count is exact; firmware is a boolean (present or
 # not). waybar-hidden-during-notifications runs this on a schedule (and on
@@ -11,7 +11,8 @@
 #   - Waybar polls every minute; the script reads /tmp/waybar-updates.cache
 #     and prints it in <10ms.
 #   - If the cache is older than $MAX_AGE, a background refresh kicks
-#     off (checkupdates + yay -Qua + fwupdmgr get-updates, ~1-2s total)
+#     off (checkupdates + yay -Qua + omarchy-apps outdated + fwupdmgr
+#     get-updates, a few seconds total)
 #     and calls refresh-updates-badge when done, so the bar reruns this
 #     and shows the new count at once.
 #   - A flag file at /tmp/waybar-updates.refreshing dedupes concurrent
@@ -65,9 +66,10 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
         touch "$LOCK"
         trap 'rm -f "$LOCK"' EXIT
         repo=$(checkupdates 2>/dev/null | wc -l)
-        # On the batched update channel the AUR waits for the week's batch:
-        # it publishes daily, and counting it alone would light the badge on
-        # the days the batch is there to keep quiet.
+        # On the batched update channel the AUR and the Omarchy-built apps
+        # wait for the week's batch: they publish daily, and counting them
+        # alone would light the badge on the days the batch is there to
+        # keep quiet.
         aur_waits_for_the_batch=0
         if [ -x "$HOME/.local/bin/update-channel" ] \
            && [ "$("$HOME/.local/bin/update-channel")" = batched ] \
@@ -75,12 +77,18 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
             aur_waits_for_the_batch=1
         fi
         aur=0
-        [ "$aur_waits_for_the_batch" -eq 1 ] || aur=$(timeout 30 yay -Qua --ignore "$("$HOME/.local/bin/packages-the-aur-must-not-upgrade")" 2>/dev/null | wc -l)
+        omarchy=0
+        if [ "$aur_waits_for_the_batch" -eq 0 ]; then
+            omarchy_apps="$HOME/.local/bin/omarchy-apps"
+            apps_built_from_omarchy_recipes=$("$omarchy_apps" list 2>/dev/null | paste -sd, -)
+            aur=$(timeout 30 yay -Qua --ignore="$apps_built_from_omarchy_recipes" 2>/dev/null | wc -l)
+            omarchy=$(timeout 30 "$omarchy_apps" outdated 2>/dev/null | wc -l)
+        fi
         # fwupdmgr get-updates exits 0 only when a device has an update
         # waiting; 2 (or other non-zero) means nothing to flash.
         fw=0
         fwupdmgr get-updates >/dev/null 2>&1 && fw=1
-        pkgs=$((repo + aur))
+        pkgs=$((repo + aur + omarchy))
         if [ "$pkgs" -eq 0 ] && [ "$fw" -eq 0 ]; then
             : > "$CACHE"
         elif [ "$pkgs" -eq 0 ]; then
@@ -88,6 +96,7 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
         else
             tooltip="$pkgs pending — $repo from repos"
             [ "$aur" -gt 0 ] && tooltip="$tooltip, $aur from AUR"
+            [ "$omarchy" -gt 0 ] && tooltip="$tooltip, $omarchy from Omarchy"
             [ "$fw" -gt 0 ] && tooltip="$tooltip; firmware update available"
             printf '{"text":"","tooltip":"%s"}\n' \
                 "$tooltip" > "$CACHE"

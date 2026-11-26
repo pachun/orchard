@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Installs and updates the apps Omarchy publishes only in its own package
+# repository (Hype, Omacut, Folio): not in Arch's repos, not in the AUR.
+# Rather than give pacman a second package source, each is built from
+# Omarchy's recipe into a real pacman package.
+#
+#   omarchy-apps list             the apps set up on this machine
+#   omarchy-apps install APP...   build the ones not installed yet
+#   omarchy-apps outdated         APP INSTALLED -> AVAILABLE, one per line
+#   omarchy-apps upgrade          rebuild the outdated ones
+#
+# An app is set up here when a feature has linked a file named after its
+# package into ~/.config/omarchy-recipes. The file's text is added to the
+# end of the recipe before building, which is where a feature fits an app
+# to this desktop (see the folio feature). The updates badge and
+# system-update call `outdated` and `upgrade`, and pass `list` to yay so
+# it never swaps one of these for a same-named AUR package.
+set -euo pipefail
+shopt -s nullglob
+
+OMARCHY_RECIPES=https://raw.githubusercontent.com/omacom/omarchy-pkgs/master/pkgbuilds
+RECIPE_ADDITIONS="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy-recipes"
+
+apps_set_up_here() {
+  local addition
+  for addition in "$RECIPE_ADDITIONS"/*; do
+    if [ -f "$addition" ]; then
+      basename "$addition"
+    fi
+  done
+}
+
+is_set_up_here() {
+  [ -f "$RECIPE_ADDITIONS/$1" ]
+}
+
+is_installed() {
+  pacman -Qq "$1" >/dev/null 2>&1
+}
+
+installed_version() {
+  pacman -Q "$1" | cut -d' ' -f2
+}
+
+fetch_recipe() {
+  local app="$1" recipe_directory="$2"
+  mkdir -p "$recipe_directory"
+  curl -fsSL -o "$recipe_directory/PKGBUILD" "$OMARCHY_RECIPES/$app/PKGBUILD"
+}
+
+recipe_version() {
+  bash -c 'source "$1"; printf "%s%s-%s\n" "${epoch:+$epoch:}" "$pkgver" "$pkgrel"' \
+    _ "$1/PKGBUILD"
+}
+
+files_the_recipe_expects_beside_it() {
+  bash -c 'source "$1"; printf "%s\n" "${install:-}" "${source[@]}"' _ "$1/PKGBUILD" \
+    | grep -v '://' | grep . || true
+}
+
+fetch_files_beside_recipe() {
+  local app="$1" recipe_directory="$2" file
+  for file in $(files_the_recipe_expects_beside_it "$recipe_directory"); do
+    curl -fsSL -o "$recipe_directory/$file" "$OMARCHY_RECIPES/$app/$file"
+  done
+}
+
+add_this_desktops_changes() {
+  local app="$1" recipe_directory="$2"
+  printf '\n' >> "$recipe_directory/PKGBUILD"
+  cat "$RECIPE_ADDITIONS/$app" >> "$recipe_directory/PKGBUILD"
+}
+
+# Recipes list test-only dependencies as large as a browser engine.
+# Skipping checks keeps those off the machine; the app is built the same.
+build_and_install() {
+  local app="$1" recipe_directory="$2"
+  fetch_files_beside_recipe "$app" "$recipe_directory"
+  add_this_desktops_changes "$app" "$recipe_directory"
+  ( cd "$recipe_directory" && makepkg -fsi --nocheck --noconfirm )
+}
+
+is_newer() {
+  [ "$(vercmp "$1" "$2")" -gt 0 ]
+}
+
+refuse_unless_set_up_here() {
+  if ! is_set_up_here "$1"; then
+    echo "omarchy-apps: $1 is not set up here (nothing at $RECIPE_ADDITIONS/$1)" >&2
+    exit 1
+  fi
+}
+
+list() {
+  apps_set_up_here
+}
+
+install() {
+  local app
+  for app in "$@"; do
+    refuse_unless_set_up_here "$app"
+    if ! is_installed "$app"; then
+      fetch_recipe "$app" "$WORK/$app"
+      build_and_install "$app" "$WORK/$app"
+    fi
+  done
+}
+
+# An app whose recipe can't be fetched is left out rather than reported:
+# offline, nothing is known to be outdated.
+outdated() {
+  local app installed available
+  for app in $(apps_set_up_here); do
+    is_installed "$app" || continue
+    fetch_recipe "$app" "$WORK/$app" 2>/dev/null || continue
+    installed="$(installed_version "$app")"
+    available="$(recipe_version "$WORK/$app")"
+    if is_newer "$available" "$installed"; then
+      echo "$app $installed -> $available"
+    fi
+  done
+}
+
+# One app failing to build leaves its installed version in place and does
+# not stop the rest.
+upgrade() {
+  local app failed=0
+  for app in $(outdated | cut -d' ' -f1); do
+    if ! build_and_install "$app" "$WORK/$app"; then
+      echo "omarchy-apps: $app failed to build; the installed version is unchanged" >&2
+      failed=1
+    fi
+  done
+  return "$failed"
+}
+
+usage() {
+  sed -n '7,10s/^# *//p' "$0" >&2
+  exit 2
+}
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+command="${1:-}"
+[ $# -gt 0 ] && shift
+case "$command" in
+  list)     list ;;
+  install)  install "$@" ;;
+  outdated) outdated ;;
+  upgrade)  upgrade ;;
+  *)        usage ;;
+esac
