@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "hype open",
+  "aliases": [
+    "presentation",
+    "slides",
+    "deck",
+    "keynote"
+  ]
+}
