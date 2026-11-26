@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require_relative "../lib/otto_on"
+
+exit OttoOn.run(ARGV)

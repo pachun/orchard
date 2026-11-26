@@ -58,6 +58,21 @@ adopted into tmux. Finish or exit those before resuming their saved history.
 Native background attachment and saved-session resume have different
 semantics; see [Claude sessions](https://code.claude.com/docs/en/sessions).
 
+## Otto's conversations
+
+Otto names each conversation after its first request and keeps it running in
+a tmux window on the server. List them, or open one's live terminal:
+
+```sh
+otto-on framework
+otto-on framework perch-search-focus
+```
+
+Names tab-complete after the device. Opening a conversation gives you your own
+view of Otto's terminals, so switching windows doesn't change what anyone else
+sees; detach with the tmux prefix followed by `d` and the conversation keeps
+running. Type there only while Otto isn't working on a reply.
+
 ## Setup and checks
 
 Orchard's normal configuration links the launchers. To apply only these links:
@@ -75,4 +90,5 @@ Run the launcher checks with Ruby and Minitest:
 
 ```sh
 ruby configuration/cli/remote-agent/tests/launchers_test.rb
+ruby configuration/cli/remote-agent/tests/otto_on_test.rb
 ```
