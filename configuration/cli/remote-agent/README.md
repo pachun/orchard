@@ -76,8 +76,3 @@ Run the launcher checks with Ruby and Minitest:
 ```sh
 ruby configuration/cli/remote-agent/tests/launchers_test.rb
 ```
-
-`codex-framework` remains a compatibility shortcut for
-`codex-on framework resume --all`, forwarding explicit arguments when supplied.
-The older gateway can remain running for clients still using it. These helpers
-do not stop it or disrupt existing connections.

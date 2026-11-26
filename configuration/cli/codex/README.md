@@ -67,5 +67,14 @@ link `.agents/skills` to `.claude/skills` in those repositories to include
 them in Codex's native picker. Claude slash commands and Claude-specific
 tools are not registered by these links.
 
+## Native client on another machine
+
+Use `codex-on DEVICE` to start a conversation on any SSH-reachable tailnet
+machine, or `codex-on DEVICE resume --all` to browse its existing conversations.
+The interface runs locally and connects to the destination's Codex daemon
+through SSH. `claude-on DEVICE` provides the corresponding Claude workflow.
+See [remote agent setup](../remote-agent/README.md) for installation, working
+directories, and reattachment.
+
 Both setup helpers accept an optional destination home directory for isolated
 verification without changing the real user's configuration.
