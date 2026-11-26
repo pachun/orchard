@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Dresses Omarchy's apps (Hype, Omacut, Folio) in orchard's themes.
+#
+# Those apps take their colors from where Omarchy keeps its current theme,
+# ~/.local/state/omarchy/current/theme/colors.toml, and fall back to a
+# fixed Tokyo Night without it. So every orchard theme is rendered into a
+# colors.toml under ~/.config/omarchy/themes/<theme>, and Omarchy's
+# "current theme" is pointed at the active one. The apps watch that path,
+# so a switch repaints their open windows; nothing is restarted.
+#
+# Rendering every theme, not just the active one, is for Hype: its slide
+# theme picker lists whatever it finds under ~/.config/omarchy/themes, and
+# a deck keeps the theme it was given whatever the desktop is wearing.
+#
+# Run by install.sh and again by set-theme on every switch. A switch has
+# to land while the wallpaper is still sweeping in, so the current theme is
+# repointed first, at the copy rendered last time, and only then is
+# everything rendered again to pick up any palette that was edited.
+set -euo pipefail
+shopt -s nullglob
+
+ORCHARD_THEMES="$HOME/.config/orchard-themes"
+OMARCHY_THEMES="$HOME/.config/omarchy/themes"
+OMARCHY_CURRENT="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current"
+
+[ -L "$ORCHARD_THEMES/active" ] || exit 0
+
+color_in() {
+  local palette="$1" name="$2"
+  grep -E "^$name[[:space:]]*=" "$palette" | grep -oE '#[0-9a-fA-F]{6}' | head -n1
+}
+
+terminal_color_in() {
+  color_in "$1" "palette = $2"
+}
+
+# No terminal palette has an orange, and Folio asks for one.
+halfway_between() {
+  local first="${1#\#}" second="${2#\#}" channel_start mixed="#"
+  for channel_start in 0 2 4; do
+    mixed+=$(printf '%02x' $(( (16#${first:channel_start:2} + 16#${second:channel_start:2}) / 2 )))
+  done
+  printf '%s\n' "$mixed"
+}
+
+is_a_light_theme() {
+  grep -qE 'vim\.opt\.background[[:space:]]*=[[:space:]]*"light"' "$1/nvim.lua" 2>/dev/null
+}
+
+# Hype squares its popups unless the theme folder says how far the
+# desktop rounds its windows; Omacut and Folio ask Hyprland themselves.
+window_corner_rounding() {
+  hyprctl -j getoption decoration:rounding 2>/dev/null | grep -oE '"int":[[:space:]]*[0-9]+' | grep -oE '[0-9]+$'
+}
+
+# The colors are gathered into a second file and moved into place whole:
+# an app that is watching would otherwise read the file half-written and
+# flash its fallback colors.
+render_theme() {
+  local orchard_theme="$1" omarchy_theme="$2"
+  local palette="$orchard_theme/palette" slot
+  local red yellow accent
+  red=$(terminal_color_in "$palette" 1)
+  yellow=$(terminal_color_in "$palette" 3)
+  accent=$(terminal_color_in "$palette" 4)
+
+  mkdir -p "$omarchy_theme"
+  {
+    if is_a_light_theme "$orchard_theme"; then
+      echo 'mode = "light"'
+    fi
+    echo "accent = \"$accent\""
+    echo "background = \"$(color_in "$palette" background)\""
+    echo "foreground = \"$(color_in "$palette" foreground)\""
+    echo "dark_foreground = \"$(terminal_color_in "$palette" 8)\""
+    echo "cursor = \"$(color_in "$palette" cursor-color)\""
+    echo "selection = \"$(color_in "$palette" selection-background)\""
+    echo "selection_background = \"$(color_in "$palette" selection-background)\""
+    echo "selection_foreground = \"$(color_in "$palette" selection-foreground)\""
+    echo "red = \"$red\""
+    echo "green = \"$(terminal_color_in "$palette" 2)\""
+    echo "yellow = \"$yellow\""
+    echo "blue = \"$accent\""
+    echo "magenta = \"$(terminal_color_in "$palette" 5)\""
+    echo "cyan = \"$(terminal_color_in "$palette" 6)\""
+    echo "orange = \"$(halfway_between "$red" "$yellow")\""
+    for slot in {0..15}; do
+      echo "color$slot = \"$(terminal_color_in "$palette" "$slot")\""
+    done
+  } > "$omarchy_theme/colors.toml.rendering"
+  mv "$omarchy_theme/colors.toml.rendering" "$omarchy_theme/colors.toml"
+
+  if [ -n "$rounding" ]; then
+    echo "rounding = $rounding" > "$omarchy_theme/hyprland.lua"
+  fi
+}
+
+make_the_active_theme_current() {
+  local active
+  active="$(basename "$(readlink "$ORCHARD_THEMES/active")")"
+  if [ -f "$OMARCHY_THEMES/$active/colors.toml" ]; then
+    mkdir -p "$OMARCHY_CURRENT"
+    ln -sfn "$OMARCHY_THEMES/$active" "$OMARCHY_CURRENT/theme"
+    printf '%s\n' "$active" > "$OMARCHY_CURRENT/theme.name"
+  fi
+}
+
+make_the_active_theme_current
+
+rounding="$(window_corner_rounding || true)"
+for orchard_theme in "$ORCHARD_THEMES"/*/; do
+  orchard_theme="${orchard_theme%/}"
+  name="$(basename "$orchard_theme")"
+  if [ "$name" != active ] && [ -f "$orchard_theme/palette" ]; then
+    render_theme "$orchard_theme" "$OMARCHY_THEMES/$name"
+  fi
+done
+
+make_the_active_theme_current

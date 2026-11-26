@@ -49,6 +49,14 @@ fi
 # half-state.
 ln -sfn "$target" "$themes_dir/active"
 
+# Omarchy's apps (Hype, Omacut, Folio) watch the theme file this repoints,
+# so their open windows repaint on their own. Started here, in the
+# background, so they change with the first windows instead of after
+# everything below has run.
+if [ -x "$HOME/.local/bin/render-omarchy-apps-theme" ]; then
+    "$HOME/.local/bin/render-omarchy-apps-theme" >/dev/null 2>&1 &
+fi
+
 # Kick off the slow nvim updates first, in parallel, so they run
 # concurrently with everything else below. nvim is the slowest
 # consumer (subprocess spawn per socket + colorscheme load inside
