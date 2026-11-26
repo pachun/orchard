@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "omacut",
+  "aliases": [
+    "video trimmer",
+    "video editor",
+    "trim",
+    "cut"
+  ]
+}
