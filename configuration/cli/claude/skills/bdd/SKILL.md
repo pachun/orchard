@@ -20,6 +20,20 @@ outcome, then a green suite at 100% means every product requirement
 still holds. That is the whole point — the freedom to restructure
 internals without fear comes entirely from trusting the suite.
 
+## Agreed behavior comes before a test
+
+Before writing a behavior test, identify the user request or accepted product
+requirement it expresses. A failing test authorizes implementation of that
+agreed behavior; inventing a test does not authorize a new feature.
+
+Choose necessary implementation details autonomously within the agreed scope.
+Additional user-facing behavior, including setup flows, status messages, and
+fallback screens, is a product decision. Do not add it just because it seems
+helpful or makes unfinished work presentable. Report implementation blockers
+in the conversation. Propose additional behavior before testing or building it.
+When a test encodes unrequested behavior, remove that assertion and the
+now-undriven code using the removal workflow below.
+
 ## The rules (non-negotiable)
 
 1. **No production code without a failing test.** A failing message is

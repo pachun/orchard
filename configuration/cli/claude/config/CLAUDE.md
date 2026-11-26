@@ -112,6 +112,11 @@ dotfiles automatically — just remember to commit.
   If authentication blocks the command, report it instead of working around
   the deployment path.
 
+- **Keep product behavior within the agreed scope.** Follow “Agreed behavior
+  comes before a test” in `~/.claude/skills/bdd/SKILL.md`. A test you invent
+  is not authorization for an unrequested feature. Report unfinished setup
+  in the conversation instead of inventing UI to explain it.
+
 - **Keep Expo development clients usable during every session.** Load
   `expo-conventions` when starting work in an Expo project, including an
   Otto-started session. When native dependencies, plugins, permissions,
