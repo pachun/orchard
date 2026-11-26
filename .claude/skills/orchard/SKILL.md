@@ -39,6 +39,22 @@ creating the folder; removing one is deleting it. A feature folder holds:
   them before yay runs, since no single keyserver serves them all).
   `install-yay.sh` also owns the
   per-user gpg keyserver and `MAKEFLAGS` — don't duplicate those.
+- Omarchy's apps (Hype, Omacut, Folio, Omawrite, Monologue, … — the ones
+  DHH and the Omarchy project publish): when asked to add an app, check
+  whether `https://github.com/omacom/omarchy-pkgs/tree/master/pkgbuilds/<name>`
+  exists before reaching for the AUR, whether or not the request calls it
+  an Omarchy app. These are not in Arch's repos, and the AUR often has an
+  **unrelated app with the same name** (`hype`, `folio`), so `yay -S` gets
+  the wrong thing. They go through the `omarchy-apps` feature instead: the
+  app's own feature folder (named for what the app does) ships
+  `omarchy-recipe/<package>` — text appended to Omarchy's recipe before
+  building, a one-line comment when nothing needs changing — and its
+  install.sh runs
+  `bash "$HERE/../omarchy-apps/install.sh"`, links that folder with
+  `bash "$TOOLS/link.sh" "$HERE/omarchy-recipe" "$HOME/.config/omarchy-recipes"`,
+  then `"$HOME/.local/bin/omarchy-apps" install <package>`. That file is
+  also what puts the app under the updates badge and `system-update`.
+  `presentations/` is the plain example; `folio/` shows a recipe change.
 - Linking: `bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"` and
   `bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"`. `link.sh`
   symlinks **per file** (real directories at the destination are kept,
