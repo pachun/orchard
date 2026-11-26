@@ -1,7 +1,9 @@
 #!/bin/sh
 # Run a full system update — `pacman -Syu` (repos), `yay -Sua` (AUR),
-# `omarchy-apps upgrade` (apps built from Omarchy's recipes), then
-# `fwupdmgr` (device firmware) — in a dedicated ghostty window
+# `omarchy-apps upgrade` (apps built from Omarchy's recipes),
+# `update-orchard` (orchard itself, and the installers of the features
+# that changed), then `fwupdmgr` (device firmware) — in a dedicated
+# ghostty window
 # attached to a tmux session named "system-update".
 #
 # Why a dedicated window: the user's regular ghostty(s) usually have
@@ -47,6 +49,10 @@ CLASS=system-update
 #                      "Packages to exclude" prompt — skips the menu
 #                      (yay 12+ has no --noupgrademenu)
 #
+# Orchard runs after the packages: its installers install with
+# `pacman -S --needed`, which is only safe against a system that has just
+# been fully upgraded.
+#
 # Firmware runs after packages, chained with ';' so a firmware hiccup
 # can't undo a good package upgrade. Flags:
 #   -y                 assume yes, matching --noconfirm above
@@ -69,7 +75,11 @@ if [ -x "$OMARCHY_APPS" ]; then
     APPS_BUILT_FROM_OMARCHY_RECIPES=$("$OMARCHY_APPS" list | paste -sd, -)
     UPGRADE_OMARCHY_APPS="$OMARCHY_APPS upgrade"
 fi
-UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --ignore=$APPS_BUILT_FROM_OMARCHY_RECIPES --answerupgrade=N --noconfirm; $UPGRADE_OMARCHY_APPS; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; $HOME/.local/bin/refresh-updates-badge; $HOME/.local/bin/restart-upgraded-daemons"
+UPDATE_ORCHARD=true
+if [ -x "$HOME/.local/bin/update-orchard" ]; then
+    UPDATE_ORCHARD="$HOME/.local/bin/update-orchard"
+fi
+UPGRADE="sudo pacman -Syu --noconfirm; yay -Sua --ignore=$APPS_BUILT_FROM_OMARCHY_RECIPES --answerupgrade=N --noconfirm; $UPGRADE_OMARCHY_APPS; $UPDATE_ORCHARD; sudo fwupdmgr update -y --no-reboot-check; rm -f /tmp/waybar-updates.cache; $HOME/.local/bin/refresh-updates-badge; $HOME/.local/bin/restart-upgraded-daemons"
 CMD="tmux new-session -A -s system-update 'sh -c \"$UPGRADE\" 2>&1 | tee $LOG; echo; echo --- Done. Log: $LOG. Press any key to close. ---; read -n 1'"
 
 exec "$HOME/.local/bin/focus-or-launch" "$CLASS" \

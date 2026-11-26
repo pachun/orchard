@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# Brings this machine up to date with orchard itself: pulls new commits,
+# then runs the installer of every feature those commits touched.
+#
+#   update-orchard                pull, then apply what changed
+#   update-orchard pending        the commits not applied yet, one per line
+#   update-orchard mark-applied   record that everything checked out is applied
+#
+# Pulling is not the same as applying. tools/sync_orchard.py fast-forwards
+# other machines the moment a change is pushed, so a checkout is often
+# current while its new features have never been installed. What counts
+# is therefore the last commit whose features were applied, recorded in
+# ~/.local/state/orchard/applied-commit by `configure` and by this
+# command, and never how far the checkout is behind origin.
+#
+# Only fast-forwards. Local work in the checkout is left as it is; if git
+# cannot fast-forward around it, the pull is skipped and what is already
+# checked out is still applied.
+set -euo pipefail
+
+ORCHARD="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../.." && pwd)"
+APPLIED_COMMIT_RECORD="${XDG_STATE_HOME:-$HOME/.local/state}/orchard/applied-commit"
+MODE_RECORD="${XDG_CONFIG_HOME:-$HOME/.config}/orchard/mode"
+FEATURES=configuration
+
+in_orchard() {
+  git -C "$ORCHARD" "$@"
+}
+
+checked_out_commit() {
+  in_orchard rev-parse HEAD
+}
+
+record_as_applied() {
+  mkdir -p "$(dirname "$APPLIED_COMMIT_RECORD")"
+  printf '%s\n' "$1" > "$APPLIED_COMMIT_RECORD"
+}
+
+# A machine configured before this record existed has everything it has
+# checked out applied already, so that commit is where counting starts.
+applied_commit() {
+  if [ ! -s "$APPLIED_COMMIT_RECORD" ] \
+     || ! in_orchard cat-file -e "$(cat "$APPLIED_COMMIT_RECORD")^{commit}" 2>/dev/null; then
+    record_as_applied "$(checked_out_commit)"
+  fi
+  cat "$APPLIED_COMMIT_RECORD"
+}
+
+has_a_branch_to_pull_from() {
+  in_orchard rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1
+}
+
+fetch_without_asking_for_anything() {
+  GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND='ssh -o BatchMode=yes -o ConnectTimeout=5' \
+    in_orchard fetch --quiet 2>/dev/null || true
+}
+
+pull_new_commits() {
+  if ! has_a_branch_to_pull_from; then
+    echo "update-orchard: this branch follows nothing on origin; applying what is checked out"
+  elif ! in_orchard pull --ff-only; then
+    echo "update-orchard: could not fast-forward; local work is untouched, applying what is checked out" >&2
+  fi
+}
+
+machine_is_a_desktop() {
+  [ "$(cat "$MODE_RECORD" 2>/dev/null || echo desktop)" = desktop ]
+}
+
+applies_to_this_machine() {
+  case "$1" in
+    "$FEATURES"/cli/*)     true ;;
+    "$FEATURES"/desktop/*) machine_is_a_desktop ;;
+    *)                     false ;;
+  esac
+}
+
+features_changed_since() {
+  local feature_folder_depth=1-3
+  in_orchard diff --name-only "$1" HEAD -- "$FEATURES/cli" "$FEATURES/desktop" \
+    | cut -d/ -f"$feature_folder_depth" | sort -u
+}
+
+# A renamed or deleted feature leaves its links behind, pointing at
+# nothing. Same sweep `configure` ends with.
+remove_links_to_files_orchard_no_longer_has() {
+  find "$HOME/.config" "$HOME/.local" "$HOME/.claude" -xtype l -lname "$ORCHARD/*" -delete 2>/dev/null || true
+  find "$HOME" -maxdepth 1 -xtype l -lname "$ORCHARD/*" -delete 2>/dev/null || true
+}
+
+# A feature whose installer fails is retried next time: the applied
+# commit only moves forward once every changed feature has installed.
+apply_features_changed_since() {
+  local feature failed=""
+  for feature in $(features_changed_since "$1"); do
+    applies_to_this_machine "$feature" || continue
+    [ -f "$ORCHARD/$feature/install.sh" ] || continue
+    echo "update-orchard: applying ${feature#"$FEATURES"/}"
+    bash "$ORCHARD/$feature/install.sh" || failed="$failed ${feature#"$FEATURES"/}"
+  done
+  remove_links_to_files_orchard_no_longer_has
+  if [ -n "$failed" ]; then
+    echo "update-orchard: failed to apply:$failed" >&2
+    return 1
+  fi
+}
+
+update() {
+  local applied
+  applied="$(applied_commit)"
+  pull_new_commits
+  apply_features_changed_since "$applied"
+  record_as_applied "$(checked_out_commit)"
+}
+
+# Commits that change no feature have nothing to apply, so they are not
+# worth an update on their own; they arrive with the next one that does.
+pending() {
+  local applied
+  applied="$(applied_commit)"
+  fetch_without_asking_for_anything
+  in_orchard log --format=%s "$applied..HEAD" -- "$FEATURES"
+  if has_a_branch_to_pull_from; then
+    in_orchard log --format=%s 'HEAD..@{upstream}' -- "$FEATURES"
+  fi
+}
+
+usage() {
+  sed -n '5,7s/^# *//p' "${BASH_SOURCE[0]}" >&2
+  exit 2
+}
+
+case "${1:-update}" in
+  update)       update ;;
+  pending)      pending ;;
+  mark-applied) record_as_applied "$(checked_out_commit)" ;;
+  *)            usage ;;
+esac

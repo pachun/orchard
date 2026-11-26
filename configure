@@ -70,6 +70,10 @@ if [[ "$MODE" == "desktop" ]]; then
   done
 fi
 
+# Everything checked out is now applied, which is where update-orchard
+# starts counting from.
+bash "$HERE/configuration/cli/orchard-update/bin/update-orchard" mark-applied
+
 # Prune orphaned links. link.sh only ever creates symlinks, so a component
 # that was deleted or renamed leaves its old link behind, dangling — and a
 # re-run can't notice, because nothing owns that link anymore. Delete any

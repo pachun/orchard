@@ -1,6 +1,7 @@
 #!/bin/sh
 # updates-now: pending pacman + AUR package updates, newer versions of the
-# apps built from Omarchy's recipes, and available device firmware, as one JSON blob for the bar. Empty (effectively hidden) when
+# apps built from Omarchy's recipes, orchard changes not yet applied, and
+# available device firmware, as one JSON blob for the bar. Empty (effectively hidden) when
 # there's nothing to do, when offline, or while the very first refresh is
 # still running. Package count is exact; firmware is a boolean (present or
 # not). waybar-hidden-during-notifications runs this on a schedule (and on
@@ -88,18 +89,33 @@ if [ "$cache_stale" -eq 1 ] && [ "$lock_alive" -eq 0 ]; then
         # waiting; 2 (or other non-zero) means nothing to flash.
         fw=0
         fwupdmgr get-updates >/dev/null 2>&1 && fw=1
+        # Orchard's own changes are counted apart from packages, and do not
+        # wait for the batch: they are this desktop's configuration, not
+        # something a mirror snapshot holds back.
+        orchard=0
+        [ -x "$HOME/.local/bin/update-orchard" ] \
+            && orchard=$(timeout 30 "$HOME/.local/bin/update-orchard" pending 2>/dev/null | wc -l)
         pkgs=$((repo + aur + omarchy))
-        if [ "$pkgs" -eq 0 ] && [ "$fw" -eq 0 ]; then
-            : > "$CACHE"
-        elif [ "$pkgs" -eq 0 ]; then
-            printf '{"text":"","tooltip":"Firmware update available"}\n' > "$CACHE"
-        else
+        tooltip=""
+        if [ "$pkgs" -gt 0 ]; then
             tooltip="$pkgs pending — $repo from repos"
             [ "$aur" -gt 0 ] && tooltip="$tooltip, $aur from AUR"
             [ "$omarchy" -gt 0 ] && tooltip="$tooltip, $omarchy from Omarchy"
-            [ "$fw" -gt 0 ] && tooltip="$tooltip; firmware update available"
-            printf '{"text":"","tooltip":"%s"}\n' \
-                "$tooltip" > "$CACHE"
+        fi
+        if [ "$orchard" -gt 0 ]; then
+            orchard_changes="$orchard orchard changes"
+            [ "$orchard" -eq 1 ] && orchard_changes="1 orchard change"
+            tooltip="${tooltip:+$tooltip; }$orchard_changes to apply"
+        fi
+        if [ "$fw" -gt 0 ] && [ -n "$tooltip" ]; then
+            tooltip="$tooltip; firmware update available"
+        elif [ "$fw" -gt 0 ]; then
+            tooltip="Firmware update available"
+        fi
+        if [ -z "$tooltip" ]; then
+            : > "$CACHE"
+        else
+            printf '{"text":"","tooltip":"%s"}\n' "$tooltip" > "$CACHE"
         fi
         "$HOME/.local/bin/refresh-updates-badge"
     ) >/dev/null 2>&1 &
