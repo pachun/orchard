@@ -103,6 +103,15 @@ dotfiles automatically — just remember to commit.
 
 ## Workflow preferences
 
+- **Deploy Depot services through Depot.** For an authorized NAS deployment,
+  use `depot update <service>` (for example, `depot update aviary`), or
+  `depot update` for the whole stack, on the NAS. Follow the target project's
+  checks and commit/push permissions first. Do not substitute manual Compose
+  rebuilds, copied source files, or container-only fixes. Check for local NAS
+  changes before updating; verify the deployed commit and running service.
+  If authentication blocks the command, report it instead of working around
+  the deployment path.
+
 - **Keep Expo development clients usable during every session.** Load
   `expo-conventions` when starting work in an Expo project, including an
   Otto-started session. When native dependencies, plugins, permissions,
