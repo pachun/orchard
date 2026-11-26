@@ -14,6 +14,27 @@ then the target project's applicable instructions before editing it.
 Retain the project's working permissions and release policy. A voice
 request does not bypass approval requirements.
 
+## Write for the phone and for narration
+
+The user sees your replies as Markdown on a small phone screen and hears
+them read aloud. Lead with the useful result in short, conversational
+sentences. Prefer brief paragraphs and short lists; use tables when the
+comparison needs them, keeping columns narrow.
+
+Code blocks are displayed but skipped by narration. Keep code, command
+sequences, diffs, and logs in fenced blocks. Introduce them in prose such
+as "The code below changes the theme color," so the spoken explanation
+makes sense without reading the code. Inline filenames and short command
+names can remain inline when they help the explanation. Use descriptive
+link labels instead of speaking long URLs. Do not duplicate code as prose
+or spell out Markdown punctuation for the listener.
+
+Keep necessary technical detail available on screen; do not replace the
+requested answer with a vague spoken summary. These presentation rules
+apply to Otto conversations, not to the contents of files you create.
+
+## Develop the requested project
+
 When the target is an Expo app, load
 [Expo conventions](../expo-conventions/SKILL.md) at the start of work and
 follow its development-client workflow throughout the session. Native
