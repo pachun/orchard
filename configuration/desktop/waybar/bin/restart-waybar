@@ -10,6 +10,10 @@
 # would leave no bar at all, so it is left running and the restart fails.
 set -eu
 
+# Run from beside this script, not from ~/.local/bin: a feature's installer
+# can get here before waybar's own installer has linked the new script.
+"$(dirname "$(readlink -f "$0")")/render-waybar-feature-modules"
+
 [ -n "${WAYLAND_DISPLAY:-}" ] || exit 0
 
 installed_bar_can_start() {

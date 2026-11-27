@@ -155,6 +155,14 @@ by codepoint, listed in the script header as `name  U+XXXX`; look
 codepoints up in
 `https://raw.githubusercontent.com/phosphor-icons/web/master/src/fill/style.css`.
 Scripts must never block on the network — cache and serve stale.
+A module that should disappear with the feature that owns it is not wired
+into waybar's files at all: the feature ships `waybar/<name>.json` (the
+module definition, plain JSON) and optionally `waybar/<name>.css`, links
+them with `bash "$TOOLS/link.sh" "$HERE/waybar" "$HOME/.config/waybar/feature-modules"`
+and runs `restart-waybar`, which gathers them into the
+`group/feature-modules` slot both layouts carry (see the `dictation`
+feature). Use this for anything optional; the wiring above is for modules
+the bar always has.
 Anything that sits in the centre beside the clock (weather glyph, updates
 badge) runs through `waybar-hidden-during-notifications <command>
 <seconds>`, which polls the command and fades the module out while a

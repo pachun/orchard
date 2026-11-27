@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Gathers the bar modules that other features bring with them.
+
+A feature that wants a spot in the bar links two files into
+~/.config/waybar/feature-modules: <name>.json, defining its module the
+way config.jsonc would, and optionally <name>.css. Nothing in the waybar
+feature names them, so deleting the feature's folder takes its module out
+of the bar with it.
+
+waybar can neither include a folder nor add to a list from an included
+file, so the pieces are gathered here into the two files config.jsonc and
+style.css load: every definition plus the group that shows them (placed
+in the layouts as group/feature-modules), and every stylesheet joined.
+restart-waybar runs this before starting the bar.
+"""
+import json
+import os
+from pathlib import Path
+
+WAYBAR = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "waybar"
+BROUGHT_BY_FEATURES = WAYBAR / "feature-modules"
+
+
+def files_still_backed_by_a_feature(extension):
+    return sorted(
+        path for path in BROUGHT_BY_FEATURES.glob(f"*.{extension}") if path.exists()
+    )
+
+
+definitions = {}
+for definition_file in files_still_backed_by_a_feature("json"):
+    definitions.update(json.loads(definition_file.read_text()))
+
+gathered = {
+    "group/feature-modules": {"orientation": "inherit", "modules": list(definitions)},
+    **definitions,
+}
+styles = "".join(path.read_text() for path in files_still_backed_by_a_feature("css"))
+
+WAYBAR.mkdir(parents=True, exist_ok=True)
+(WAYBAR / "feature-modules.json").write_text(json.dumps(gathered, indent=4) + "\n")
+(WAYBAR / "feature-modules.css").write_text(styles)

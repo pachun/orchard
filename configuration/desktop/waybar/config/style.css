@@ -5,6 +5,11 @@
  * color-related belongs in the theme partial, not here. */
 @import url("../orchard-themes/active/waybar.css");
 
+/* Styles for the modules other features bring with them, gathered by
+ * render-waybar-feature-modules. waybar refuses to start when an imported
+ * file is missing, which is why restart-waybar always writes this one. */
+@import url("feature-modules.css");
+
 /* Single shared text style. Every module inherits font-family, size,
    weight, and (color via the theme) from here so baselines and visual
    weight match. Per-module CSS below only adjusts padding. */

@@ -21,6 +21,7 @@
         "custom/dnd",
         "custom/apple-tv",
         "custom/recording",
+        "group/feature-modules",
         "custom/nordvpn",
         "custom/wifi-status",
         "custom/network",

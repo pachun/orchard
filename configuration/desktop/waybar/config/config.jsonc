@@ -28,7 +28,14 @@
     // define, so modules-center and modules-right are deliberately absent
     // here — defining them would silently win and the layout file would do
     // nothing. modules-left is the same on both machines and stays.
-    "include": ["~/.config/waybar/layout.jsonc"],
+    //
+    // feature-modules.json holds the modules other features bring with
+    // them (render-waybar-feature-modules writes it), so removing such a
+    // feature needs no edit here.
+    "include": [
+        "~/.config/waybar/layout.jsonc",
+        "~/.config/waybar/feature-modules.json"
+    ],
 
     // No distro logo. It was a launcher for the system menu and nothing else,
     // and that menu is on Cmd+comma — so the icon was pure decoration, sitting
