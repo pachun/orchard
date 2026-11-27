@@ -3,7 +3,7 @@
 # then runs the installer of every feature those commits touched.
 #
 #   update-orchard                pull, then apply what changed
-#   update-orchard pending        the commits not applied yet, one per line
+#   update-orchard pending        what is not applied yet, one per line
 #   update-orchard mark-applied   record that everything checked out is applied
 #
 # Pulling is not the same as applying. tools/sync_orchard.py fast-forwards
@@ -11,7 +11,8 @@
 # current while its new features have never been installed. What counts
 # is therefore the last commit whose features were applied, recorded in
 # ~/.local/state/orchard/applied-commit by `configure` and by this
-# command, and never how far the checkout is behind origin.
+# command, and never how far the checkout is behind origin. Features
+# whose installer failed are kept beside it, in features-to-retry.
 #
 # Only fast-forwards. Local work in the checkout is left as it is; if git
 # cannot fast-forward around it, the pull is skipped and what is already
@@ -20,6 +21,7 @@ set -euo pipefail
 
 ORCHARD="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../.." && pwd)"
 APPLIED_COMMIT_RECORD="${XDG_STATE_HOME:-$HOME/.local/state}/orchard/applied-commit"
+FEATURES_TO_RETRY_RECORD="${XDG_STATE_HOME:-$HOME/.local/state}/orchard/features-to-retry"
 MODE_RECORD="${XDG_CONFIG_HOME:-$HOME/.config}/orchard/mode"
 FEATURES=configuration
 
@@ -81,6 +83,19 @@ features_changed_since() {
     | cut -d/ -f"$feature_folder_depth" | sort -u
 }
 
+features_to_retry() {
+  cat "$FEATURES_TO_RETRY_RECORD" 2>/dev/null || true
+}
+
+record_features_to_retry() {
+  mkdir -p "$(dirname "$FEATURES_TO_RETRY_RECORD")"
+  printf '%s\n' "$@" | grep . > "$FEATURES_TO_RETRY_RECORD" || true
+}
+
+features_to_apply_since() {
+  { features_changed_since "$1"; features_to_retry; } | sort -u
+}
+
 # A renamed or deleted feature leaves its links behind, pointing at
 # nothing. Same sweep `configure` ends with.
 remove_links_to_files_orchard_no_longer_has() {
@@ -88,41 +103,51 @@ remove_links_to_files_orchard_no_longer_has() {
   find "$HOME" -maxdepth 1 -xtype l -lname "$ORCHARD/*" -delete 2>/dev/null || true
 }
 
-# A feature whose installer fails is retried next time: the applied
-# commit only moves forward once every changed feature has installed.
+# A feature whose installer fails is retried next time, on its own: the
+# features that did install are not run again because of it.
 apply_features_changed_since() {
-  local feature failed=""
-  for feature in $(features_changed_since "$1"); do
+  local feature failed=()
+  for feature in $(features_to_apply_since "$1"); do
     applies_to_this_machine "$feature" || continue
     [ -f "$ORCHARD/$feature/install.sh" ] || continue
     echo "update-orchard: applying ${feature#"$FEATURES"/}"
-    bash "$ORCHARD/$feature/install.sh" || failed="$failed ${feature#"$FEATURES"/}"
+    bash "$ORCHARD/$feature/install.sh" || failed+=("$feature")
   done
   remove_links_to_files_orchard_no_longer_has
-  if [ -n "$failed" ]; then
-    echo "update-orchard: failed to apply:$failed" >&2
+  record_features_to_retry "${failed[@]}"
+  if [ "${#failed[@]}" -gt 0 ]; then
+    echo "update-orchard: failed to apply, will retry: ${failed[*]#"$FEATURES"/}" >&2
     return 1
   fi
 }
 
 update() {
-  local applied
+  local applied every_feature_installed=true
   applied="$(applied_commit)"
   pull_new_commits
-  apply_features_changed_since "$applied"
+  apply_features_changed_since "$applied" || every_feature_installed=false
   record_as_applied "$(checked_out_commit)"
+  "$every_feature_installed"
+}
+
+mark_everything_applied() {
+  record_as_applied "$(checked_out_commit)"
+  record_features_to_retry
 }
 
 # Commits that change no feature have nothing to apply, so they are not
 # worth an update on their own; they arrive with the next one that does.
 pending() {
-  local applied
+  local applied feature
   applied="$(applied_commit)"
   fetch_without_asking_for_anything
   in_orchard log --format=%s "$applied..HEAD" -- "$FEATURES"
   if has_a_branch_to_pull_from; then
     in_orchard log --format=%s 'HEAD..@{upstream}' -- "$FEATURES"
   fi
+  for feature in $(features_to_retry); do
+    echo "Retry ${feature#"$FEATURES"/}, whose installer failed"
+  done
 }
 
 usage() {
@@ -133,6 +158,6 @@ usage() {
 case "${1:-update}" in
   update)       update ;;
   pending)      pending ;;
-  mark-applied) record_as_applied "$(checked_out_commit)" ;;
+  mark-applied) mark_everything_applied ;;
   *)            usage ;;
 esac

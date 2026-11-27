@@ -127,6 +127,45 @@ class UpdateOrchardTest(unittest.TestCase):
         self.assertNotEqual(first_update.returncode, 0)
         self.assertEqual(self.installers_run(), ["cli/shell", "cli/shell"])
 
+    def test_retries_only_the_feature_whose_installer_failed(self):
+        self.update_orchard("mark-applied")
+        self.write_feature("cli/shell", installer=INSTALLER_THAT_FAILS)
+        self.write_feature("desktop/bar", note="changed")
+        self.push_from_another_machine("Break the shell installer and change the bar")
+
+        self.update_orchard(check=False)
+        self.update_orchard(check=False)
+
+        self.assertEqual(
+            self.installers_run(), ["cli/shell", "desktop/bar", "cli/shell"]
+        )
+
+    def test_pending_lists_only_the_feature_to_retry_after_a_failure(self):
+        self.update_orchard("mark-applied")
+        self.write_feature("cli/shell", installer=INSTALLER_THAT_FAILS)
+        self.write_feature("desktop/bar", note="changed")
+        self.push_from_another_machine("Break the shell installer and change the bar")
+
+        self.update_orchard(check=False)
+        pending = self.update_orchard("pending").stdout.splitlines()
+
+        self.assertEqual(pending, ["Retry cli/shell, whose installer failed"])
+
+    def test_stops_retrying_a_feature_once_its_installer_succeeds(self):
+        self.update_orchard("mark-applied")
+        self.write_feature("cli/shell", installer=INSTALLER_THAT_FAILS)
+        self.push_from_another_machine("Break the shell installer")
+        self.update_orchard(check=False)
+        self.write_feature("cli/shell")
+        self.push_from_another_machine("Mend the shell installer")
+
+        self.update_orchard()
+        self.update_orchard()
+        pending = self.update_orchard("pending").stdout.splitlines()
+
+        self.assertEqual(self.installers_run(), ["cli/shell", "cli/shell"])
+        self.assertEqual(pending, [])
+
     def test_keeps_uncommitted_work_in_the_checkout(self):
         self.update_orchard("mark-applied")
         unfinished = self.this_machine / "configuration/desktop/bar/note"
