@@ -1,0 +1,10 @@
+{
+  "icon": "",
+  "command": "focus-or-launch --name \"Beekeeper Studio\" beekeeper-studio beekeeper-studio",
+  "aliases": [
+    "database",
+    "sql",
+    "postgres",
+    "db"
+  ]
+}
