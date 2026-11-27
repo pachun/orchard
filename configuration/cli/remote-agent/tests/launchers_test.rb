@@ -122,7 +122,7 @@ class LaunchersTest < Minitest::Test
     assert_includes creation, "-d"
     session = creation.fetch(creation.index("-s") + 1)
     assert_includes error, "claude-on framework --attach #{session}"
-    assert_equal ["tmux", "attach-session", "-t", "=#{session}"], events.last
+    assert_equal ["tmux", "-u", "attach-session", "-t", "=#{session}"], events.last
   end
 
   def test_saved_claude_conversation_uses_native_resume
@@ -134,7 +134,7 @@ class LaunchersTest < Minitest::Test
   def test_reattaching_does_not_start_another_claude_process
     _, error, status = launch("claude", "xps", "--attach", "claude-existing")
     assert status.success?, error
-    assert_equal ["tmux", "attach-session", "-t", "=claude-existing"], events.last
+    assert_equal ["tmux", "-u", "attach-session", "-t", "=claude-existing"], events.last
     refute events.any? { |event| event.first == "claude" }
   end
 

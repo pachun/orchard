@@ -121,7 +121,7 @@ module RemoteAgent
       end
 
       return command_status("ssh", *SSH_OPTIONS, "-t", device,
-                            "#{REMOTE_PATH}; exec tmux attach-session -t #{Shellwords.escape("=#{session}")}")
+                            "#{REMOTE_PATH}; exec tmux -u attach-session -t #{Shellwords.escape("=#{session}")}")
     end
 
     directory, remaining = claude_arguments(arguments)
@@ -134,7 +134,7 @@ module RemoteAgent
     session = "claude-#{SecureRandom.hex(6)}"
     warn "Reconnect with: claude-on #{device} --attach #{session}"
     creation = Shellwords.join(["tmux", "new-session", "-d", "-s", session, agent_command])
-    attachment = Shellwords.join(["tmux", "attach-session", "-t", "=#{session}"])
+    attachment = Shellwords.join(["tmux", "-u", "attach-session", "-t", "=#{session}"])
     command_status("ssh", *SSH_OPTIONS, "-t", device, "#{REMOTE_PATH}; #{creation} && exec #{attachment}")
   end
 
