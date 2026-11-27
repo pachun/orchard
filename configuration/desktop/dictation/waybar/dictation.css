@@ -1,0 +1,10 @@
+#custom-dictation {
+    padding: 0 8px;
+    font-family: "Phosphor-Fill", "SF Pro", "Symbols Nerd Font Mono", sans-serif;
+}
+#custom-dictation.listening { animation: dictation-pulse 0.9s ease-in-out infinite alternate; }
+#custom-dictation.working { animation: dictation-pulse 0.45s ease-in-out infinite alternate; }
+@keyframes dictation-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.45; }
+}

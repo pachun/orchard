@@ -179,7 +179,6 @@ hl.bind(modifier .. " + SHIFT + N", focusOrLaunch("chromium-incognito", browserA
 -- window on the current workspace. `folio` is a new window every time it runs.
 hl.bind(modifier .. " + E", hl.dsp.exec_cmd("folio"))
 hl.bind(modifier .. " + I", runScript('focus-or-launch --name "Messages" ' .. messagesApplication .. " " .. messagesApplication))
-hl.bind(modifier .. " + SHIFT + D", runScript('focus-or-launch --name "Beekeeper Studio" beekeeper-studio beekeeper-studio'))
 hl.bind(modifier .. " + SHIFT + C", focusOrLaunch(calendarWindowClass, calendarApplication))
 hl.bind(modifier .. " + SHIFT + M", focusOrLaunch(mapsWindowClass, mapsApplication))
 hl.bind(modifier .. " + SHIFT + S", focusOrLaunch(musicWindowClass, musicApplication))
@@ -391,6 +390,38 @@ hl.bind(modifier .. " + space", hl.dsp.global("orchard-launcher:toggle"))
 -- synthetic typing of emoji, then restore the previous clipboard from
 -- cliphist — lives in ~/.local/bin/emoji-picker (with the why).
 hl.bind(modifier .. " + CTRL + space", runScript("emoji-picker"))
+
+-- Dictation (the dictation feature): hold Right Alt to talk, or press
+-- Alt+Space to start and again to stop. Bound only where Superwhisper is
+-- installed, so the keys reach applications everywhere else.
+--
+-- A modifier's own mask changes between its press and its release, so both
+-- halves of the hold match the key whatever is held with it. The release
+-- half lets the key through: an application still has to see Right Alt
+-- come back up.
+local function isInstalled(program)
+    local file = io.open(program, "r")
+    if file then file:close() end
+    return file ~= nil
+end
+if isInstalled("/usr/bin/superwhisper") then
+    local rightAlt = "ALT + Alt_R"
+    hl.bind("ALT + space", hl.dsp.exec_cmd("superwhisper record"))
+    hl.bind(rightAlt, hl.dsp.exec_cmd("superwhisper start"), { ignore_mods = true })
+    hl.bind(rightAlt, hl.dsp.exec_cmd("superwhisper stop"),
+        { release = true, transparent = true, ignore_mods = true, non_consuming = true })
+    hl.layer_rule({ match = { namespace = "^superwhisper-edge-glow$" }, no_anim = true })
+
+    -- The dictation panel under the bar — same toggle as clicking its
+    -- microphone, same submap arrangement as the AI usage panel.
+    hl.bind(modifier .. " + SHIFT + D", runScript("dictation-panel"))
+    hl.define_submap("dictation", function()
+        hl.bind("Escape", runScript("dictation-panel"))
+        hl.bind(modifier .. " + SHIFT + D", runScript("dictation-panel"))
+        bindScreenshotKeys()
+    end)
+    hl.layer_rule({ match = { namespace = "dictation" }, no_anim = true, blur = true, ignore_alpha = 0.3 })
+end
 
 -- Clipboard history: a fuzzel list of recent entries; the selected one is
 -- decoded and re-copied so the next paste uses it. wl-paste --watch (started

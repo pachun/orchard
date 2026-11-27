@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Emits JSON for the bar's custom/dictation module: a microphone that is
+steady while Superwhisper waits, a pulsing waveform while it listens, and
+pulsing faster while it turns speech into text. Empty, so the module is invisible, when
+Superwhisper is not running.
+
+The state comes from one question on Superwhisper's control socket, the
+same one its own bar panel asks.
+
+Icons (Phosphor fill):
+  microphone  U+E326
+  waveform    U+E802
+"""
+import json
+import os
+import socket
+from pathlib import Path
+
+MICROPHONE = ""
+WAVEFORM = ""
+SECONDS_TO_WAIT_FOR_AN_ANSWER = 1
+CONTROL_SOCKET = (
+    Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
+    / "superwhisper"
+    / "control.sock"
+)
+HOW_TO_DICTATE = "Hold Right Alt to dictate, or press Alt+Space. Click for settings"
+
+
+def status():
+    with socket.socket(socket.AF_UNIX) as connection:
+        connection.settimeout(SECONDS_TO_WAIT_FOR_AN_ANSWER)
+        connection.connect(str(CONTROL_SOCKET))
+        connection.sendall(b'{"version":1,"command":"status"}\n')
+        return json.loads(connection.makefile().readline())
+
+
+def module_for(phase, is_ready):
+    if phase == "recording":
+        return {"text": WAVEFORM, "class": "listening", "tooltip": "Listening"}
+    if phase not in ("idle", "ready"):
+        return {"text": MICROPHONE, "class": "working", "tooltip": f"Dictation: {phase}"}
+    if not is_ready:
+        return {"text": MICROPHONE, "class": "working", "tooltip": "Dictation is getting ready"}
+    return {"text": MICROPHONE, "class": "waiting", "tooltip": HOW_TO_DICTATE}
+
+
+try:
+    answer = status()
+    module = module_for(answer.get("phase", "idle"), answer.get("ready", False))
+except (OSError, ValueError):
+    module = {"text": ""}
+
+print(json.dumps(module))

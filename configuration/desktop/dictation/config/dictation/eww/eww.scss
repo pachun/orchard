@@ -1,0 +1,123 @@
+// The dropdown: a frosted panel matching the two-factor and AI usage
+// dropdowns, blurred by Hyprland's layerrule on this window's namespace.
+// Colors ($panel / $track / $ink / $dim / $accent) are regenerated from the
+// active theme's palette by render-dictation-theme into colors.scss.
+@import "colors";
+
+* {
+  all: unset;
+  font-family: "SF Pro", sans-serif;
+}
+
+window,
+.background {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+// The border is fuzzel's — 2px of the theme accent, radius 10 — so this
+// reads as one family with the menus and the other dropdowns.
+.panel {
+  background-color: $panel;
+  border: 2px solid $accent;
+  border-radius: 10px;
+  padding: 12px 14px 8px;
+  color: $ink;
+}
+
+.empty {
+  font-size: 15px;
+  color: $dim;
+  padding: 2px 0 8px;
+}
+
+.doing {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.keys {
+  font-size: 13px;
+  color: $dim;
+}
+
+.words {
+  margin-top: 12px;
+}
+
+.summary {
+  font-size: 14px;
+}
+
+.resets {
+  font-size: 13px;
+  color: $dim;
+}
+
+.used {
+  min-height: 3px;
+  margin-top: 6px;
+  border-radius: 999px;
+
+  trough {
+    background-color: $track;
+    border-radius: 999px;
+    min-height: 3px;
+  }
+
+  progress {
+    background-color: $accent;
+    border-radius: 999px;
+    min-height: 3px;
+  }
+}
+
+.heading {
+  font-size: 12px;
+  font-weight: 600;
+  color: $dim;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+// The values of one setting sit side by side; the one in effect is filled
+// with the accent, the way the bars are, and the rest light on hover.
+.choice {
+  font-size: 13px;
+  padding: 5px 9px;
+  margin-right: 6px;
+  border-radius: 8px;
+  background-color: $track;
+}
+
+.choice:hover {
+  color: $accent;
+}
+
+.choice.selected {
+  background-color: $accent;
+  color: $panel;
+}
+
+.choice.selected:hover {
+  color: $panel;
+}
+
+.fact {
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.fact .value {
+  color: $dim;
+}
+
+.open-app {
+  font-size: 13px;
+  color: $dim;
+  padding: 14px 0 4px;
+}
+
+.open-app:hover {
+  color: $ink;
+}

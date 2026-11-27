@@ -202,6 +202,12 @@ if [ -x "$HOME/.local/bin/render-ai-usage-theme" ]; then
         "$HOME/.local/bin/restart-ai-usage" >/dev/null 2>&1 || true
     ) &
 fi
+if [ -x "$HOME/.local/bin/render-dictation-theme" ]; then
+    (
+        "$HOME/.local/bin/render-dictation-theme" >/dev/null 2>&1 || true
+        "$HOME/.local/bin/restart-dictation-panel" >/dev/null 2>&1 || true
+    ) &
+fi
 if [ -x "$HOME/.local/bin/render-two-factor-theme" ]; then
     (
         "$HOME/.local/bin/render-two-factor-theme" >/dev/null 2>&1 || true

@@ -1,0 +1,11 @@
+{
+  "icon": "",
+  "command": "dictation-panel",
+  "aliases": [
+    "superwhisper",
+    "voice",
+    "speech",
+    "speech to text",
+    "microphone"
+  ]
+}

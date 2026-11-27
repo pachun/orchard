@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Prints what the dictation panel shows, as one JSON object: whether
+Superwhisper is listening, how much of the free cloud allowance is used,
+and the settings the panel lets you change with what each is set to.
+
+Everything is asked of Superwhisper's control socket, the same source its
+own settings window reads, so the choices offered here are the ones the
+running version supports.
+"""
+import datetime
+import json
+import os
+import socket
+from pathlib import Path
+
+SECONDS_TO_WAIT_FOR_AN_ANSWER = 2
+BYTES_PER_GIGABYTE = 1024**3
+WHOLE_BAR = 100
+CONTROL_SOCKET = (
+    Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
+    / "superwhisper"
+    / "control.sock"
+)
+WHAT_EACH_PHASE_IS_CALLED = {
+    "idle": "Ready",
+    "ready": "Ready",
+    "recording": "Listening",
+}
+INDICATORS = [("edgeGlow", "Edge glow"), ("pill", "Pill")]
+NOT_RUNNING = {"running": False}
+
+
+def ask(command):
+    with socket.socket(socket.AF_UNIX) as connection:
+        connection.settimeout(SECONDS_TO_WAIT_FOR_AN_ANSWER)
+        connection.connect(str(CONTROL_SOCKET))
+        connection.sendall((json.dumps({"version": 1, "command": command}) + "\n").encode())
+        answer = json.loads(connection.makefile().readline())
+    if isinstance(answer, dict) and answer.get("error"):
+        raise ValueError(answer["error"])
+    return answer
+
+
+def what_it_is_doing(status):
+    if not status.get("ready", False):
+        return "Getting ready"
+    phase = status.get("phase", "idle")
+    return WHAT_EACH_PHASE_IS_CALLED.get(phase, phase.capitalize())
+
+
+def cloud_words(account):
+    if account.get("license", {}).get("state") not in (None, "unlicensed"):
+        return {"limited": False, "summary": "Unlimited cloud words", "percent": 0, "resets": ""}
+    allowance = account.get("usage", {}).get("snapshot") or {}
+    limit = allowance.get("wordLimit")
+    if not limit:
+        return {"limited": False, "summary": "Cloud usage unavailable", "percent": 0, "resets": ""}
+    used = allowance.get("usedWords", 0) + account.get("usage", {}).get("pendingWords", 0)
+    resets = datetime.datetime.fromtimestamp(allowance["resetsAt"]).strftime("%b %-d")
+    return {
+        "limited": True,
+        "summary": f"{used:,} of {limit:,} free cloud words",
+        "percent": min(WHOLE_BAR, round(used * WHOLE_BAR / limit)),
+        "resets": f"Resets {resets}",
+    }
+
+
+def processing_choices(models):
+    chosen = models.get("processing")
+    choices = []
+    for mode in models.get("processingModes", []):
+        needs_a_download = bool(mode.get("missing"))
+        gigabytes = mode.get("downloadBytes", 0) / BYTES_PER_GIGABYTE
+        choices.append({
+            "value": mode["value"],
+            "label": mode["label"],
+            "selected": mode["value"] == chosen,
+            "downloaded": not needs_a_download,
+            "note": f"{gigabytes:.1f} GB download" if needs_a_download else "",
+        })
+    return choices
+
+
+def choices_from(options, chosen):
+    return [
+        {"value": option["value"], "label": option["label"], "selected": option["value"] == chosen}
+        for option in options
+    ]
+
+
+def microphone(audio):
+    for device in audio.get("devices", []):
+        if device.get("selected"):
+            return device.get("label") or device.get("description") or device.get("name")
+    return "System default"
+
+
+def panel_state():
+    status, account, models = ask("status"), ask("account_get"), ask("models_get")
+    general, audio = ask("general_get"), ask("audio_get")
+    chosen_indicator = audio.get("config", {}).get("recordingIndicatorStyle")
+    return {
+        "running": True,
+        "doing": what_it_is_doing(status),
+        "words": cloud_words(account),
+        "processing": processing_choices(models),
+        "indicator": [
+            {"value": value, "label": label, "selected": value == chosen_indicator}
+            for value, label in INDICATORS
+        ],
+        "tone": choices_from(
+            general.get("options", {}).get("tones", []), general.get("config", {}).get("tone")
+        ),
+        "language": general.get("options", {}).get("languageLabel", ""),
+        "microphone": microphone(audio),
+    }
+
+
+try:
+    print(json.dumps(panel_state()))
+except (OSError, ValueError, KeyError):
+    print(json.dumps(NOT_RUNNING))

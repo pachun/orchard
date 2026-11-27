@@ -1,0 +1,52 @@
+#!/bin/sh
+# Toggle the dictation dropdown under the bar. While it is open the panel
+# asks Superwhisper for its state once a second (eww's `open` variable
+# gates the poll), so a change made in the panel shows as soon as it takes;
+# closing stops the poll.
+#
+# The compositor decides whether the panel is up, for the reason given in
+# ai-usage-panel: eww's own window list has been seen to disagree with the
+# screen, and trusting it stacked a second panel on the first. When the two
+# disagree the daemon is restarted, which takes its surface with it.
+set -eu
+
+config="$HOME/.config/dictation/eww"
+eww_cmd() { timeout -s KILL 2 eww --config "$config" "$@"; }
+
+panel_is_on_screen() {
+    hyprctl layers -j 2>/dev/null | grep -q -E '"namespace": *"dictation"'
+}
+
+daemon_tracks_the_panel() {
+    eww_cmd active-windows 2>/dev/null | grep -q '^settings'
+}
+
+kill_stuck_clients() {
+    pkill -9 -f "eww --config $config (open|close|update)" 2>/dev/null || true
+}
+
+close_panel() {
+    if daemon_tracks_the_panel; then
+        eww_cmd update open=false >/dev/null 2>&1 || true
+        eww_cmd close settings >/dev/null 2>&1 || true
+    else
+        "$HOME/.local/bin/restart-dictation-panel"
+    fi
+    hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null 2>&1 || true
+}
+
+open_panel() {
+    eww_cmd ping >/dev/null 2>&1 || "$HOME/.local/bin/restart-dictation-panel"
+    eww_cmd update open=true >/dev/null 2>&1 || true
+    eww_cmd open settings >/dev/null 2>&1 || true
+    hyprctl dispatch 'hl.dsp.submap("dictation")' >/dev/null 2>&1 || true
+}
+
+# Open and closed each come with a submap switch: while the panel is up,
+# Escape (bound in hyprland.lua's dictation submap) closes it.
+kill_stuck_clients
+if panel_is_on_screen; then
+    close_panel
+else
+    open_panel
+fi

@@ -1,0 +1,96 @@
+; The dictation dropdown: what Superwhisper is doing, how much of the free
+; cloud allowance is used, and the settings worth reaching without opening
+; its settings window. dictation-panel opens this window under the bar's
+; right end and flips `open`, which gates the once-a-second poll so a change
+; shows as soon as Superwhisper has taken it. Colors come from colors.scss,
+; regenerated per theme by render-dictation-theme.
+
+(defvar open false)
+(defpoll state
+  :interval "1s"
+  :run-while open
+  :initial '{"running": false}'
+  "$HOME/.local/bin/dictation-panel-state")
+
+(defwidget heading [text]
+  (label :class "heading" :halign "start" :text text))
+
+; One of a setting's values. The one in effect is filled; the others set
+; themselves when clicked. The box inside carries the look: GTK draws no
+; padding on an eventbox.
+(defwidget choice [label selected onclick ?note]
+  (eventbox :cursor "pointer" :onclick onclick :tooltip {note ?: ""}
+    (box :class "choice ${selected ? "selected" : ""}"
+      (label :text label))))
+
+(defwidget words []
+  (box :class "words" :orientation "v" :space-evenly false
+    (box :space-evenly false
+      (label :class "summary" :halign "start" :hexpand true :text {state.words.summary})
+      (label :class "resets" :halign "end" :text {state.words.resets}))
+    (progress :class "used" :visible {state.words.limited}
+              :orientation "h" :value {state.words.percent})))
+
+; Offline modes that are not downloaded yet cannot be chosen here: the
+; download is gigabytes, and Superwhisper's settings window is where it is
+; started and watched.
+(defwidget processing []
+  (box :orientation "v" :space-evenly false
+    (heading :text "Processing")
+    (box :class "choices" :space-evenly false
+      (for mode in {state.processing}
+        (choice :label {mode.label} :selected {mode.selected} :note {mode.note}
+                :onclick {mode.downloaded
+                          ? "superwhisper models select ${mode.value}"
+                          : "setsid -f superwhisper settings >/dev/null 2>&1; $HOME/.local/bin/dictation-panel"})))))
+
+(defwidget indicator []
+  (box :orientation "v" :space-evenly false
+    (heading :text "While listening")
+    (box :class "choices" :space-evenly false
+      (for style in {state.indicator}
+        (choice :label {style.label} :selected {style.selected}
+                :onclick `superwhisper audio set recordingIndicatorStyle '"${style.value}"'`)))))
+
+(defwidget tone []
+  (box :orientation "v" :space-evenly false
+    (heading :text "Tone")
+    (box :class "choices" :space-evenly false
+      (for tone in {state.tone}
+        (choice :label {tone.label} :selected {tone.selected}
+                :onclick `superwhisper general set tone '"${tone.value}"'`)))))
+
+(defwidget fact [name value]
+  (box :class "fact" :space-evenly false
+    (label :class "name" :halign "start" :hexpand true :text name)
+    (label :class "value" :halign "end" :limit-width 30 :text value)))
+
+(defwidget panel []
+  (box :class "panel" :orientation "v" :space-evenly false
+    (label :class "empty" :halign "start" :visible {!state.running}
+           :text "Superwhisper is not running")
+    (box :orientation "v" :space-evenly false :visible {state.running}
+      (box :class "title" :space-evenly false
+        (label :class "doing" :halign "start" :hexpand true :text {state.doing ?: ""})
+        (label :class "keys" :halign "end" :text "Hold Right Alt, or Alt+Space"))
+      (words)
+      (processing)
+      (indicator)
+      (tone)
+      (fact :name "Language" :value {state.language ?: ""})
+      (fact :name "Microphone" :value {state.microphone ?: ""}))
+    (eventbox :cursor "pointer"
+              :onclick "setsid -f superwhisper settings >/dev/null 2>&1; $HOME/.local/bin/dictation-panel"
+      (box :class "open-app"
+        (label :halign "end" :text "Open Superwhisper settings")))))
+
+; Offsets match Hyprland's gaps_out and window rounding so the panel's edges
+; and corners line up with a tiled window's outer border in that corner.
+(defwindow settings
+  :monitor 0
+  :namespace "dictation"
+  :geometry (geometry :x "10px" :y "10px" :width "480px" :anchor "top right")
+  :stacking "overlay"
+  :exclusive false
+  :focusable false
+  (panel))

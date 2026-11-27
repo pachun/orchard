@@ -1,0 +1,9 @@
+{
+    "custom/dictation": {
+        "cursor": false,
+        "exec": "$HOME/.local/bin/waybar-dictation",
+        "return-type": "json",
+        "interval": 1,
+        "on-click": "$HOME/.local/bin/dictation-panel"
+    }
+}
