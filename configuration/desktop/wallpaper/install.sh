@@ -26,7 +26,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # python-gobject is orchard-wallpaper-portal's only dependency — it talks
 # D-Bus through Gio.
-sudo pacman -S --needed --noconfirm awww python-gobject
+bash "$TOOLS/install-packages.sh" awww python-gobject
 
 # swaybg is what this feature installed before awww; nothing references it
 # anymore. set-wallpaper kills any still-running instance on its next run.

@@ -29,7 +29,7 @@ bash "$HERE/../faster-arch-mirrors/install.sh"
 bash "$HERE/../menu/install.sh"
 bash "$HERE/../polkit/install.sh"
 
-sudo pacman -S --needed --noconfirm curl
+bash "$TOOLS/install-packages.sh" curl
 
 sudo install -m 755 "$HERE/root/set-update-channel" /usr/local/bin/set-update-channel
 sudo install -m 755 "$HERE/root/advance-update-batch" /usr/local/bin/advance-update-batch

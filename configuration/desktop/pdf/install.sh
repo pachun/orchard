@@ -12,18 +12,14 @@
 # GTK4, so it wears the desktop's GTK theme and follows its
 # light and dark through set-theme's color-scheme.
 #
-# Papers first arrived as another package's dependency, and installing a
-# package that is already present leaves it marked as one: removing that
-# other package took Papers with it. Marking it explicit is what makes
-# it stay. Without the xdg-mime line Chromium claims PDFs, and Chromium
-# can fill forms but not sign or mark them up.
+# Without the xdg-mime line Chromium claims PDFs, and Chromium can fill
+# forms but not sign or mark them up.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm papers
-sudo pacman -D --asexplicit papers >/dev/null
+bash "$TOOLS/install-packages.sh" papers
 xdg-mime default org.gnome.Papers.desktop application/pdf
 
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

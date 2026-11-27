@@ -34,7 +34,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # place before the launcher starts.
 bash "$HERE/../themes/install.sh"
 
-sudo pacman -S --needed --noconfirm quickshell jq
+bash "$TOOLS/install-packages.sh" quickshell jq
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"

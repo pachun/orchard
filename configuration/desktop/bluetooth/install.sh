@@ -29,7 +29,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm bluez bluez-utils
+bash "$TOOLS/install-packages.sh" bluez bluez-utils
 
 bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

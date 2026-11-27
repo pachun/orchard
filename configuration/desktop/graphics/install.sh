@@ -32,4 +32,4 @@ if is_amd_cpu; then
 else
   packages=(intel-media-driver vulkan-intel libva-utils intel-gpu-tools)
 fi
-sudo pacman -S --needed --noconfirm "${packages[@]}"
+bash "$TOOLS/install-packages.sh" "${packages[@]}"

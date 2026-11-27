@@ -9,13 +9,14 @@
 # itself as a fingerprint device gets this, machines without one skip it.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 if ! cat /sys/bus/usb/devices/*/product 2>/dev/null | grep -qi fingerprint; then
     echo "fingerprint: no fingerprint reader on this machine; skipping."
     exit 0
 fi
 
-sudo pacman -S --needed --noconfirm fprintd
+bash "$TOOLS/install-packages.sh" fprintd
 
 if ! fprintd-list "$USER" 2>/dev/null | grep -q "^ - "; then
     echo "fingerprint: no fingers enrolled yet — run \`./connect fingerprint\`."

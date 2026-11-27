@@ -24,7 +24,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm hypridle hyprlock
+bash "$TOOLS/install-packages.sh" hypridle hyprlock
 
 install_unless_identical() {
   if ! cmp -s "$1" "$2"; then

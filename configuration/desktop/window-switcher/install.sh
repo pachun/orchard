@@ -28,7 +28,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # depend on that.
 bash "$HERE/../themes/install.sh"
 
-sudo pacman -S --needed --noconfirm quickshell
+bash "$TOOLS/install-packages.sh" quickshell
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"

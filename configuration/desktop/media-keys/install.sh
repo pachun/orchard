@@ -6,5 +6,6 @@
 # volume-and-brightness-controls).
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm playerctl
+bash "$TOOLS/install-packages.sh" playerctl

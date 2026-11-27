@@ -10,10 +10,6 @@
 # authorizes a new device for good.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm bolt
-
-# On a machine where it arrived as some other package's dependency,
-# installing it again leaves it marked as one, and removing that other
-# package would take it away. Marking it explicit is what keeps it.
-sudo pacman -D --asexplicit bolt >/dev/null
+bash "$TOOLS/install-packages.sh" bolt

@@ -22,7 +22,7 @@ packages=(wireplumber pipewire-pulse pipewire-alsa)
 if is_apple_silicon; then
   packages+=(asahi-audio speakersafetyd)
 fi
-sudo pacman -S --needed --noconfirm "${packages[@]}"
+bash "$TOOLS/install-packages.sh" "${packages[@]}"
 
 bash "$HERE/../menu/install.sh"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

@@ -51,7 +51,7 @@ packages=(chromium)
 if is_apple_silicon; then
   packages+=(widevine)
 fi
-sudo pacman -S --needed --noconfirm "${packages[@]}"
+bash "$TOOLS/install-packages.sh" "${packages[@]}"
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"

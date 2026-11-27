@@ -33,7 +33,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   - ripgrep backs telescope's live_grep.
 bash "$HERE/../mise/install.sh"
 bash "$HERE/../elixir/install.sh"
-sudo pacman -S --needed --noconfirm neovim tree-sitter-cli ripgrep unzip
+bash "$TOOLS/install-packages.sh" neovim tree-sitter-cli ripgrep unzip
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/nvim"
 

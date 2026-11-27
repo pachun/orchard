@@ -28,7 +28,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # not be yet. jq is for audio-menu's OwnTone API calls, playerctl for
 # airplay-now-playing.
 bash "$HERE/../audio/install.sh"
-sudo pacman -S --needed --noconfirm avahi jq playerctl
+bash "$TOOLS/install-packages.sh" avahi jq playerctl
 sudo systemctl enable --now avahi-daemon.service
 
 bash "$TOOLS/install-yay.sh"

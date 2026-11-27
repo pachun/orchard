@@ -12,7 +12,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../fuzzel/install.sh"
 
-sudo pacman -S --needed --noconfirm jq
+bash "$TOOLS/install-packages.sh" jq
 
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" cmd-polkit-git

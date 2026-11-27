@@ -4,5 +4,6 @@
 # ones. Wired to Cmd+Shift+V via a fuzzel picker in hyprland.lua.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm cliphist wl-clipboard
+bash "$TOOLS/install-packages.sh" cliphist wl-clipboard

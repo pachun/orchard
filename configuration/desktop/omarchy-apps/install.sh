@@ -13,7 +13,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm base-devel cmake curl pkgconf
+bash "$TOOLS/install-packages.sh" base-devel cmake curl pkgconf
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 

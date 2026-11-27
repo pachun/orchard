@@ -14,7 +14,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
 is_apple_silicon && exit 0
 
-sudo pacman -S --needed --noconfirm reflector
+bash "$TOOLS/install-packages.sh" reflector
 
 sudo mkdir -p /etc/xdg/reflector
 sudo tee /etc/xdg/reflector/reflector.conf >/dev/null <<'EOF'

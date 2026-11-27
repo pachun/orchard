@@ -19,7 +19,7 @@ bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 # there's no committed binary and it matches the running libs. Runs before
 # the hyprland feature, so pull the build deps in explicitly.
 if is_dell; then
-  sudo pacman -S --needed --noconfirm gcc wayland
+  bash "$TOOLS/install-packages.sh" gcc wayland
 
   build="$(mktemp -d)"
   wayland-scanner client-header "$HERE/src/wlr-gamma-control-unstable-v1.xml" "$build/wlr-gamma-control-client-protocol.h"

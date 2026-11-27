@@ -17,11 +17,12 @@
 # reads that same login for the bar's usage numbers.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "$(uname -m)" in
   aarch64) curl -fsSL https://chatgpt.com/codex/install.sh | sh ;;
-  *) sudo pacman -S --needed --noconfirm openai-codex ;;
+  *) bash "$TOOLS/install-packages.sh" openai-codex ;;
 esac
 
 bash "$HERE/setup.sh"

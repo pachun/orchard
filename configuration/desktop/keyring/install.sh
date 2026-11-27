@@ -28,7 +28,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm gnome-keyring seahorse
+bash "$TOOLS/install-packages.sh" gnome-keyring seahorse
 
 login_pam=/etc/pam.d/login
 passwd_pam=/etc/pam.d/passwd

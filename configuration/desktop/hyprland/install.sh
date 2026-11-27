@@ -13,7 +13,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$TOOLS/check-desktop-packages.sh"
 
-sudo pacman -S --needed --noconfirm hyprland xdg-desktop-portal-hyprland
+bash "$TOOLS/install-packages.sh" hyprland xdg-desktop-portal-hyprland
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/hypr"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"

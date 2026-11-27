@@ -13,7 +13,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # if the dispatcher already sourced it, or if gitconfig.local exists.
 source "$HERE/prompts.sh"
 
-sudo pacman -S --needed --noconfirm git git-delta github-cli glab
+bash "$TOOLS/install-packages.sh" git git-delta github-cli glab
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/git"
 

@@ -19,7 +19,7 @@ TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Qt theming runtime.
-sudo pacman -S --needed --noconfirm kvantum qt6ct
+bash "$TOOLS/install-packages.sh" kvantum qt6ct
 
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" \

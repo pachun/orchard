@@ -11,6 +11,7 @@
 # and that shouldn't happen behind your back.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm fwupd
+bash "$TOOLS/install-packages.sh" fwupd
 sudo systemctl enable --now fwupd-refresh.timer

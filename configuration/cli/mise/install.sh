@@ -10,8 +10,9 @@
 # Idempotent — `mise use --global` rewrites a config file; the version
 # is skipped on subsequent runs.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm mise
+bash "$TOOLS/install-packages.sh" mise
 
 # Use precompiled binaries for Ruby instead of building from source.
 # Source builds need libyaml / openssl / readline headers + a full C

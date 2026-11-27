@@ -7,6 +7,7 @@
 # resolves on the next shim invocation; already-installed versions
 # skip the download.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "$HERE/../mise/install.sh"
@@ -26,7 +27,7 @@ fi
 # source — needs the GNU build toolchain (make, gcc, autoconf, perl,
 # etc.). base-devel is the Arch meta-group bundling those. Not on the
 # Minimal archinstall profile, so we install it explicitly here.
-sudo pacman -S --needed --noconfirm base-devel
+bash "$TOOLS/install-packages.sh" base-devel
 
 # Sequential — install erlang and make it the global default first, so
 # elixir's install/verification step (which actually runs `elixir`)

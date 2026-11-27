@@ -15,7 +15,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # offers two. qt6-multimedia-ffmpeg is named so the choice is the one
 # Omacut is tested against, rather than whichever --noconfirm picks.
 # The portal pair is Omacut's file picker.
-sudo pacman -S --needed --noconfirm \
+bash "$TOOLS/install-packages.sh" \
   ffmpeg hicolor-icon-theme \
   qt6-base qt6-declarative qt6-multimedia qt6-multimedia-ffmpeg qt6-wayland \
   xdg-desktop-portal xdg-desktop-portal-gtk

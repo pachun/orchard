@@ -43,7 +43,7 @@ if ! is_amd_cpu; then
   packages+=(thermald intel-lpmd)
   services+=(thermald.service intel_lpmd.service)
 fi
-sudo pacman -S --needed --noconfirm "${packages[@]}"
+bash "$TOOLS/install-packages.sh" "${packages[@]}"
 sudo systemctl enable --now "${services[@]}"
 
 power_rules="$HERE/99-orchard-power-profile.rules"

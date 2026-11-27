@@ -37,7 +37,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm zram-generator
+bash "$TOOLS/install-packages.sh" zram-generator
 
 # zram sized at half of RAM (capped at 8 GiB), zstd for a good
 # compression-ratio / CPU balance.

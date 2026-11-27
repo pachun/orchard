@@ -32,7 +32,10 @@ creating the folder; removing one is deleting it. A feature folder holds:
 
 ### install.sh conventions
 
-- Packages: `sudo pacman -S --needed --noconfirm …` for repo packages.
+- Packages: `bash "$TOOLS/install-packages.sh" …` for repo packages
+  (never bare `pacman -S`: the helper also marks each named package as
+  explicitly installed, so removing whatever first pulled it in as a
+  dependency can't take it away).
   AUR: `bash "$TOOLS/install-yay.sh"` first, then
   `bash "$TOOLS/aur-install.sh" …` (never bare `yay -S`: the helper
   fetches each PKGBUILD's signing keys from whichever keyserver has

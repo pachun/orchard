@@ -53,7 +53,7 @@ if is_apple_silicon; then
     fi
   fi
 else
-  sudo pacman -S --needed --noconfirm ghostty
+  bash "$TOOLS/install-packages.sh" ghostty
 fi
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/ghostty"

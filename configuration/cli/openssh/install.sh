@@ -16,9 +16,10 @@
 # runs there.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm openssh
+bash "$TOOLS/install-packages.sh" openssh
 
 KEY="$HOME/.ssh/id_ed25519"
 if [ ! -f "$KEY" ]; then

@@ -20,7 +20,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm \
+bash "$TOOLS/install-packages.sh" \
     cava playerctl ttf-nerd-fonts-symbols-mono pacman-contrib
 
 bash "$TOOLS/install-yay.sh"

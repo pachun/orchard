@@ -27,7 +27,7 @@ bash "$HERE/../rust/install.sh"
 # depends on `openssl-sys`, whose build script uses pkg-config to find
 # the system OpenSSL. Neither comes with Arch's Minimal archinstall
 # profile.
-sudo pacman -S --needed --noconfirm pkgconf openssl
+bash "$TOOLS/install-packages.sh" pkgconf openssl
 
 REPO_URL="https://github.com/pachun/gitspine.git"
 SRC_DIR="$HOME/code/gitspine"

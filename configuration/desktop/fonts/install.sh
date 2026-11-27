@@ -20,7 +20,7 @@ set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm noto-fonts noto-fonts-cjk noto-fonts-emoji
+bash "$TOOLS/install-packages.sh" noto-fonts noto-fonts-cjk noto-fonts-emoji
 
 bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" --mflags "--skipinteg" apple-fonts

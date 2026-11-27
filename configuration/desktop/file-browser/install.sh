@@ -38,7 +38,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ffmpegthumbnailer, glycin and papers draw Folio's video, image and PDF
 # thumbnails; gvfs and jq are its browsing of tailnet machines.
 # python-gobject is render-nautilus-sidebar's.
-sudo pacman -S --needed --noconfirm \
+bash "$TOOLS/install-packages.sh" \
   glib2 hicolor-icon-theme libarchive xdg-utils zlib \
   qt6-base qt6-declarative qt6-imageformats qt6-multimedia \
   qt6-multimedia-ffmpeg qt6-svg qt6-wayland \

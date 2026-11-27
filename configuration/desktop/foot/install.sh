@@ -5,5 +5,6 @@
 # isn't on it. foot is the lightest of the supported ones.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 
-sudo pacman -S --needed --noconfirm foot
+bash "$TOOLS/install-packages.sh" foot

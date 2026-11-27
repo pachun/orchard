@@ -37,7 +37,7 @@ bash "$TOOLS/install-yay.sh"
 bash "$TOOLS/aur-install.sh" eww
 # brightnessctl drives the backlight levels; adwaita-icon-theme provides the
 # symbolic glyphs and librsvg is the gdk-pixbuf loader GTK draws them with.
-sudo pacman -S --needed --noconfirm brightnessctl adwaita-icon-theme librsvg
+bash "$TOOLS/install-packages.sh" brightnessctl adwaita-icon-theme librsvg
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"

@@ -4,6 +4,7 @@
 # update removed the running kernel's unloaded uhid driver before a reboot.
 # Idempotent.
 set -euo pipefail
+TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 restore_running_kernel_modules() {
@@ -32,6 +33,6 @@ restore_running_kernel_modules() {
     return 1
 }
 
-sudo pacman -S --needed --noconfirm kernel-modules-hook
+bash "$TOOLS/install-packages.sh" kernel-modules-hook
 sudo systemctl enable linux-modules-cleanup.service
 restore_running_kernel_modules

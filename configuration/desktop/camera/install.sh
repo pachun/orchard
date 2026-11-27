@@ -20,7 +20,7 @@ is_dell || { echo "camera: IPU7 is Dell-only; skipping."; exit 0; }
 # --- Phase 1: make the sensor bind ---------------------------------------
 # Build tooling for the DKMS modules, then intel_cvs itself (Intel's own
 # vision driver, not yet upstreamed) from the AUR.
-sudo pacman -S --needed --noconfirm linux-headers dkms clang llvm
+bash "$TOOLS/install-packages.sh" linux-headers dkms clang llvm
 bash "$TOOLS/aur-install.sh" intel-vision-drivers-dkms-git
 
 # The sensor's i2c bus sits behind the usbio bridge, and intel_cvs must
@@ -33,7 +33,7 @@ blacklist intel_ipu7_psys
 EOF
 
 # --- Phase 2: expose it as a right-side-up /dev/video webcam -------------
-sudo pacman -S --needed --noconfirm v4l2loopback-dkms gst-plugin-libcamera gst-plugins-good
+bash "$TOOLS/install-packages.sh" v4l2loopback-dkms gst-plugin-libcamera gst-plugins-good
 
 # A persistent loopback device apps see as a normal "IPU7 Camera" webcam.
 sudo tee /etc/modprobe.d/v4l2loopback.conf >/dev/null <<'EOF'

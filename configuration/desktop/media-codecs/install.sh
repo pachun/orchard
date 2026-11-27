@@ -23,9 +23,4 @@ packages=(gst-libav gst-plugins-good gst-plugins-bad gst-plugins-ugly)
 if ! is_apple_silicon; then
   packages+=(gst-plugin-va)
 fi
-sudo pacman -S --needed --noconfirm "${packages[@]}"
-
-# On a machine where gst-plugins-good arrived as some other package's
-# dependency, installing it again leaves it marked as one, and removing
-# that other package would take it away. Marking it explicit keeps it.
-sudo pacman -D --asexplicit gst-plugins-good >/dev/null
+bash "$TOOLS/install-packages.sh" "${packages[@]}"
