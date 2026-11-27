@@ -4,9 +4,23 @@
 # fresh process, and the installer can't tell which of the two it just
 # caused, so it always does this. No-op outside a Wayland session: at first
 # bringup there is no bar to restart, and hyprland.lua starts one at login.
+#
+# A bar that is up keeps working after an upgrade replaces a library it was
+# built against; the one on disk no longer starts. Stopping the old bar then
+# would leave no bar at all, so it is left running and the restart fails.
 set -eu
 
 [ -n "${WAYLAND_DISPLAY:-}" ] || exit 0
+
+installed_bar_can_start() {
+    waybar --version >/dev/null 2>&1
+}
+
+if ! installed_bar_can_start; then
+    echo "restart-waybar: the installed waybar cannot start; leaving the running bar up" >&2
+    waybar --version >&2 || true
+    exit 1
+fi
 
 pkill -x waybar 2>/dev/null || true
 while pgrep -x waybar >/dev/null; do sleep 0.1; done

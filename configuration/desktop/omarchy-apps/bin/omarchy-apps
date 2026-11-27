@@ -8,6 +8,7 @@
 #   omarchy-apps install APP...   build the ones not installed yet
 #   omarchy-apps outdated         APP INSTALLED -> AVAILABLE, one per line
 #   omarchy-apps upgrade          rebuild the outdated ones
+#   omarchy-apps rebuild APP...   build again at the version on offer
 #
 # An app is set up here when a feature has linked a file named after its
 # package into ~/.config/omarchy-recipes. The file's text is added to the
@@ -134,8 +135,17 @@ upgrade() {
   return "$failed"
 }
 
+rebuild() {
+  local app
+  for app in "$@"; do
+    refuse_unless_set_up_here "$app"
+    fetch_recipe "$app" "$WORK/$app"
+    build_and_install "$app" "$WORK/$app"
+  done
+}
+
 usage() {
-  sed -n '7,10s/^# *//p' "$0" >&2
+  sed -n '7,11s/^# *//p' "$0" >&2
   exit 2
 }
 
@@ -149,5 +159,6 @@ case "$command" in
   install)  install "$@" ;;
   outdated) outdated ;;
   upgrade)  upgrade ;;
+  rebuild)  rebuild "$@" ;;
   *)        usage ;;
 esac

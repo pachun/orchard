@@ -1,0 +1,38 @@
+#!/bin/sh
+# Build again every package outside Arch's repositories that an upgrade
+# left unable to start. Such a package was compiled against the libraries
+# installed that day; when Arch later replaces one with an incompatible
+# version, Arch rebuilds its own packages to match, and nobody rebuilds
+# these. The program keeps running until its next start, then fails with
+# "cannot open shared object file" (the bar vanished this way during an
+# update, a few days after its sound library was replaced).
+#
+# checkrebuild (rebuild-detector) finds them. Apps built from Omarchy's
+# recipes go back through omarchy-apps, because the AUR has unrelated
+# packages with the same names. Run by system-update after the upgrades.
+set -u
+
+command -v checkrebuild >/dev/null || exit 0
+
+OMARCHY_APPS="$HOME/.local/bin/omarchy-apps"
+
+packages_missing_a_library() {
+    checkrebuild | cut -f2
+}
+
+is_built_from_an_omarchy_recipe() {
+    [ -x "$OMARCHY_APPS" ] && "$OMARCHY_APPS" list | grep -qxF "$1"
+}
+
+rebuild() {
+    if is_built_from_an_omarchy_recipe "$1"; then
+        "$OMARCHY_APPS" rebuild "$1"
+    else
+        yay -S --rebuild --answerclean=All --answerdiff=None --noconfirm "$1"
+    fi
+}
+
+for package in $(packages_missing_a_library); do
+    echo "rebuilding $package: a library it was built against was replaced"
+    rebuild "$package" || echo "rebuild-packages-the-upgrade-broke: $package failed to rebuild" >&2
+done
