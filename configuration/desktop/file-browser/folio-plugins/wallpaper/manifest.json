@@ -1,0 +1,7 @@
+{
+  "folio": 1,
+  "actions": [
+    { "id": "set", "label": "Set as Wallpaper", "command": ["./set-as-wallpaper"],
+      "types": ["image/*"], "files": true, "single": true }
+  ]
+}

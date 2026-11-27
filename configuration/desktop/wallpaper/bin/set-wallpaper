@@ -35,15 +35,16 @@
 # ~/.config/orchard-themes/<theme>/wallpaper.<ext> instead. Choosing here
 # is the try-it-on path; that is the keep-it path.
 #
-# Nautilus's built-in "Set as Wallpaper" reaches this script through
-# orchard-wallpaper-portal, so right-clicking a downloaded image works.
+# The file browser's "Set as Wallpaper" (file-browser/folio-plugins) calls
+# this script, so right-clicking a downloaded image works. Apps that ask
+# the desktop to set a wallpaper reach it through orchard-wallpaper-portal.
 set -eu
 
 themes="$HOME/.config/orchard-themes"
 active_theme="$themes/active"
 chosen_wallpapers="${XDG_STATE_HOME:-$HOME/.local/state}/orchard/wallpapers"
 
-# Callers are as often GUI as terminal — Nautilus (via the portal) has no
+# Callers are as often GUI as terminal — the file browser's menu has no
 # terminal attached, so anything worth saying has to go through the
 # notification daemon to be seen at all. Echoed too, for the CLI path.
 announce() {

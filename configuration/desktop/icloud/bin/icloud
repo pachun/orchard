@@ -1,4 +1,4 @@
 #!/bin/sh
 # Open the iCloud Drive mount (~/icloud, sshfs'd from the Mac mini) in
-# Nautilus, in its own window — the same file manager Cmd+E opens.
-exec nautilus --new-window "$HOME/icloud"
+# Folio, in its own window — the same file browser Cmd+E opens.
+exec folio "$HOME/icloud"

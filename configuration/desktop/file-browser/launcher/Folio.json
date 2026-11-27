@@ -1,0 +1,11 @@
+{
+  "icon": "",
+  "command": "folio",
+  "aliases": [
+    "open",
+    "files",
+    "finder",
+    "folders",
+    "file manager"
+  ]
+}

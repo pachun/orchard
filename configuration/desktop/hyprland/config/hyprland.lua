@@ -176,8 +176,8 @@ hl.bind(modifier .. " + SHIFT + N", focusOrLaunch("chromium-incognito", browserA
 -- browsing files is something you do several of at once, next to whatever
 -- you're already looking at. So Cmd+E always opens a new window — never
 -- focuses or hides an existing one — and the window rule below keeps that
--- window on the current workspace.
-hl.bind(modifier .. " + E", hl.dsp.exec_cmd("nautilus --new-window"))
+-- window on the current workspace. `folio` is a new window every time it runs.
+hl.bind(modifier .. " + E", hl.dsp.exec_cmd("folio"))
 hl.bind(modifier .. " + I", runScript('focus-or-launch --name "Messages" ' .. messagesApplication .. " " .. messagesApplication))
 hl.bind(modifier .. " + SHIFT + D", runScript('focus-or-launch --name "Beekeeper Studio" beekeeper-studio beekeeper-studio'))
 hl.bind(modifier .. " + SHIFT + C", focusOrLaunch(calendarWindowClass, calendarApplication))
@@ -520,11 +520,11 @@ hl.bind("CTRL + right", runScript("workspace-cycle right"))
 -- space here, in the compositor, means 6 is never created at all.
 --
 -- Left where they open: anything a rule already placed elsewhere (BlueBubbles'
--- scratchpad), anything floating (dialogs, pickers, Quick Look — overlays
+-- scratchpad), anything floating (dialogs, pickers, file previews — overlays
 -- belong over what opened them), and the classes below, which you open
 -- because of what you're already looking at.
 local staysBesideWhatYouAreDoing = {
-    ["org.gnome.Nautilus"] = true,          -- Cmd+E opens one beside your work, every time
+    ["folio"] = true,                       -- Cmd+E opens one beside your work, every time
     ["org.gnome.Calculator"] = true,
     ["chrome-localhost__-Default"] = true,  -- the markdown preview (:md in nvim)
     ["xdg-desktop-portal-gtk"] = true,      -- file pickers and system dialogs
@@ -569,17 +569,13 @@ hl.on("window.open", function(window)
     end
 end)
 
--- …and the Quick Look preview (sushi, Space in Nautilus). It previews the
--- file you're looking at, so it floats over the folder it came from instead
--- of being sent to an empty desktop.
--- sushi shows its window only once the preview is ready and sized, so the
--- first frame is the final one — provided nothing resizes it afterwards. Its
--- own size is fixed by file-browser's patch-quick-look (it halves the
--- size on a scale-2 panel otherwise); forcing a size or minimum here instead
--- was what produced the pixelated flash, a half-size buffer stretched until
--- sushi repainted. `no_anim` keeps the open a cut rather than a tween.
+-- …and the file browser's preview (Space in Folio). It previews the file
+-- you're looking at, so it floats over the folder it came from instead of
+-- being tiled beside it or sent to an empty desktop. Folio sizes the window
+-- itself, to most of the screen. `no_anim` keeps the open a cut rather than
+-- a tween.
 hl.window_rule({
-    match = { class = "org.gnome.NautilusPreviewer" },
+    match = { class = "folio-preview" },
     float = true,
     no_anim = true,
     center = true,
@@ -842,7 +838,7 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
 hl.config({
     -- When an app sends an XDG activation request (e.g. chromium opening
-    -- an image from nautilus, or Slack/etc. surfacing a notification), follow
+    -- an image from the file browser, or Slack/etc. surfacing a notification), follow
     -- the request and focus that window instead of staying put. Off by
     -- default — without this, opening a file in an external app silently
     -- routes it to a window/workspace you have to navigate to manually.

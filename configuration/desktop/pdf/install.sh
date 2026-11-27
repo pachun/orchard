@@ -9,10 +9,10 @@
 # Papers rather than Okular or Xournal++. Okular does everything but pulls
 # in the better part of KDE. Xournal++ has shapes but doesn't understand
 # form fields — you type over them and export a flattened copy. Papers is
-# GTK4, so it wears the same theme as Nautilus and follows the desktop's
+# GTK4, so it wears the desktop's GTK theme and follows its
 # light and dark through set-theme's color-scheme.
 #
-# Papers is already pulled in by sushi (the file browser's Quick Look).
+# Papers is already installed by the file browser, for PDF thumbnails.
 # It's installed here by name so it stays even if that dependency goes
 # away. Without the xdg-mime line Chromium claims PDFs, and Chromium can
 # fill forms but not sign or mark them up.

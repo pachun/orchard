@@ -1,9 +1,0 @@
-{
-  "icon": "",
-  "command": "nautilus --new-window",
-  "aliases": [
-    "files",
-    "finder",
-    "folders"
-  ]
-}

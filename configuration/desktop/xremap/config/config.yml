@@ -18,21 +18,32 @@ modmap:
       CapsLock: Ctrl_L
 
 keymap:
-  # Nautilus: h/j/k/l navigate (see the rules further down). Anything
-  # that puts the cursor in a text field (rename, location bar, search,
-  # type-ahead) switches to nautilus-typing mode so j/k type letters there;
-  # confirming or dismissing the field returns to the default mode. This
-  # rule sits above the macOS block so Super-w can leave typing mode too.
-  - name: "nautilus: leave typing mode"
+  # The file browser (Folio): h/j/k/l navigate (see the rules further
+  # down). Folio has no type-ahead, so the only places letters are typed are
+  # its text fields: search, the path bar, rename and new folder. Opening one
+  # switches to folio-typing mode so h/j/k/l type letters there; confirming
+  # or dismissing the field returns to the default mode. These rules sit
+  # above the macOS block so Cmd+W closes the window here, where Ctrl+W
+  # would only close a split pane.
+  - name: "file browser: leave typing mode"
     application:
       only:
-        - org.gnome.Nautilus
-    mode: nautilus-typing
+        - folio
+    mode: folio-typing
     exact_match: true
     remap:
       Esc: [Esc, { set_mode: default }]
       Enter: [Enter, { set_mode: default }]
-      Super-w: [C-w, { set_mode: default }]
+      Super-w: [Esc, q, { set_mode: default }]
+
+  - name: "file browser: Cmd+W closes the window"
+    application:
+      only:
+        - folio
+    mode: default
+    exact_match: true
+    remap:
+      Super-w: q
 
   - name: macOS-style shortcuts (skipped in ghostty)
     # exact_match=true keeps these rules from swallowing Shift-modified
@@ -62,83 +73,44 @@ keymap:
       Super-Alt-i: C-Shift-i
       Super-Alt-j: C-Shift-j
 
-  - name: "nautilus: hjkl — up a folder / down / up / open"
+  - name: "file browser: hjkl — up a folder / down / up / open"
     application:
       only:
-        - org.gnome.Nautilus
+        - folio
     mode: default
     exact_match: true
     remap:
-      h: Alt-Up
+      h: Backspace
       j: Down
       k: Up
       l: Enter
 
-  # The Quick Look window (Space in Nautilus) is its own app; its arrow keys
-  # step the folder selection behind it, so j/k keep walking files there too.
-  - name: "nautilus quick look: j/k step the previewed file"
+  # The preview window (Space in Folio) is its own app. Up and down step to
+  # the file above or below, or scroll one that is taller than the window;
+  # left and right always step.
+  - name: "file browser preview: hjkl — previous / down / up / next"
     application:
       only:
-        - org.gnome.NautilusPreviewer
+        - folio-preview
     exact_match: true
     remap:
+      h: Left
       j: Down
       k: Up
+      l: Right
 
-  - name: "nautilus: Ctrl+j/k walk the sidebar"
+  - name: "file browser: keys that put the cursor in a text field"
     application:
       only:
-        - org.gnome.Nautilus
-    exact_match: true
-    remap:
-      C-j: { launch: ["nautilus-walk-sidebar", "down"] }
-      C-k: { launch: ["nautilus-walk-sidebar", "up"] }
-
-  - name: "nautilus: keys that put the cursor in a text field"
-    application:
-      only:
-        - org.gnome.Nautilus
+        - folio
     mode: default
     exact_match: true
     remap:
-      F2: [F2, &enter_typing { set_mode: nautilus-typing }]
+      Slash: [Slash, &enter_typing { set_mode: folio-typing }]
+      F2: [F2, *enter_typing]
       C-l: [C-l, *enter_typing]
-      C-f: [C-f, *enter_typing]
+      Alt-d: [Alt-d, *enter_typing]
       C-Shift-n: [C-Shift-n, *enter_typing]
-      a: [a, *enter_typing]
-      b: [b, *enter_typing]
-      c: [c, *enter_typing]
-      d: [d, *enter_typing]
-      e: [e, *enter_typing]
-      f: [f, *enter_typing]
-      g: [g, *enter_typing]
-      i: [i, *enter_typing]
-      m: [m, *enter_typing]
-      n: [n, *enter_typing]
-      o: [o, *enter_typing]
-      p: [p, *enter_typing]
-      q: [q, *enter_typing]
-      r: [r, *enter_typing]
-      s: [s, *enter_typing]
-      t: [t, *enter_typing]
-      u: [u, *enter_typing]
-      v: [v, *enter_typing]
-      w: [w, *enter_typing]
-      x: [x, *enter_typing]
-      y: [y, *enter_typing]
-      z: [z, *enter_typing]
-      "0": ["0", *enter_typing]
-      "1": ["1", *enter_typing]
-      "2": ["2", *enter_typing]
-      "3": ["3", *enter_typing]
-      "4": ["4", *enter_typing]
-      "5": ["5", *enter_typing]
-      "6": ["6", *enter_typing]
-      "7": ["7", *enter_typing]
-      "8": ["8", *enter_typing]
-      "9": ["9", *enter_typing]
-      Dot: [Dot, *enter_typing]
-      Minus: [Minus, *enter_typing]
 
   - name: tab navigation (Cmd+Shift+[/]) — applied everywhere
     remap:

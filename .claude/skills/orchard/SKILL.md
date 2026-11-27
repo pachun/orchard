@@ -54,7 +54,8 @@ creating the folder; removing one is deleting it. A feature folder holds:
   `bash "$TOOLS/link.sh" "$HERE/omarchy-recipe" "$HOME/.config/omarchy-recipes"`,
   then `"$HOME/.local/bin/omarchy-apps" install <package>`. That file is
   also what puts the app under the updates badge and `system-update`.
-  `presentations/` is the plain example; `folio/` shows a recipe change.
+  `presentations/` is the plain example; `file-browser/` (Folio) shows a
+  recipe change.
 - Linking: `bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"` and
   `bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config"`. `link.sh`
   symlinks **per file** (real directories at the destination are kept,
@@ -170,7 +171,7 @@ reference is the stub at `/usr/share/hypr/stubs/hl.meta.lua`.
 `modifier = "SUPER"` (the key the user calls Cmd; the XPS keycap says
 Alt). App binds are `hl.bind(modifier .. " + [SHIFT +] <key>",
 focusOrLaunch(<class>, <command>))` — one window you bring forward or
-hide; things you open several of (Nautilus) use plain `hl.dsp.exec_cmd`
+hide; things you open several of (Folio, the file browser) use plain `hl.dsp.exec_cmd`
 plus `hl.window_rule({ match = { class = … }, workspace = "unset" })`.
 Scripts in `~/.local/bin` go through `runScript("<name> <args>")`.
 Legacy bind flags are option tables: `binde` → `{ repeating = true }`,

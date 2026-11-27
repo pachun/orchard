@@ -262,9 +262,10 @@ class Notifications:
             )
         elif showing["reveal"]:
             # A new window every time, and the file already selected in it —
-            # the same thing Cmd+E does, pointed at what you just made.
+            # the same thing Cmd+E does, pointed at what you just made. Given
+            # a file, Folio opens its folder with the file selected.
             subprocess.Popen(
-                ["nautilus", "--new-window", "--select", showing["reveal"]],
+                ["folio", showing["reveal"]],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )

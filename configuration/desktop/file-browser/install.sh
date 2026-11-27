@@ -1,49 +1,75 @@
 #!/usr/bin/env bash
-# The file browser, and Quick Look for it.
+# The file browser: Folio, Omarchy's file manager (Qt Quick). One quiet
+# window driven from the keyboard, with columns, a list and a grid, and a
+# full-size preview on Space. Cmd+E opens one beside what you're doing
+# (hyprland.lua), and h/j/k/l move around in it (xremap's config).
 #
-# Nautilus was only ever here as a dependency of xdg-desktop-portal-gnome, even
-# though Cmd+E in hyprland.lua launches it by name — so it's installed on
-# purpose now.
+# It is published only in Omarchy's own package repository, so the
+# omarchy-apps feature builds it from that repository's recipe and
+# system-update keeps it current.
 #
-# sushi is GNOME's Quick Look: Space on a selected file opens a preview window,
-# the arrow keys walk the rest of the folder, Space closes it. Images, PDFs,
-# text and source, audio and video, and (with libreoffice) office documents.
-# Anything it can't render falls back to a name-and-type card.
+# Folio is what everything reaching for "the file browser" gets:
+#   - Folders open in it: the default for inode/directory is pinned,
+#     because Nautilus claims folders too.
+#   - Other apps' "Show in folder" goes to it. Nautilus is still installed,
+#     as a dependency of xdg-desktop-portal-gnome, and its package owns the
+#     D-Bus service file that answers "Show in folder"; pacman won't
+#     install a second package owning that file, so Folio's copy is left
+#     out of the package built here (omarchy-recipe/folio) and a copy in
+#     the user's own D-Bus services, which outrank the system's, names
+#     Folio instead.
+#   - Open and Save dialogs are not Folio's. It ships one, but its dialog
+#     opens as a window of its own instead of over the app that asked, so
+#     the wallpaper feature's portals.conf keeps GTK's.
 #
-# sushi caps its window at half the screen, draws a shadow, and shows a
-# transparent image as if it had a solid background, so patched copies of
-# its window script, window layout and image viewer (see
-# bin/patch-quick-look) are rendered to ~/.config/sushi and handed to it
-# through GLib's resource overlay variable. The variable has to reach the D-Bus-activated previewer,
-# which the user's systemd manager launches, so it is set both for this
-# session and in environment.d for the next login.
+# Folio has no "Set as Wallpaper" of its own; folio-plugins/wallpaper adds
+# it to the right-click menu of pictures, calling the wallpaper feature's
+# set-wallpaper.
 #
-# The sidebar shows exactly the places listed in ./sidebar-places, in that
-# order, with the icons named there, then any mounts, and no dividers.
-# bin/render-nautilus-sidebar turns that list into GTK's bookmarks file and
-# ~/.config/gtk-4.0/nautilus-sidebar.css (imported by the themes feature's
-# gtk.css); the header of that script explains what Nautilus hardcodes and
-# why CSS is the only lever. The bookmarks file is rendered rather than
-# symlinked because Nautilus rewrites it whenever a bookmark is added in-app.
+# The pinned places in the sidebar are GTK's bookmarks, which Folio shares
+# with GTK's file dialogs. bin/render-nautilus-sidebar writes them from
+# ./sidebar-places; the bookmarks file is rendered rather than symlinked
+# because both apps rewrite it when a folder is pinned in-app.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo pacman -S --needed --noconfirm nautilus sushi ydotool python-gobject at-spi2-core
+# ffmpegthumbnailer, glycin and papers draw Folio's video, image and PDF
+# thumbnails; gvfs and jq are its browsing of tailnet machines.
+# python-gobject is render-nautilus-sidebar's.
+sudo pacman -S --needed --noconfirm \
+  glib2 hicolor-icon-theme libarchive xdg-utils zlib \
+  qt6-base qt6-declarative qt6-imageformats qt6-multimedia \
+  qt6-multimedia-ffmpeg qt6-svg qt6-wayland \
+  ffmpegthumbnailer glycin gvfs jq papers python-gobject
+
+bash "$HERE/../omarchy-apps/install.sh"
+bash "$TOOLS/link.sh" "$HERE/omarchy-recipe" "$HOME/.config/omarchy-recipes"
+"$HOME/.local/bin/omarchy-apps" install folio
+
+xdg-mime default folio.desktop inode/directory
+
+# Folio opens in columns, which need more room than half of a laptop
+# panel: beside its sidebar the current column slides partly out of view.
+# The list fits. Folio keeps this file itself and saves the view chosen
+# there, so it is only written where Folio has never run.
+start_in_list_view_on_a_new_machine() {
+  local folio_settings="$HOME/.config/folio/folio.conf"
+  if [ ! -f "$folio_settings" ]; then
+    mkdir -p "$(dirname "$folio_settings")"
+    printf '[General]\nviewMode=list\n' > "$folio_settings"
+  fi
+}
+start_in_list_view_on_a_new_machine
 
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
 bash "$TOOLS/link.sh" "$HERE/launcher" "$HOME/.config/launcher"
+bash "$TOOLS/link.sh" "$HERE/folio-plugins" "$HOME/.local/share/folio/plugins"
+bash "$TOOLS/link.sh" "$HERE/dbus-services" "$HOME/.local/share/dbus-1/services"
+
+# The session bus reads its service files when it starts; without this,
+# "Show in folder" keeps going to Nautilus until the next login.
+busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null 2>&1 || true
 
 "$HOME/.local/bin/render-nautilus-sidebar" "$HERE/sidebar-places"
-
-patch_quick_look() {
-  "$HOME/.local/bin/patch-quick-look"
-  local resources=/org/gnome/NautilusPreviewer
-  local patched="$HOME/.config/sushi"
-  local overlay="G_RESOURCE_OVERLAYS=$resources/js/core/mainWindow.js=$patched/mainWindow.js:$resources/ui/mainWindow.ui=$patched/mainWindow.ui:$resources/js/viewers/image.js=$patched/image.js"
-  mkdir -p "$HOME/.config/environment.d"
-  printf '%s\n' "$overlay" > "$HOME/.config/environment.d/quick-look.conf"
-  systemctl --user set-environment "$overlay"
-}
-patch_quick_look
