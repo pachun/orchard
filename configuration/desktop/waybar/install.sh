@@ -6,36 +6,30 @@
 # in the glyphs the modules use. pacman-contrib supplies the
 # `checkupdates` binary that waybar-updates calls without locking
 # the system pacman DB.
-#
-# waybar comes from the AUR's git package, not extra, until the release
-# after 0.15.0. The workspace buttons switch desktops by sending Hyprland
-# the old `dispatch workspace N` string, which Hyprland's Lua config
-# manager rejects, so under hyprland.lua the numbers in the bar stopped
-# responding to clicks. Upstream fixed it on main (Alexays/Waybar#5013,
-# then #5231 to detect the protocol) but has not released it. Once a
-# release carries it, put `waybar` back in the pacman line and drop the
-# AUR one.
 # Idempotent.
 set -euo pipefail
 TOOLS="${TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/tools}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-bash "$TOOLS/install-packages.sh" \
-    cava playerctl ttf-nerd-fonts-symbols-mono pacman-contrib
-
-bash "$TOOLS/install-yay.sh"
-
-# waybar-git conflicts with extra's waybar, and a --noconfirm install answers
-# no to pacman's "remove it?", so the swap has to be explicit. The running
-# bar keeps its binary until restart-waybar below replaces it.
-stable_waybar_is_installed() {
-    [[ "$(pacman -Qq waybar 2>/dev/null)" == "waybar" ]]
+# These machines ran the AUR's waybar-git while the fix for clicking a
+# workspace number under hyprland.lua was unreleased (Alexays/Waybar#5013,
+# #5231). waybar 0.16.0 carries it. The two packages conflict, and a
+# --noconfirm install answers no to pacman's "remove it?", so the git build
+# is removed by name first. The running bar keeps its binary until
+# restart-waybar below replaces it.
+git_build_of_waybar_is_installed() {
+    pacman -Qq waybar-git >/dev/null 2>&1
 }
 
-if stable_waybar_is_installed; then
-    sudo pacman -R --noconfirm waybar
+if git_build_of_waybar_is_installed; then
+    sudo pacman -R --noconfirm waybar-git
 fi
-bash "$TOOLS/aur-install.sh" ttf-phosphor-icons waybar-git
+
+bash "$TOOLS/install-packages.sh" \
+    waybar cava playerctl ttf-nerd-fonts-symbols-mono pacman-contrib
+
+bash "$TOOLS/install-yay.sh"
+bash "$TOOLS/aur-install.sh" ttf-phosphor-icons
 
 bash "$TOOLS/link.sh" "$HERE/config" "$HOME/.config/waybar"
 bash "$TOOLS/link.sh" "$HERE/bin" "$HOME/.local/bin"
