@@ -1,8 +1,8 @@
 # Nautilus and Folio both ship the D-Bus service file that answers other
 # apps' "Show in folder", and pacman refuses to install two packages
-# owning one file. Nautilus stays installed as a dependency of
-# xdg-desktop-portal-gnome, so Folio's copy is left out here; the
-# file-browser feature links one into the user's own D-Bus services.
+# owning one file. A machine may still have Nautilus, so Folio's copy
+# is left out here; the file-browser feature links one into the user's
+# own D-Bus services.
 eval "omarchy_$(declare -f package)"
 package() {
   omarchy_package

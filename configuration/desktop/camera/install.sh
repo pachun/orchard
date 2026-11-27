@@ -33,7 +33,7 @@ blacklist intel_ipu7_psys
 EOF
 
 # --- Phase 2: expose it as a right-side-up /dev/video webcam -------------
-sudo pacman -S --needed --noconfirm v4l2loopback-dkms gst-plugin-libcamera
+sudo pacman -S --needed --noconfirm v4l2loopback-dkms gst-plugin-libcamera gst-plugins-good
 
 # A persistent loopback device apps see as a normal "IPU7 Camera" webcam.
 sudo tee /etc/modprobe.d/v4l2loopback.conf >/dev/null <<'EOF'

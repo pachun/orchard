@@ -719,12 +719,6 @@ hl.on("hyprland.start", function()
     -- Top status bar.
     hl.exec_cmd("waybar")
 
-    -- Geoclue agent — without this, geoclue can't grant location permission
-    -- to apps (gnome-shell normally provides one; on Hyprland we don't have
-    -- that, so we run the bundled demo agent which auto-allows). Required
-    -- for gnome-maps "find me" to work, plus any future location-aware tool.
-    hl.exec_cmd("/usr/lib/geoclue-2.0/demos/agent")
-
     -- Switch to the previously-used workspace when the active one becomes
     -- empty (any close path: Cmd+Q, ghostty's Cmd+W on the last tab, etc.).
     hl.exec_cmd(localBin("hypr-empty-workspace-watcher"))

@@ -11,13 +11,13 @@
 # Folio is what everything reaching for "the file browser" gets:
 #   - Folders open in it: the default for inode/directory is pinned,
 #     because Nautilus claims folders too.
-#   - Other apps' "Show in folder" goes to it. Nautilus is still installed,
-#     as a dependency of xdg-desktop-portal-gnome, and its package owns the
-#     D-Bus service file that answers "Show in folder"; pacman won't
-#     install a second package owning that file, so Folio's copy is left
-#     out of the package built here (omarchy-recipe/folio) and a copy in
-#     the user's own D-Bus services, which outrank the system's, names
-#     Folio instead.
+#   - Other apps' "Show in folder" goes to it. A machine may still have
+#     Nautilus (GNOME's portal and settings panel depend on it), whose
+#     package owns the D-Bus service file that answers "Show in folder";
+#     pacman won't install a second package owning that file. So Folio's
+#     copy is left out of the package built here (omarchy-recipe/folio)
+#     and a copy in the user's own D-Bus services, which outrank the
+#     system's, names Folio either way.
 #   - Open and Save dialogs are not Folio's. It ships one, but its dialog
 #     opens as a window of its own instead of over the app that asked, so
 #     the wallpaper feature's portals.conf keeps GTK's.
