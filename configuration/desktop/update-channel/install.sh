@@ -29,6 +29,18 @@ bash "$HERE/../faster-arch-mirrors/install.sh"
 bash "$HERE/../menu/install.sh"
 bash "$HERE/../polkit/install.sh"
 
+# The Arch Linux Archive, which the batched channel downloads from,
+# sometimes stalls mid-file. pacman gives up after ten seconds without
+# data, which failed a kernel upgrade that went through when retried with
+# the timeout off. This does not help when the archive refuses connections
+# altogether; pacman's ten-second connection timeout cannot be changed.
+wait_out_slow_downloads() {
+    if ! grep -q '^DisableDownloadTimeout' /etc/pacman.conf; then
+        sudo sed -i '/^\[options\]/a DisableDownloadTimeout' /etc/pacman.conf
+    fi
+}
+wait_out_slow_downloads
+
 bash "$TOOLS/install-packages.sh" curl
 
 sudo install -m 755 "$HERE/root/set-update-channel" /usr/local/bin/set-update-channel
