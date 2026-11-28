@@ -612,6 +612,16 @@ hl.window_rule({
     center = true,
 })
 
+-- Omarchy's Qt Quick apps move the page exactly as far as the trackpad
+-- reports, with no gain of their own, so input.touchpad.scroll_factor
+-- (tuned for apps that amplify it) leaves them crawling. This replaces
+-- that factor for their windows.
+local unamplifiedTrackpadScrollFactor = 1.0
+hl.window_rule({
+    match = { class = "^(omawrite|folio.*|hype|omacut)$" },
+    scroll_touchpad = unamplifiedTrackpadScrollFactor,
+})
+
 -- The music visualizer (projectM) asks SDL for fullscreen, which on Wayland
 -- arrives as an ordinary toplevel; Hyprland has to be the one to make it
 -- fullscreen. It still gets an empty space like any new window, so
